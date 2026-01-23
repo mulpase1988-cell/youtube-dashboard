@@ -104,6 +104,85 @@ st.markdown("""
         border-color: #f5576c;
     }
     
+    /* 카드 스타일 (순서 설정용) */
+    .order-card {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 0.5rem;
+        transition: all 0.3s ease;
+        cursor: move;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .order-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    .order-card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .order-card-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 18px;
+        margin-right: 1rem;
+    }
+    
+    .order-card-title {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #333;
+        flex: 1;
+    }
+    
+    .order-card-count {
+        color: #667eea;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    
+    .order-card-content {
+        margin: 1rem 0;
+    }
+    
+    .order-card-subtitle {
+        font-size: 0.85rem;
+        color: #666;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .order-card-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .order-card-item {
+        background: #f8f9fa;
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        color: #555;
+        border: 1px solid #e0e0e0;
+    }
+    
     /* 테이블 스타일 */
     .dataframe {
         font-size: 14px;
@@ -122,20 +201,30 @@ st.markdown("""
         border-bottom: 1px solid #e0e0e0;
     }
     
-    /* 드래그 아이템 스타일 */
-    .drag-item {
-        background: white;
-        border: 2px solid #667eea;
-        border-radius: 10px;
-        padding: 15px;
-        margin: 10px 0;
-        cursor: move;
-        transition: all 0.3s ease;
+    /* 그리드 레이아웃 */
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin: 1rem 0;
     }
     
-    .drag-item:hover {
-        background: #f8f9fa;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    @media (max-width: 1400px) {
+        .grid-container {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    @media (max-width: 1000px) {
+        .grid-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 600px) {
+        .grid-container {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -259,7 +348,6 @@ def show_dashboard():
                 cat = 분류1_list[start_idx + idx]
                 with col:
                     is_active = (st.session_state.selected_분류1 == cat)
-                    button_class = "active" if is_active else ""
                     
                     if st.button(
                         cat,
@@ -407,11 +495,10 @@ def show_category_detail(df, 분류1):
         mime="text/csv"
     )
 
-# 설정 페이지
+# 설정 페이지 - 카드 레이아웃
 def show_settings():
-    """순서 설정 페이지"""
+    """순서 설정 페이지 - 카드 그리드 방식"""
     st.markdown("## ⚙️ 순서 설정")
-    st.markdown("---")
     
     df = load_data()
     
@@ -431,84 +518,134 @@ def show_settings():
             df_cat = df[df['분류1'] == cat1]
             st.session_state.page_order['분류2_순서'][cat1] = ['전체'] + sorted(df_cat['분류2'].dropna().unique().tolist())
     
-    # 분류1 순서 설정
-    st.markdown("### 📂 분류1 순서")
-    st.info("⚠️ 드래그 앤 드롭은 현재 Streamlit에서 지원되지 않습니다. 대신 버튼을 사용해 순서를 변경하세요.")
+    # 통계 표시
+    col1, col2, col3, col4 = st.columns(4)
     
-    for idx, cat in enumerate(st.session_state.page_order['분류1_순서']):
-        col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
-        
-        with col1:
-            st.markdown(f"**{idx + 1}. {cat}**")
-        
-        with col2:
-            if idx > 0:
-                if st.button("⬆️", key=f"up1_{cat}"):
-                    order = st.session_state.page_order['분류1_순서']
-                    order[idx], order[idx-1] = order[idx-1], order[idx]
-                    st.rerun()
-        
-        with col3:
-            if idx < len(st.session_state.page_order['분류1_순서']) - 1:
-                if st.button("⬇️", key=f"down1_{cat}"):
-                    order = st.session_state.page_order['분류1_순서']
-                    order[idx], order[idx+1] = order[idx+1], order[idx]
-                    st.rerun()
-        
-        with col4:
-            if st.button("🔝", key=f"top1_{cat}"):
-                order = st.session_state.page_order['분류1_순서']
-                order.insert(0, order.pop(idx))
-                st.rerun()
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>{len(st.session_state.page_order['분류1_순서'])}</h3>
+            <p>총 분류1</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    st.markdown("---")
+    with col2:
+        total_cat2 = sum(len(v) - 1 for v in st.session_state.page_order['분류2_순서'].values())  # '전체' 제외
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>{total_cat2}</h3>
+            <p>총 분류2</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # 분류2 순서 설정
-    st.markdown("### 📁 분류2 순서")
+    with col3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>{len(df)}</h3>
+            <p>총 채널</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    selected_cat1 = st.selectbox(
-        "분류1 선택",
-        st.session_state.page_order['분류1_순서'],
-        key="settings_cat1_select"
-    )
-    
-    if selected_cat1 and selected_cat1 in st.session_state.page_order['분류2_순서']:
-        st.markdown(f"#### {selected_cat1}의 분류2 순서")
-        
-        for idx, cat in enumerate(st.session_state.page_order['분류2_순서'][selected_cat1]):
-            col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
-            
-            with col1:
-                st.markdown(f"**{idx + 1}. {cat}**")
-            
-            with col2:
-                if idx > 0:
-                    if st.button("⬆️", key=f"up2_{cat}"):
-                        order = st.session_state.page_order['분류2_순서'][selected_cat1]
-                        order[idx], order[idx-1] = order[idx-1], order[idx]
-                        st.rerun()
-            
-            with col3:
-                if idx < len(st.session_state.page_order['분류2_순서'][selected_cat1]) - 1:
-                    if st.button("⬇️", key=f"down2_{cat}"):
-                        order = st.session_state.page_order['분류2_순서'][selected_cat1]
-                        order[idx], order[idx+1] = order[idx+1], order[idx]
-                        st.rerun()
-            
-            with col4:
-                if st.button("🔝", key=f"top2_{cat}"):
-                    order = st.session_state.page_order['분류2_순서'][selected_cat1]
-                    order.insert(0, order.pop(idx))
-                    st.rerun()
+    with col4:
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>드래그</h3>
+            <p>순서 변경</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     st.markdown("---")
     
-    # 저장/초기화 버튼
-    col1, col2 = st.columns(2)
+    # 분류1 카드 그리드
+    st.markdown("### 📂 분류1 순서 (전체 보기)")
+    st.info("💡 팁: 각 카드의 버튼으로 순서를 변경하거나, [편집]을 클릭해 분류2 순서를 조정하세요.")
+    
+    # 4열 그리드로 카드 배치
+    cards_per_row = 4
+    분류1_list = st.session_state.page_order['분류1_순서']
+    num_rows = (len(분류1_list) + cards_per_row - 1) // cards_per_row
+    
+    for row in range(num_rows):
+        cols = st.columns(cards_per_row)
+        start_idx = row * cards_per_row
+        end_idx = min(start_idx + cards_per_row, len(분류1_list))
+        
+        for idx, col in enumerate(cols):
+            if start_idx + idx < end_idx:
+                cat_idx = start_idx + idx
+                cat = 분류1_list[cat_idx]
+                
+                # 해당 분류의 채널 수 계산
+                df_cat = df[df['분류1'] == cat]
+                channel_count = len(df_cat)
+                
+                # 분류2 목록
+                if cat in st.session_state.page_order['분류2_순서']:
+                    cat2_list = st.session_state.page_order['분류2_순서'][cat]
+                else:
+                    cat2_list = ['전체']
+                
+                with col:
+                    # 카드 생성
+                    with st.container():
+                        st.markdown(f"""
+                        <div class="order-card">
+                            <div class="order-card-header">
+                                <div class="order-card-number">☰ {cat_idx + 1}</div>
+                                <div class="order-card-title">{cat}</div>
+                            </div>
+                            <div class="order-card-count">채널 {channel_count}개</div>
+                            <div class="order-card-content">
+                                <div class="order-card-subtitle">📁 분류2 ({len(cat2_list)}개)</div>
+                                <div class="order-card-items">
+                                    {''.join([f'<span class="order-card-item">• {c2}</span>' for c2 in cat2_list[:5]])}
+                                    {f'<span class="order-card-item">...외 {len(cat2_list)-5}개</span>' if len(cat2_list) > 5 else ''}
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # 버튼 영역
+                        btn_col1, btn_col2, btn_col3, btn_col4 = st.columns(4)
+                        
+                        with btn_col1:
+                            if cat_idx > 0:
+                                if st.button("⬆️", key=f"up_{cat}_{row}", help="위로"):
+                                    order = st.session_state.page_order['분류1_순서']
+                                    order[cat_idx], order[cat_idx-1] = order[cat_idx-1], order[cat_idx]
+                                    st.rerun()
+                        
+                        with btn_col2:
+                            if cat_idx < len(분류1_list) - 1:
+                                if st.button("⬇️", key=f"down_{cat}_{row}", help="아래로"):
+                                    order = st.session_state.page_order['분류1_순서']
+                                    order[cat_idx], order[cat_idx+1] = order[cat_idx+1], order[cat_idx]
+                                    st.rerun()
+                        
+                        with btn_col3:
+                            if st.button("📝", key=f"edit_{cat}_{row}", help="분류2 편집"):
+                                st.session_state.editing_category = cat
+                                st.rerun()
+                        
+                        with btn_col4:
+                            if st.button("🔝", key=f"top_{cat}_{row}", help="맨 위로"):
+                                order = st.session_state.page_order['분류1_순서']
+                                order.insert(0, order.pop(cat_idx))
+                                st.rerun()
+    
+    st.markdown("---")
+    
+    # 분류2 편집 모달
+    if 'editing_category' in st.session_state and st.session_state.editing_category:
+        show_category2_editor(df, st.session_state.editing_category)
+    
+    # 하단 버튼
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         if st.button("💾 순서 저장", use_container_width=True):
             st.success("✅ 순서가 저장되었습니다!")
+            st.balloons()
     
     with col2:
         if st.button("🔄 초기화", use_container_width=True):
@@ -523,6 +660,70 @@ def show_settings():
             
             st.success("✅ 초기 순서로 복원되었습니다!")
             st.rerun()
+    
+    with col3:
+        # 순서 내보내기
+        order_json = json.dumps(st.session_state.page_order, ensure_ascii=False, indent=2)
+        st.download_button(
+            label="📥 순서 내보내기",
+            data=order_json,
+            file_name=f"youtube_order_{datetime.now().strftime('%Y%m%d')}.json",
+            mime="application/json",
+            use_container_width=True
+        )
+    
+    with col4:
+        if st.button("❌ 편집 닫기", use_container_width=True):
+            if 'editing_category' in st.session_state:
+                del st.session_state.editing_category
+                st.rerun()
+
+# 분류2 편집기
+def show_category2_editor(df, 분류1):
+    """분류2 순서 편집 모달"""
+    st.markdown("---")
+    st.markdown(f"### 📁 '{분류1}'의 분류2 순서 편집")
+    
+    if 분류1 not in st.session_state.page_order['분류2_순서']:
+        st.warning(f"'{분류1}'의 분류2 정보가 없습니다.")
+        return
+    
+    분류2_list = st.session_state.page_order['분류2_순서'][분류1]
+    
+    # 리스트 형태로 표시
+    for idx, cat2 in enumerate(분류2_list):
+        col1, col2, col3, col4, col5 = st.columns([0.5, 3, 1, 1, 1])
+        
+        with col1:
+            st.markdown(f"**{idx + 1}**")
+        
+        with col2:
+            st.markdown(f"📌 {cat2}")
+        
+        with col3:
+            if idx > 0:
+                if st.button("⬆️", key=f"up2_{분류1}_{cat2}"):
+                    order = st.session_state.page_order['분류2_순서'][분류1]
+                    order[idx], order[idx-1] = order[idx-1], order[idx]
+                    st.rerun()
+        
+        with col4:
+            if idx < len(분류2_list) - 1:
+                if st.button("⬇️", key=f"down2_{분류1}_{cat2}"):
+                    order = st.session_state.page_order['분류2_순서'][분류1]
+                    order[idx], order[idx+1] = order[idx+1], order[idx]
+                    st.rerun()
+        
+        with col5:
+            if st.button("🔝", key=f"top2_{분류1}_{cat2}"):
+                order = st.session_state.page_order['분류2_순서'][분류1]
+                order.insert(0, order.pop(idx))
+                st.rerun()
+    
+    # 닫기 버튼
+    if st.button("✅ 편집 완료", use_container_width=True):
+        del st.session_state.editing_category
+        st.rerun()
 
 # 메인 앱
 def main():
