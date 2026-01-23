@@ -4,6 +4,9 @@ from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 import json
 from datetime import datetime
+# ----------------[수정 1] 라이브러리 추가----------------
+from streamlit_sortables import sort_items
+# -----------------------------------------------------
 
 # 페이지 설정
 st.set_page_config(
@@ -65,17 +68,6 @@ st.markdown("""
         opacity: 0.9;
     }
     
-    /* 분류 버튼 컨테이너 */
-    .category-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin: 1rem 0;
-        padding: 1rem;
-        background: #f8f9fa;
-        border-radius: 10px;
-    }
-    
     /* 분류 버튼 스타일 */
     .category-btn {
         padding: 0.75rem 1.5rem;
@@ -98,91 +90,6 @@ st.markdown("""
         box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
     }
     
-    .category-btn.active {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
-        border-color: #f5576c;
-    }
-    
-    /* 카드 스타일 (순서 설정용) */
-    .order-card {
-        background: white;
-        border: 2px solid #e0e0e0;
-        border-radius: 15px;
-        padding: 1.5rem;
-        margin: 0.5rem;
-        transition: all 0.3s ease;
-        cursor: move;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    .order-card:hover {
-        border-color: #667eea;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        transform: translateY(-2px);
-    }
-    
-    .order-card-header {
-        display: flex;
-        align-items: center;
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #f0f0f0;
-    }
-    
-    .order-card-number {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 18px;
-        margin-right: 1rem;
-    }
-    
-    .order-card-title {
-        font-size: 1.3rem;
-        font-weight: bold;
-        color: #333;
-        flex: 1;
-    }
-    
-    .order-card-count {
-        color: #667eea;
-        font-size: 0.9rem;
-        font-weight: 600;
-    }
-    
-    .order-card-content {
-        margin: 1rem 0;
-    }
-    
-    .order-card-subtitle {
-        font-size: 0.85rem;
-        color: #666;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-    }
-    
-    .order-card-items {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-    
-    .order-card-item {
-        background: #f8f9fa;
-        padding: 0.3rem 0.8rem;
-        border-radius: 15px;
-        font-size: 0.85rem;
-        color: #555;
-        border: 1px solid #e0e0e0;
-    }
-    
     /* 테이블 스타일 */
     .dataframe {
         font-size: 14px;
@@ -201,30 +108,14 @@ st.markdown("""
         border-bottom: 1px solid #e0e0e0;
     }
     
-    /* 그리드 레이아웃 */
-    .grid-container {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-        margin: 1rem 0;
-    }
-    
-    @media (max-width: 1400px) {
-        .grid-container {
-            grid-template-columns: repeat(3, 1fr);
-        }
-    }
-    
-    @media (max-width: 1000px) {
-        .grid-container {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-    
-    @media (max-width: 600px) {
-        .grid-container {
-            grid-template-columns: 1fr;
-        }
+    /* Sortable 아이템 스타일 */
+    .sortable-item {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 5px;
+        background-color: white;
+        cursor: move;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -495,10 +386,10 @@ def show_category_detail(df, 분류1):
         mime="text/csv"
     )
 
-# 설정 페이지 - 카드 레이아웃
+# ----------------[수정 2] 순서 설정 (드래그 앤 드롭)----------------
 def show_settings():
-    """순서 설정 페이지 - 카드 그리드 방식"""
-    st.markdown("## ⚙️ 순서 설정")
+    """순서 설정 페이지 - 드래그 앤 드롭 방식"""
+    st.markdown("## ⚙️ 순서 설정 (드래그 앤 드롭)")
     
     df = load_data()
     
@@ -512,218 +403,103 @@ def show_settings():
             '분류1_순서': sorted(df['분류1'].dropna().unique().tolist()),
             '분류2_순서': {}
         }
-        
         # 분류2 초기 순서 설정
         for cat1 in st.session_state.page_order['분류1_순서']:
             df_cat = df[df['분류1'] == cat1]
             st.session_state.page_order['분류2_순서'][cat1] = ['전체'] + sorted(df_cat['분류2'].dropna().unique().tolist())
-    
-    # 통계 표시
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>{len(st.session_state.page_order['분류1_순서'])}</h3>
-            <p>총 분류1</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        total_cat2 = sum(len(v) - 1 for v in st.session_state.page_order['분류2_순서'].values())  # '전체' 제외
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>{total_cat2}</h3>
-            <p>총 분류2</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>{len(df)}</h3>
-            <p>총 채널</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>드래그</h3>
-            <p>순서 변경</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # 분류1 카드 그리드
-    st.markdown("### 📂 분류1 순서 (전체 보기)")
-    st.info("💡 팁: 각 카드의 버튼으로 순서를 변경하거나, [편집]을 클릭해 분류2 순서를 조정하세요.")
-    
-    # 4열 그리드로 카드 배치
-    cards_per_row = 4
-    분류1_list = st.session_state.page_order['분류1_순서']
-    num_rows = (len(분류1_list) + cards_per_row - 1) // cards_per_row
-    
-    for row in range(num_rows):
-        cols = st.columns(cards_per_row)
-        start_idx = row * cards_per_row
-        end_idx = min(start_idx + cards_per_row, len(분류1_list))
+
+    # 탭으로 기능 분리
+    tab1, tab2, tab3 = st.tabs(["📂 분류1 순서 변경", "📁 분류2 순서 변경", "💾 저장 및 관리"])
+
+    # --- 탭 1: 분류1 순서 변경 ---
+    with tab1:
+        st.info("💡 박스를 드래그하여 순서를 변경하세요. 변경 사항은 즉시 반영됩니다.")
         
-        for idx, col in enumerate(cols):
-            if start_idx + idx < end_idx:
-                cat_idx = start_idx + idx
-                cat = 분류1_list[cat_idx]
-                
-                # 해당 분류의 채널 수 계산
-                df_cat = df[df['분류1'] == cat]
-                channel_count = len(df_cat)
-                
-                # 분류2 목록
-                if cat in st.session_state.page_order['분류2_순서']:
-                    cat2_list = st.session_state.page_order['분류2_순서'][cat]
-                else:
-                    cat2_list = ['전체']
-                
-                with col:
-                    # 카드 생성
-                    with st.container():
-                        st.markdown(f"""
-                        <div class="order-card">
-                            <div class="order-card-header">
-                                <div class="order-card-number">☰ {cat_idx + 1}</div>
-                                <div class="order-card-title">{cat}</div>
-                            </div>
-                            <div class="order-card-count">채널 {channel_count}개</div>
-                            <div class="order-card-content">
-                                <div class="order-card-subtitle">📁 분류2 ({len(cat2_list)}개)</div>
-                                <div class="order-card-items">
-                                    {''.join([f'<span class="order-card-item">• {c2}</span>' for c2 in cat2_list[:5]])}
-                                    {f'<span class="order-card-item">...외 {len(cat2_list)-5}개</span>' if len(cat2_list) > 5 else ''}
-                                </div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # 버튼 영역
-                        btn_col1, btn_col2, btn_col3, btn_col4 = st.columns(4)
-                        
-                        with btn_col1:
-                            if cat_idx > 0:
-                                if st.button("⬆️", key=f"up_{cat}_{row}", help="위로"):
-                                    order = st.session_state.page_order['분류1_순서']
-                                    order[cat_idx], order[cat_idx-1] = order[cat_idx-1], order[cat_idx]
-                                    st.rerun()
-                        
-                        with btn_col2:
-                            if cat_idx < len(분류1_list) - 1:
-                                if st.button("⬇️", key=f"down_{cat}_{row}", help="아래로"):
-                                    order = st.session_state.page_order['분류1_순서']
-                                    order[cat_idx], order[cat_idx+1] = order[cat_idx+1], order[cat_idx]
-                                    st.rerun()
-                        
-                        with btn_col3:
-                            if st.button("📝", key=f"edit_{cat}_{row}", help="분류2 편집"):
-                                st.session_state.editing_category = cat
-                                st.rerun()
-                        
-                        with btn_col4:
-                            if st.button("🔝", key=f"top_{cat}_{row}", help="맨 위로"):
-                                order = st.session_state.page_order['분류1_순서']
-                                order.insert(0, order.pop(cat_idx))
-                                st.rerun()
-    
-    st.markdown("---")
-    
-    # 분류2 편집 모달
-    if 'editing_category' in st.session_state and st.session_state.editing_category:
-        show_category2_editor(df, st.session_state.editing_category)
-    
-    # 하단 버튼
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        if st.button("💾 순서 저장", use_container_width=True):
-            st.success("✅ 순서가 저장되었습니다!")
-            st.balloons()
-    
-    with col2:
-        if st.button("🔄 초기화", use_container_width=True):
-            st.session_state.page_order = {
-                '분류1_순서': sorted(df['분류1'].dropna().unique().tolist()),
-                '분류2_순서': {}
-            }
-            
-            for cat1 in st.session_state.page_order['분류1_순서']:
-                df_cat = df[df['분류1'] == cat1]
-                st.session_state.page_order['분류2_순서'][cat1] = ['전체'] + sorted(df_cat['분류2'].dropna().unique().tolist())
-            
-            st.success("✅ 초기 순서로 복원되었습니다!")
-            st.rerun()
-    
-    with col3:
-        # 순서 내보내기
-        order_json = json.dumps(st.session_state.page_order, ensure_ascii=False, indent=2)
-        st.download_button(
-            label="📥 순서 내보내기",
-            data=order_json,
-            file_name=f"youtube_order_{datetime.now().strftime('%Y%m%d')}.json",
-            mime="application/json",
-            use_container_width=True
+        current_order = st.session_state.page_order['분류1_순서']
+        
+        # 드래그 앤 드롭 컴포넌트
+        sorted_items = sort_items(
+            items=current_order,
+            direction='vertical',
+            key='sortable_cat1'
         )
-    
-    with col4:
-        if st.button("❌ 편집 닫기", use_container_width=True):
-            if 'editing_category' in st.session_state:
-                del st.session_state.editing_category
+        
+        # 순서가 변경되었다면 세션 업데이트
+        if sorted_items != current_order:
+            st.session_state.page_order['분류1_순서'] = sorted_items
+            st.rerun()
+
+    # --- 탭 2: 분류2 순서 변경 ---
+    with tab2:
+        col_sel, col_sort = st.columns([1, 2])
+        
+        with col_sel:
+            st.markdown("### 편집할 대분류 선택")
+            selected_cat1 = st.selectbox(
+                "분류1 목록",
+                st.session_state.page_order['분류1_순서'],
+                key="cat1_selector"
+            )
+            
+        with col_sort:
+            st.markdown(f"### '{selected_cat1}'의 소분류 순서")
+            st.info("💡 박스를 드래그하여 순서를 변경하세요.")
+            
+            # 해당 분류1의 분류2 목록 가져오기
+            if selected_cat1 in st.session_state.page_order['분류2_순서']:
+                current_sub_order = st.session_state.page_order['분류2_순서'][selected_cat1]
+            else:
+                # 데이터가 없는 경우 초기화
+                df_cat = df[df['분류1'] == selected_cat1]
+                current_sub_order = ['전체'] + sorted(df_cat['분류2'].dropna().unique().tolist())
+                st.session_state.page_order['분류2_순서'][selected_cat1] = current_sub_order
+            
+            # 드래그 앤 드롭 컴포넌트
+            sorted_sub_items = sort_items(
+                items=current_sub_order,
+                direction='vertical',
+                key=f'sortable_cat2_{selected_cat1}'
+            )
+            
+            # 순서 변경 반영
+            if sorted_sub_items != current_sub_order:
+                st.session_state.page_order['분류2_순서'][selected_cat1] = sorted_sub_items
                 st.rerun()
 
-# 분류2 편집기
-def show_category2_editor(df, 분류1):
-    """분류2 순서 편집 모달"""
-    st.markdown("---")
-    st.markdown(f"### 📁 '{분류1}'의 분류2 순서 편집")
-    
-    if 분류1 not in st.session_state.page_order['분류2_순서']:
-        st.warning(f"'{분류1}'의 분류2 정보가 없습니다.")
-        return
-    
-    분류2_list = st.session_state.page_order['분류2_순서'][분류1]
-    
-    # 리스트 형태로 표시
-    for idx, cat2 in enumerate(분류2_list):
-        col1, col2, col3, col4, col5 = st.columns([0.5, 3, 1, 1, 1])
+    # --- 탭 3: 저장 및 관리 ---
+    with tab3:
+        st.markdown("### 설정 관리")
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.markdown(f"**{idx + 1}**")
+            if st.button("💾 최종 순서 저장", use_container_width=True, type="primary"):
+                st.success("✅ 현재 순서가 임시 저장되었습니다. (새로고침 전까지 유효)")
+                st.balloons()
         
         with col2:
-            st.markdown(f"📌 {cat2}")
-        
+            # 순서 내보내기
+            order_json = json.dumps(st.session_state.page_order, ensure_ascii=False, indent=2)
+            st.download_button(
+                label="📥 설정 파일 다운로드 (JSON)",
+                data=order_json,
+                file_name=f"youtube_order_{datetime.now().strftime('%Y%m%d')}.json",
+                mime="application/json",
+                use_container_width=True
+            )
+            
         with col3:
-            if idx > 0:
-                if st.button("⬆️", key=f"up2_{분류1}_{cat2}"):
-                    order = st.session_state.page_order['분류2_순서'][분류1]
-                    order[idx], order[idx-1] = order[idx-1], order[idx]
-                    st.rerun()
-        
-        with col4:
-            if idx < len(분류2_list) - 1:
-                if st.button("⬇️", key=f"down2_{분류1}_{cat2}"):
-                    order = st.session_state.page_order['분류2_순서'][분류1]
-                    order[idx], order[idx+1] = order[idx+1], order[idx]
-                    st.rerun()
-        
-        with col5:
-            if st.button("🔝", key=f"top2_{분류1}_{cat2}"):
-                order = st.session_state.page_order['분류2_순서'][분류1]
-                order.insert(0, order.pop(idx))
+            if st.button("🔄 초기화 (알파벳순)", use_container_width=True):
+                st.session_state.page_order = {
+                    '분류1_순서': sorted(df['분류1'].dropna().unique().tolist()),
+                    '분류2_순서': {}
+                }
+                for cat1 in st.session_state.page_order['분류1_순서']:
+                    df_cat = df[df['분류1'] == cat1]
+                    st.session_state.page_order['분류2_순서'][cat1] = ['전체'] + sorted(df_cat['분류2'].dropna().unique().tolist())
+                
+                st.success("✅ 초기 순서로 복원되었습니다!")
                 st.rerun()
-    
-    # 닫기 버튼
-    if st.button("✅ 편집 완료", use_container_width=True):
-        del st.session_state.editing_category
-        st.rerun()
+# -----------------------------------------------------
 
 # 메인 앱
 def main():
