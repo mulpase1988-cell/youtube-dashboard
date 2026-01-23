@@ -3,6 +3,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 import json
+import re  # [추가] 번호 제거를 위한 정규표현식 모듈
 from datetime import datetime
 from streamlit_sortables import sort_items
 
@@ -14,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 커스텀 CSS
+# 커스텀 CSS (스크린샷과 유사한 붉은색 스타일 적용)
 st.markdown("""
 <style>
     /* 전역 스타일 */
@@ -61,22 +62,33 @@ st.markdown("""
         color: white;
     }
 
-    /* Sortable 아이템 스타일 */
+    /* --------------------------------------------------- */
+    /* [디자인 수정] Sortable 아이템 스타일 (붉은색 카드) */
+    /* --------------------------------------------------- */
     .sortable-item {
-        background-color: white !important;
-        border: 1px solid #ddd !important;
-        color: #333 !important;
-        border-radius: 8px !important;
-        padding: 10px !important;
-        margin-bottom: 5px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-        font-weight: 500 !important;
+        background: #ff4b4b !important;  /* 스크린샷과 유사한 붉은색 */
+        color: white !important;
+        border: 1px solid #ff2b2b !important;
+        border-radius: 6px !important;
+        padding: 12px 5px !important;
+        margin-bottom: 8px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+        font-weight: bold !important;
         cursor: grab !important;
         text-align: center !important;
-        font-size: 14px !important;
+        font-size: 15px !important;
+        white-space: nowrap !important; /* 텍스트 줄바꿈 방지 */
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     
-    /* Sortable 컨테이너 헤더 숨기기 (깔끔하게 보이게) */
+    .sortable-item:hover {
+        background: #ff3333 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    /* 헤더 숨기기 */
     .sortable-container-header {
         display: none !important;
     }
@@ -98,10 +110,9 @@ def format_korean_number(num):
     else:
         return f"{num:,}"
 
-# 리스트를 N개의 열로 나누는 헬퍼 함수
+# 리스트 청크 함수
 def chunk_list(data, num_chunks):
-    if not data:
-        return [[] for _ in range(num_chunks)]
+    if not data: return [[] for _ in range(num_chunks)]
     avg = len(data) / float(num_chunks)
     chunks = []
     last = 0.0
@@ -111,14 +122,27 @@ def chunk_list(data, num_chunks):
         last = next_val
     return chunks
 
-# 구글 시트 연결
+# -------------------------------------------------------------
+# [추가] 문자열에서 앞의 숫자(순번) 제거하는 함수
+# "1. 게임" -> "게임"으로 변환
+# -------------------------------------------------------------
+def clean_item_text(text):
+    # 정규표현식: 숫자(1개이상) + 점(.) + 공백(\s) 으로 시작하는 패턴 제거
+    return re.sub(r'^\d+\.\s', '', text)
+
+# -------------------------------------------------------------
+# 구글 시트 연결 및 설정 관리
+# -------------------------------------------------------------
+def get_gspread_client():
+    credentials_dict = dict(st.secrets["gcp_service_account"])
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
+    return gspread.authorize(credentials)
+
 @st.cache_data(ttl=600)
 def load_data():
     try:
-        credentials_dict = dict(st.secrets["gcp_service_account"])
-        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
-        client = gspread.authorize(credentials)
+        client = get_gspread_client()
         sheet = client.open("유튜브보물창고_테스트").sheet1
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
@@ -133,7 +157,74 @@ def load_data():
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame()
 
-# 네비게이션
+def load_config_from_sheet():
+    try:
+        client = get_gspread_client()
+        doc = client.open("유튜브보물창고_테스트")
+        try:
+            worksheet = doc.worksheet("config")
+            config_json = worksheet.acell('A1').value
+            if config_json:
+                return json.loads(config_json)
+        except gspread.WorksheetNotFound:
+            return None
+    except Exception:
+        return None
+    return None
+
+def save_config_to_sheet(order_data):
+    try:
+        client = get_gspread_client()
+        doc = client.open("유튜브보물창고_테스트")
+        try:
+            worksheet = doc.worksheet("config")
+        except gspread.WorksheetNotFound:
+            worksheet = doc.add_worksheet(title="config", rows=10, cols=10)
+        
+        json_str = json.dumps(order_data, ensure_ascii=False)
+        worksheet.update_acell('A1', json_str)
+        return True
+    except Exception as e:
+        st.error(f"설정 저장 실패: {str(e)}")
+        return False
+
+# -------------------------------------------------------------
+# 데이터 동기화 함수
+# -------------------------------------------------------------
+def sync_order_with_data(saved_order, df):
+    live_cat1 = set(df['분류1'].dropna().unique())
+    
+    current_cat1_order = saved_order.get('분류1_순서', [])
+    new_cat1_order = [c for c in current_cat1_order if c in live_cat1]
+    
+    for c in sorted(list(live_cat1)):
+        if c not in new_cat1_order:
+            new_cat1_order.append(c)
+            
+    saved_order['분류1_순서'] = new_cat1_order
+    
+    if '분류2_순서' not in saved_order:
+        saved_order['분류2_순서'] = {}
+        
+    for cat1 in new_cat1_order:
+        live_cat2 = set(df[df['분류1'] == cat1]['분류2'].dropna().unique())
+        live_cat2.add('전체')
+        
+        current_cat2_order = saved_order['분류2_순서'].get(cat1, ['전체'])
+        new_cat2_order = [c for c in current_cat2_order if c in live_cat2]
+        
+        for c in sorted(list(live_cat2)):
+            if c not in new_cat2_order:
+                new_cat2_order.append(c)
+                
+        saved_order['분류2_순서'][cat1] = new_cat2_order
+        
+    saved_order['분류2_순서'] = {k:v for k,v in saved_order['분류2_순서'].items() if k in new_cat1_order}
+    return saved_order
+
+# -------------------------------------------------------------
+# UI 컴포넌트
+# -------------------------------------------------------------
 def show_navigation():
     col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
     with col1: st.markdown("# 🎬 YouTube 보물창고")
@@ -150,12 +241,18 @@ def show_navigation():
             st.cache_data.clear()
             st.rerun()
 
-# 대시보드
 def show_dashboard():
     df = load_data()
     if df.empty: return
     
-    분류1_list = st.session_state.page_order.get('분류1_순서', sorted(df['분류1'].dropna().unique().tolist())) if 'page_order' in st.session_state else sorted(df['분류1'].dropna().unique().tolist())
+    if 'page_order' not in st.session_state:
+        saved_order = load_config_from_sheet()
+        if saved_order:
+            st.session_state.page_order = sync_order_with_data(saved_order, df)
+        else:
+            st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}}, df)
+
+    분류1_list = st.session_state.page_order['분류1_순서']
     
     if 'selected_분류1' not in st.session_state:
         st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else None
@@ -182,13 +279,12 @@ def show_dashboard():
     if st.session_state.selected_분류1:
         show_category_detail(df, st.session_state.selected_분류1)
 
-# 상세 페이지
 def show_category_detail(df, 분류1):
     df_filtered = df[df['분류1'] == 분류1].copy()
     if df_filtered.empty: return
 
     분류2_list = ['전체']
-    if 'page_order' in st.session_state and 분류1 in st.session_state.page_order['분류2_순서']:
+    if 'page_order' in st.session_state and '분류2_순서' in st.session_state.page_order and 분류1 in st.session_state.page_order['분류2_순서']:
         분류2_list = st.session_state.page_order['분류2_순서'][분류1]
     else:
         분류2_list += sorted(df_filtered['분류2'].dropna().unique().tolist())
@@ -222,7 +318,7 @@ def show_category_detail(df, 분류1):
     st.dataframe(df_fmt, use_container_width=True, height=500)
 
 # -------------------------------------------------------------
-# [수정됨] 순서 설정 (오류 수정: 딕셔너리 구조 적용)
+# [수정] 순서 설정 (번호 표시 + 디자인 변경)
 # -------------------------------------------------------------
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
@@ -230,49 +326,46 @@ def show_settings():
     if df.empty: return
     
     if 'page_order' not in st.session_state:
-        st.session_state.page_order = {
-            '분류1_순서': sorted(df['분류1'].dropna().unique().tolist()),
-            '분류2_순서': {}
-        }
-        for cat1 in st.session_state.page_order['분류1_순서']:
-            df_cat = df[df['분류1'] == cat1]
-            st.session_state.page_order['분류2_순서'][cat1] = ['전체'] + sorted(df_cat['분류2'].dropna().unique().tolist())
+        with st.spinner("설정 불러오는 중..."):
+            saved_order = load_config_from_sheet()
+            if saved_order:
+                st.session_state.page_order = sync_order_with_data(saved_order, df)
+                st.toast("✅ 설정 로드 완료!")
+            else:
+                st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}}, df)
 
     tab1, tab2, tab3 = st.tabs(["📂 분류1 순서", "📁 분류2 순서", "💾 저장"])
 
-    # --- 탭 1: 분류1 (그리드 스타일) ---
+    # --- 탭 1: 분류1 ---
     with tab1:
-        st.info("💡 카드를 드래그하여 순서를 변경하세요. (왼쪽 위 → 오른쪽 아래 순서로 저장됩니다)")
+        st.info("💡 카드를 드래그하여 순서를 변경하세요. (왼쪽 위 → 오른쪽 아래 순서)")
         
         current_list = st.session_state.page_order['분류1_순서']
         
-        # 1. 리스트 청크 나누기
-        cols_count = 5 
-        chunked_list = chunk_list(current_list, cols_count)
+        # [변경점] 화면에 표시할 때는 "번호. 이름" 형태로 변환
+        display_list = [f"{i+1}. {item}" for i, item in enumerate(current_list)]
         
-        # 2. [중요] 라이브러리가 요구하는 dict 형식으로 변환 ({header:..., items:...})
-        sortable_data = [
-            {'header': '', 'items': chunk} 
-            for chunk in chunked_list
-        ]
+        chunked_list = chunk_list(display_list, 5) # 5열
+        sortable_data = [{'header': '', 'items': chunk} for chunk in chunked_list]
         
-        # 3. Sortable 컴포넌트 호출
         sorted_data = sort_items(
             sortable_data,
             multi_containers=True,
             direction='vertical',
-            key='sortable_cat1_grid_v2'
+            key='sortable_cat1_numbered'
         )
         
-        # 4. 결과 복원 (Flatten)
-        # sorted_data는 다시 [{'header':..., 'items':...}, ...] 형태로 돌아옴
-        new_order = [item for container in sorted_data for item in container['items']]
+        # 드래그 후 결과 합치기
+        new_display_order = [item for container in sorted_data for item in container['items']]
+        
+        # [중요] 저장하기 전에는 다시 번호를 제거 ("1. 게임" -> "게임")
+        new_order = [clean_item_text(item) for item in new_display_order]
         
         if new_order != current_list:
             st.session_state.page_order['분류1_순서'] = new_order
             st.rerun()
 
-    # --- 탭 2: 분류2 (그리드 스타일) ---
+    # --- 탭 2: 분류2 ---
     with tab2:
         col_sel, col_sort = st.columns([1, 3])
         
@@ -284,53 +377,64 @@ def show_settings():
             st.markdown(f"##### '{selected_cat1}'의 분류2 순서")
             
             if selected_cat1 not in st.session_state.page_order['분류2_순서']:
-                 df_cat = df[df['분류1'] == selected_cat1]
-                 st.session_state.page_order['분류2_순서'][selected_cat1] = ['전체'] + sorted(df_cat['분류2'].dropna().unique().tolist())
+                 st.session_state.page_order = sync_order_with_data(st.session_state.page_order, df)
             
-            current_sub = st.session_state.page_order['분류2_순서'][selected_cat1]
+            current_sub = st.session_state.page_order['분류2_순서'].get(selected_cat1, ['전체'])
             
-            # 1. 리스트 청크
-            chunked_sub = chunk_list(current_sub, 4)
+            # [변경점] 분류2도 번호 붙이기
+            display_sub = [f"{i+1}. {item}" for i, item in enumerate(current_sub)]
             
-            # 2. Dict 형식 변환
-            sortable_sub_data = [
-                {'header': '', 'items': chunk} 
-                for chunk in chunked_sub
-            ]
+            chunked_sub = chunk_list(display_sub, 4) # 4열
+            sortable_sub_data = [{'header': '', 'items': chunk} for chunk in chunked_sub]
             
-            # 3. Sortable 호출
             sorted_sub_data = sort_items(
                 sortable_sub_data,
                 multi_containers=True,
                 direction='vertical',
-                key=f'sortable_cat2_{selected_cat1}_v2'
+                key=f'sortable_cat2_{selected_cat1}_numbered'
             )
             
-            # 4. 결과 복원
-            new_sub_order = [item for container in sorted_sub_data for item in container['items']]
+            new_sub_display = [item for container in sorted_sub_data for item in container['items']]
+            
+            # 번호 제거 후 저장
+            new_sub_order = [clean_item_text(item) for item in new_sub_display]
             
             if new_sub_order != current_sub:
                 st.session_state.page_order['분류2_순서'][selected_cat1] = new_sub_order
                 st.rerun()
 
+    # --- 탭 3: 저장 ---
     with tab3:
-        if st.button("💾 최종 저장", type="primary", use_container_width=True):
-            st.success("저장되었습니다!")
+        st.markdown("### 💾 설정 저장")
+        st.info("변경된 순서를 구글 시트에 영구적으로 저장합니다.")
         
-        if st.button("🔄 초기화", use_container_width=True):
-            st.session_state.page_order = {
-                '분류1_순서': sorted(df['분류1'].dropna().unique().tolist()),
-                '분류2_순서': {}
-            }
-            for cat1 in st.session_state.page_order['분류1_순서']:
-                df_cat = df[df['분류1'] == cat1]
-                st.session_state.page_order['분류2_순서'][cat1] = ['전체'] + sorted(df_cat['분류2'].dropna().unique().tolist())
+        if st.button("💾 구글 시트에 저장하기", type="primary", use_container_width=True):
+            with st.spinner("저장 중..."):
+                success = save_config_to_sheet(st.session_state.page_order)
+                if success:
+                    st.success("✅ 저장이 완료되었습니다!")
+                    st.cache_data.clear()
+                else:
+                    st.error("❌ 저장 실패")
+        
+        st.markdown("---")
+        if st.button("🔄 기본 순서로 초기화 (알파벳순)", use_container_width=True):
+            st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}}, df)
             st.rerun()
 
 def main():
     if 'page' not in st.session_state: st.session_state.page = "dashboard"
     show_navigation()
     st.markdown("---")
+    
+    if 'page_order' not in st.session_state:
+        df = load_data()
+        saved_order = load_config_from_sheet()
+        if saved_order:
+            st.session_state.page_order = sync_order_with_data(saved_order, df)
+        else:
+            st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}}, df)
+
     if st.session_state.page == "dashboard": show_dashboard()
     elif st.session_state.page == "settings": show_settings()
     st.markdown("---")
