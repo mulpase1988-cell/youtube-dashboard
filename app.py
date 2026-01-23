@@ -5,7 +5,6 @@ import pandas as pd
 import json
 from datetime import datetime
 from streamlit_sortables import sort_items
-import math
 
 # 페이지 설정
 st.set_page_config(
@@ -15,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 커스텀 CSS (버튼 스타일로 변경)
+# 커스텀 CSS
 st.markdown("""
 <style>
     /* 전역 스타일 */
@@ -62,27 +61,24 @@ st.markdown("""
         color: white;
     }
 
-    /* --------------------------------------------------- */
-    /* [수정] Sortable 아이템 스타일 (빨간 막대 -> 깔끔한 버튼 스타일) */
-    /* --------------------------------------------------- */
+    /* Sortable 아이템 스타일 */
     .sortable-item {
         background-color: white !important;
-        border: 2px solid #e0e0e0 !important;
+        border: 1px solid #ddd !important;
         color: #333 !important;
-        border-radius: 10px !important;
-        padding: 12px !important;
-        margin-bottom: 8px !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
-        font-weight: bold !important;
+        border-radius: 8px !important;
+        padding: 10px !important;
+        margin-bottom: 5px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+        font-weight: 500 !important;
         cursor: grab !important;
         text-align: center !important;
+        font-size: 14px !important;
     }
     
-    .sortable-item:hover {
-        border-color: #667eea !important;
-        color: #667eea !important;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2) !important;
+    /* Sortable 컨테이너 헤더 숨기기 (깔끔하게 보이게) */
+    .sortable-container-header {
+        display: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -104,20 +100,15 @@ def format_korean_number(num):
 
 # 리스트를 N개의 열로 나누는 헬퍼 함수
 def chunk_list(data, num_chunks):
-    """리스트를 지정된 개수의 청크로 나눔 (빈 리스트 포함 방지)"""
     if not data:
         return [[] for _ in range(num_chunks)]
-    
-    # 데이터를 최대한 균등하게 분배
     avg = len(data) / float(num_chunks)
     chunks = []
     last = 0.0
-    
     for _ in range(num_chunks):
         next_val = last + avg
         chunks.append(data[int(last):int(next_val)])
         last = next_val
-        
     return chunks
 
 # 구글 시트 연결
@@ -231,7 +222,7 @@ def show_category_detail(df, 분류1):
     st.dataframe(df_fmt, use_container_width=True, height=500)
 
 # -------------------------------------------------------------
-# [핵심 수정] 순서 설정 (멀티 컬럼 그리드 방식)
+# [수정됨] 순서 설정 (오류 수정: 딕셔너리 구조 적용)
 # -------------------------------------------------------------
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
@@ -251,24 +242,31 @@ def show_settings():
 
     # --- 탭 1: 분류1 (그리드 스타일) ---
     with tab1:
-        st.info("💡 카드를 드래그하여 순서를 변경하세요. (왼쪽 위 → 오른쪽 아래 순서입니다)")
+        st.info("💡 카드를 드래그하여 순서를 변경하세요. (왼쪽 위 → 오른쪽 아래 순서로 저장됩니다)")
         
         current_list = st.session_state.page_order['분류1_순서']
         
-        # 5개의 열로 나누어 표시 (그리드 효과)
+        # 1. 리스트 청크 나누기
         cols_count = 5 
         chunked_list = chunk_list(current_list, cols_count)
         
-        # 리스트의 리스트를 전달하면 자동으로 멀티 컬럼(칸반) 모드가 됩니다.
-        sorted_chunks = sort_items(
-            chunked_list,
+        # 2. [중요] 라이브러리가 요구하는 dict 형식으로 변환 ({header:..., items:...})
+        sortable_data = [
+            {'header': '', 'items': chunk} 
+            for chunk in chunked_list
+        ]
+        
+        # 3. Sortable 컴포넌트 호출
+        sorted_data = sort_items(
+            sortable_data,
             multi_containers=True,
             direction='vertical',
-            key='sortable_cat1_grid'
+            key='sortable_cat1_grid_v2'
         )
         
-        # 변경된 순서를 다시 하나의 리스트로 합침 (Flatten)
-        new_order = [item for sublist in sorted_chunks for item in sublist]
+        # 4. 결과 복원 (Flatten)
+        # sorted_data는 다시 [{'header':..., 'items':...}, ...] 형태로 돌아옴
+        new_order = [item for container in sorted_data for item in container['items']]
         
         if new_order != current_list:
             st.session_state.page_order['분류1_순서'] = new_order
@@ -291,17 +289,25 @@ def show_settings():
             
             current_sub = st.session_state.page_order['분류2_순서'][selected_cat1]
             
-            # 4개의 열로 나누어 표시
+            # 1. 리스트 청크
             chunked_sub = chunk_list(current_sub, 4)
             
-            sorted_sub_chunks = sort_items(
-                chunked_sub,
+            # 2. Dict 형식 변환
+            sortable_sub_data = [
+                {'header': '', 'items': chunk} 
+                for chunk in chunked_sub
+            ]
+            
+            # 3. Sortable 호출
+            sorted_sub_data = sort_items(
+                sortable_sub_data,
                 multi_containers=True,
                 direction='vertical',
-                key=f'sortable_cat2_{selected_cat1}'
+                key=f'sortable_cat2_{selected_cat1}_v2'
             )
             
-            new_sub_order = [item for sublist in sorted_sub_chunks for item in sublist]
+            # 4. 결과 복원
+            new_sub_order = [item for container in sorted_sub_data for item in container['items']]
             
             if new_sub_order != current_sub:
                 st.session_state.page_order['분류2_순서'][selected_cat1] = new_sub_order
