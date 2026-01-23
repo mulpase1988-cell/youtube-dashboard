@@ -14,94 +14,86 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 커스텀 CSS (엑셀/표 스타일의 번호 고정 디자인)
+# 커스텀 CSS (엑셀/표 스타일 - 번호 고정, 내용 이동)
 st.markdown("""
 <style>
-    /* 전역 스타일 */
-    .main { padding: 0rem 1rem; }
-    
-    /* --------------------------------------------------- */
-    /* [핵심] CSS 카운터 및 엑셀 스타일 카드 디자인 */
-    /* --------------------------------------------------- */
-    
     /* 1. 카운터 초기화 */
     .stApp { counter-reset: item-rank; }
     div[data-testid="stTabContent"] { counter-reset: item-rank; }
 
-    /* 2. Sortable 아이템 스타일 (카드 전체 틀) */
+    /* 2. Sortable 아이템 스타일 (카드 전체) */
     .sortable-item {
-        background: white !important;        /* 배경 흰색 */
-        color: #333 !important;              /* 글자 검은색 */
-        border: 1px solid #bbb !important;   /* 테두리 진한 회색 */
-        border-radius: 4px !important;       /* 모서리 살짝 둥글게 */
-        padding: 0 !important;               /* 내부 여백 제거 (번호칸 꽉 채우기 위해) */
+        background-color: white !important;  /* 흰색 배경 */
+        color: #333 !important;              /* 검은 글씨 */
+        border: 1px solid #ccc !important;   /* 회색 테두리 */
+        border-radius: 4px !important;
+        padding: 0 !important;               /* 내부 패딩 제거 (번호박스 꽉 채우기) */
         margin-bottom: 8px !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
-        cursor: grab !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
         font-size: 15px !important;
         font-weight: 500 !important;
-        overflow: hidden !important;         /* 넘치는 내용 숨김 */
+        cursor: grab !important;
         
-        /* Flexbox로 번호와 내용을 가로 배치 */
+        /* Flex 레이아웃으로 [번호|내용] 배치 */
         display: flex !important;
-        align-items: center !important;      /* 수직 중앙 정렬 */
-        height: 40px !important;             /* 높이 고정 */
+        align-items: center !important;
+        height: 42px !important;
+        overflow: hidden !important;
         
         /* 카운터 증가 */
         counter-increment: item-rank;
     }
     
-    /* 3. 번호 영역 (왼쪽 회색 박스) - ::before 가상 요소 */
+    /* 3. 번호 박스 (왼쪽 회색 영역) */
     .sortable-item::before {
-        content: counter(item-rank);         /* 번호 자동 생성 */
-        background-color: #f0f0f0;           /* 엑셀 헤더 같은 회색 배경 */
-        color: #333;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px;                         /* 번호칸 너비 고정 */
-        height: 100%;                        /* 높이 꽉 채우기 */
-        border-right: 1px solid #bbb;        /* 내용과 구분선 */
-        margin-right: 10px;                  /* 글자와의 간격 */
-        flex-shrink: 0;                      /* 너비 줄어듦 방지 */
+        content: counter(item-rank);         /* 1, 2, 3... 자동 생성 */
+        background-color: #eee !important;   /* 회색 배경 */
+        color: #555 !important;
+        font-weight: bold !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 45px !important;              /* 너비 고정 */
+        height: 100% !important;             /* 높이 꽉 채우기 */
+        border-right: 1px solid #ccc !important;
+        margin-right: 12px !important;
+        flex-shrink: 0 !important;           /* 찌그러짐 방지 */
     }
     
     /* 호버 효과 */
     .sortable-item:hover {
         border-color: #667eea !important;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+        background-color: #f8f9fa !important;
         transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
     }
     .sortable-item:hover::before {
-        background-color: #e0e0e0;           /* 호버시 번호칸 색상 조금 진하게 */
-        border-right-color: #667eea;
+        background-color: #e0e0e0 !important;
+        color: #333 !important;
+        border-right-color: #667eea !important;
     }
-    
+
     /* 헤더 숨기기 */
     .sortable-container-header { display: none !important; }
     
-    /* 기타 UI 스타일 */
+    /* 기존 스타일 유지 */
     .nav-button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         padding: 0.75rem 1.5rem;
         border-radius: 10px;
-        font-weight: bold;
         text-decoration: none;
+        font-weight: bold;
     }
     .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 1.5rem;
         border-radius: 15px;
         color: white;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         text-align: center;
         margin-bottom: 1rem;
     }
     .metric-card h3 { font-size: 2rem; margin: 0; font-weight: bold; }
-    .metric-card p { font-size: 0.9rem; margin: 0.5rem 0 0 0; opacity: 0.9; }
-    
     .category-btn {
         padding: 0.75rem 1.5rem;
         border: 2px solid #667eea;
@@ -110,12 +102,7 @@ st.markdown("""
         color: #667eea;
         font-weight: bold;
         cursor: pointer;
-        transition: all 0.3s ease;
         text-align: center;
-    }
-    .category-btn:hover {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -335,7 +322,7 @@ def show_category_detail(df, 분류1):
     st.dataframe(df_fmt, use_container_width=True, height=500)
 
 # -------------------------------------------------------------
-# [수정] 순서 설정 (번호 | 내용 분리 디자인)
+# [수정] 순서 설정 (엑셀/표 스타일 적용)
 # -------------------------------------------------------------
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
@@ -359,15 +346,16 @@ def show_settings():
         
         current_list = st.session_state.page_order['분류1_순서']
         
-        # 5열 그리드로 배치
+        # 5열 그리드
         chunked_list = chunk_list(current_list, 5) 
         sortable_data = [{'header': '', 'items': chunk} for chunk in chunked_list]
         
+        # key를 변경하여 컴포넌트 강제 리로드 (스타일 즉시 적용)
         sorted_data = sort_items(
             sortable_data,
             multi_containers=True,
             direction='vertical',
-            key='sortable_cat1_split_style'
+            key='sortable_cat1_excel_v4'
         )
         
         new_order = [item for container in sorted_data for item in container['items']]
@@ -392,15 +380,16 @@ def show_settings():
             
             current_sub = st.session_state.page_order['분류2_순서'].get(selected_cat1, ['전체'])
             
-            # 4열 그리드로 배치
+            # 4열 그리드
             chunked_sub = chunk_list(current_sub, 4) 
             sortable_sub_data = [{'header': '', 'items': chunk} for chunk in chunked_sub]
             
+            # key를 변경하여 컴포넌트 강제 리로드
             sorted_sub_data = sort_items(
                 sortable_sub_data,
                 multi_containers=True,
                 direction='vertical',
-                key=f'sortable_cat2_{selected_cat1}_split_style'
+                key=f'sortable_cat2_{selected_cat1}_excel_v4'
             )
             
             new_sub_order = [item for container in sorted_sub_data for item in container['items']]
