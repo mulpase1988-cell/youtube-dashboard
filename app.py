@@ -3,7 +3,6 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 import json
-import re  # [추가] 번호 제거를 위한 정규표현식 모듈
 from datetime import datetime
 from streamlit_sortables import sort_items
 
@@ -15,24 +14,81 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 커스텀 CSS (스크린샷과 유사한 붉은색 스타일 적용)
+# 커스텀 CSS (번호 고정 및 디자인)
 st.markdown("""
 <style>
     /* 전역 스타일 */
     .main { padding: 0rem 1rem; }
     
-    /* 네비게이션 버튼 */
+    /* --------------------------------------------------- */
+    /* [핵심] CSS 카운터 설정 (번호 고정 기능) */
+    /* --------------------------------------------------- */
+    
+    /* 1. 카운터 초기화 (앱 전체 혹은 탭 영역) */
+    .stApp {
+        counter-reset: item-rank;
+    }
+    
+    /* 탭을 바꿀 때마다 카운터가 꼬이지 않도록 탭 패널에서도 초기화 시도 */
+    div[data-testid="stTabContent"] {
+        counter-reset: item-rank;
+    }
+
+    /* 2. Sortable 아이템 스타일 (붉은색 카드) */
+    .sortable-item {
+        background: #ff4b4b !important;
+        color: white !important;
+        border: 1px solid #ff2b2b !important;
+        border-radius: 6px !important;
+        padding: 12px 5px !important;
+        margin-bottom: 8px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+        font-weight: bold !important;
+        cursor: grab !important;
+        text-align: center !important;
+        font-size: 15px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        
+        /* 카운터 증가 */
+        counter-increment: item-rank;
+        display: flex !important;     /* 내용을 가로로 배치 */
+        justify-content: flex-start;  /* 왼쪽 정렬 */
+        align-items: center;
+        padding-left: 15px !important; /* 번호 공간 확보 */
+    }
+    
+    /* 3. 가상 요소로 번호 생성 (::before) */
+    .sortable-item::before {
+        content: counter(item-rank) ". "; /* 자동으로 1. 2. 3. 생성 */
+        font-weight: 900;
+        margin-right: 10px;
+        min-width: 25px;       /* 번호 너비 고정 */
+        text-align: right;
+        opacity: 0.9;
+    }
+    
+    .sortable-item:hover {
+        background: #ff3333 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    /* 헤더 숨기기 */
+    .sortable-container-header {
+        display: none !important;
+    }
+    
+    /* 네비게이션 및 기타 스타일 유지 */
     .nav-button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         padding: 0.75rem 1.5rem;
-        border: none;
         border-radius: 10px;
         font-weight: bold;
         text-decoration: none;
     }
-    
-    /* 메트릭 카드 */
     .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 1.5rem;
@@ -45,7 +101,6 @@ st.markdown("""
     .metric-card h3 { font-size: 2rem; margin: 0; font-weight: bold; }
     .metric-card p { font-size: 0.9rem; margin: 0.5rem 0 0 0; opacity: 0.9; }
     
-    /* 분류 버튼 */
     .category-btn {
         padding: 0.75rem 1.5rem;
         border: 2px solid #667eea;
@@ -60,37 +115,6 @@ st.markdown("""
     .category-btn:hover {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-    }
-
-    /* --------------------------------------------------- */
-    /* [디자인 수정] Sortable 아이템 스타일 (붉은색 카드) */
-    /* --------------------------------------------------- */
-    .sortable-item {
-        background: #ff4b4b !important;  /* 스크린샷과 유사한 붉은색 */
-        color: white !important;
-        border: 1px solid #ff2b2b !important;
-        border-radius: 6px !important;
-        padding: 12px 5px !important;
-        margin-bottom: 8px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
-        font-weight: bold !important;
-        cursor: grab !important;
-        text-align: center !important;
-        font-size: 15px !important;
-        white-space: nowrap !important; /* 텍스트 줄바꿈 방지 */
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
-    
-    .sortable-item:hover {
-        background: #ff3333 !important;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
-    }
-    
-    /* 헤더 숨기기 */
-    .sortable-container-header {
-        display: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -121,14 +145,6 @@ def chunk_list(data, num_chunks):
         chunks.append(data[int(last):int(next_val)])
         last = next_val
     return chunks
-
-# -------------------------------------------------------------
-# [추가] 문자열에서 앞의 숫자(순번) 제거하는 함수
-# "1. 게임" -> "게임"으로 변환
-# -------------------------------------------------------------
-def clean_item_text(text):
-    # 정규표현식: 숫자(1개이상) + 점(.) + 공백(\s) 으로 시작하는 패턴 제거
-    return re.sub(r'^\d+\.\s', '', text)
 
 # -------------------------------------------------------------
 # 구글 시트 연결 및 설정 관리
@@ -318,7 +334,7 @@ def show_category_detail(df, 분류1):
     st.dataframe(df_fmt, use_container_width=True, height=500)
 
 # -------------------------------------------------------------
-# [수정] 순서 설정 (번호 표시 + 디자인 변경)
+# [수정] 순서 설정 (CSS Counter로 번호 고정 방식)
 # -------------------------------------------------------------
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
@@ -338,28 +354,23 @@ def show_settings():
 
     # --- 탭 1: 분류1 ---
     with tab1:
-        st.info("💡 카드를 드래그하여 순서를 변경하세요. (왼쪽 위 → 오른쪽 아래 순서)")
+        st.info("💡 카드를 드래그하여 순서를 변경하세요. (번호는 고정되어 있습니다)")
         
         current_list = st.session_state.page_order['분류1_순서']
         
-        # [변경점] 화면에 표시할 때는 "번호. 이름" 형태로 변환
-        display_list = [f"{i+1}. {item}" for i, item in enumerate(current_list)]
-        
-        chunked_list = chunk_list(display_list, 5) # 5열
+        # [변경점] 번호 붙이는 로직 삭제. 순수한 데이터만 전달
+        chunked_list = chunk_list(current_list, 5) # 5열
         sortable_data = [{'header': '', 'items': chunk} for chunk in chunked_list]
         
         sorted_data = sort_items(
             sortable_data,
             multi_containers=True,
             direction='vertical',
-            key='sortable_cat1_numbered'
+            key='sortable_cat1_fixed_num'
         )
         
-        # 드래그 후 결과 합치기
-        new_display_order = [item for container in sorted_data for item in container['items']]
-        
-        # [중요] 저장하기 전에는 다시 번호를 제거 ("1. 게임" -> "게임")
-        new_order = [clean_item_text(item) for item in new_display_order]
+        # 결과 저장
+        new_order = [item for container in sorted_data for item in container['items']]
         
         if new_order != current_list:
             st.session_state.page_order['분류1_순서'] = new_order
@@ -381,23 +392,18 @@ def show_settings():
             
             current_sub = st.session_state.page_order['분류2_순서'].get(selected_cat1, ['전체'])
             
-            # [변경점] 분류2도 번호 붙이기
-            display_sub = [f"{i+1}. {item}" for i, item in enumerate(current_sub)]
-            
-            chunked_sub = chunk_list(display_sub, 4) # 4열
+            # [변경점] 순수한 데이터만 전달
+            chunked_sub = chunk_list(current_sub, 4) # 4열
             sortable_sub_data = [{'header': '', 'items': chunk} for chunk in chunked_sub]
             
             sorted_sub_data = sort_items(
                 sortable_sub_data,
                 multi_containers=True,
                 direction='vertical',
-                key=f'sortable_cat2_{selected_cat1}_numbered'
+                key=f'sortable_cat2_{selected_cat1}_fixed_num'
             )
             
-            new_sub_display = [item for container in sorted_sub_data for item in container['items']]
-            
-            # 번호 제거 후 저장
-            new_sub_order = [clean_item_text(item) for item in new_sub_display]
+            new_sub_order = [item for container in sorted_sub_data for item in container['items']]
             
             if new_sub_order != current_sub:
                 st.session_state.page_order['분류2_순서'][selected_cat1] = new_sub_order
