@@ -32,6 +32,7 @@ st.markdown("""
     button[key="logo_home"]:hover { color: #FF0000 !important; background: transparent !important; }
     .stApp { counter-reset: item-rank; }
     div[data-testid="stTabContent"] { counter-reset: item-rank; }
+    /* 순서 설정용 스타일 */
     .sortable-item {
         background-color: white !important;
         color: #333 !important;
@@ -75,6 +76,7 @@ st.markdown("""
 
 # --- 유틸리티 함수 ---
 def format_korean_number(num):
+    """숫자를 '1.5억', '5300만' 등의 한글 포맷 문자열로 변환"""
     if pd.isna(num) or num == 0: return "0"
     try:
         num = int(float(str(num).replace(',', '')))
@@ -82,6 +84,21 @@ def format_korean_number(num):
         elif num >= 10000: return f"{num // 10000}만"
         else: return f"{num:,}"
     except: return str(num)
+
+def add_status_dot(date_str):
+    """날짜 문자열을 받아 최신성에 따라 상태 점(Dot)을 추가"""
+    if not date_str or pd.isna(date_str): return ""
+    try:
+        # 날짜 형식이 YYYY-MM-DD 라고 가정
+        dt = datetime.strptime(str(date_str).split(' ')[0], "%Y-%m-%d")
+        diff = (datetime.now() - dt).days
+        
+        # 7일 이내: 초록, 30일 이내: 노랑, 그 외: 검정(혹은 없음)
+        if diff <= 7: return f"{date_str} 🟢"
+        elif diff <= 30: return f"{date_str} 🟡"
+        else: return f"{date_str}" # 오래된 건 아이콘 없음
+    except:
+        return str(date_str)
 
 # --- 구글 시트 연결 ---
 def get_gspread_client():
@@ -104,6 +121,7 @@ def load_data():
                           '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
         for col in numeric_columns:
             if col in df.columns:
+                # 쉼표 제거 후 숫자로 변환 (없으면 0)
                 df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
         
         try:
@@ -118,27 +136,23 @@ def load_data():
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
 
-# --- 백업 기능 추가 ---
+# --- 백업 기능 ---
 def run_backup():
     try:
         client = get_gspread_client()
         doc = client.open("유튜브보물창고_테스트")
         source_sheet = doc.sheet1
         
-        # 현재 날짜 기준 홀수/짝수 판별
         day = datetime.now().day
         target_name = "백업_홀수" if day % 2 != 0 else "백업_짝수"
         
-        # 원본 데이터 가져오기
         all_values = source_sheet.get_all_values()
         
-        # 대상 시트 확인 및 생성
         try:
             target_sheet = doc.worksheet(target_name)
         except gspread.exceptions.WorksheetNotFound:
             target_sheet = doc.add_worksheet(title=target_name, rows=len(all_values)+100, cols=len(all_values[0])+5)
         
-        # 데이터 복사 (기존 내용 삭제 후 쓰기)
         target_sheet.clear()
         target_sheet.update('A1', all_values)
         
@@ -222,7 +236,6 @@ def sync_order_with_data(saved_order, df, cat_df):
 
 # --- 네비게이션 ---
 def show_navigation():
-    # 백업 버튼을 위해 컬럼 레이아웃 조정 (6개로 변경)
     col1, col2, col3, col4, col5, col6 = st.columns([2.5, 1, 1, 1, 1, 1])
     with col1:
         if st.button("🎬 YouTube 보물창고", key="logo_home", use_container_width=False):
@@ -241,7 +254,6 @@ def show_navigation():
             st.session_state.page = "settings"
             st.rerun()
     with col5:
-        # 백업 버튼 추가
         if st.button("💾 백업하기", use_container_width=True):
             success, target = run_backup()
             if success:
@@ -395,19 +407,26 @@ def show_category_detail(df, cat_df, 분류1):
     else:
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # [수정됨] display_columns에 '최근업로드' 추가 (조회수와 최근 5개 토탈 사이)
+    # ------------------[디자인 및 데이터 포맷팅 로직]------------------
+    
+    # 표시할 컬럼 지정 (요청: 조회수와 토탈 사이에 최근업로드 추가)
     display_columns = ['채널명', '국가', '분류1', '분류2', '메모', '운영기간', '동영상', '조회수', '최근업로드', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', 'URL', 'gs_row_index']
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    format_cols = ['조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
-    for col in format_cols:
-        if col in df_to_edit.columns:
-            df_to_edit[col] = df_to_edit[col].apply(format_korean_number)
+    # 1. 날짜에 상태 점(Dot) 추가 (🟢, 🟡)
+    if '최근업로드' in df_to_edit.columns:
+        df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(add_status_dot)
+
+    # 2. '조회수'만 한글 포맷("1.5억")으로 변경 (나머지 토탈 컬럼은 막대그래프를 위해 숫자 유지)
+    if '조회수' in df_to_edit.columns:
+        df_to_edit['조회수'] = df_to_edit['조회수'].apply(format_korean_number)
 
     all_cat1_options = sorted(list(cat_df['분류1'].unique())) if not cat_df.empty else sorted(list(df['분류1'].unique()))
     allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
 
     st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
+    
+    # 3. Data Editor 설정 (Progress Bar 및 컬럼 디자인)
     edited_df = st.data_editor(
         df_to_edit,
         use_container_width=True,
@@ -417,13 +436,40 @@ def show_category_detail(df, cat_df, 분류1):
             "gs_row_index": None,
             "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True),
             "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True),
+            
+            # 조회수: 텍스트로 표시 (한글 포맷)
             "조회수": st.column_config.TextColumn("조회수", disabled=True),
-            # [수정됨] 최근업로드 컬럼 설정 추가 (읽기 전용)
-            "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True),
-            "최근 5개 토탈": st.column_config.TextColumn("최근 5개 토탈", disabled=True),
-            "최근 10개 토탈": st.column_config.TextColumn("최근 10개 토탈", disabled=True),
-            "최근 20개 토탈": st.column_config.TextColumn("최근 20개 토탈", disabled=True),
-            "최근 30개 토탈": st.column_config.TextColumn("최근 30개 토탈", disabled=True),
+            
+            # 최근업로드: 텍스트로 표시 (상태 점 포함)
+            "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="medium"),
+            
+            # 토탈 컬럼들: Progress Bar로 시각화 (데이터 바 효과)
+            "최근 5개 토탈": st.column_config.ProgressColumn(
+                "최근 5개 토탈", 
+                help="최근 5개 영상 조회수 합계",
+                format="%d",  # 정수로 표시
+                min_value=0, 
+                max_value=int(df['최근 5개 토탈'].max()) if not df.empty else 100,
+            ),
+            "최근 10개 토탈": st.column_config.ProgressColumn(
+                "최근 10개 토탈", 
+                format="%d",
+                min_value=0, 
+                max_value=int(df['최근 10개 토탈'].max()) if not df.empty else 100,
+            ),
+            "최근 20개 토탈": st.column_config.ProgressColumn(
+                "최근 20개 토탈", 
+                format="%d",
+                min_value=0, 
+                max_value=int(df['최근 20개 토탈'].max()) if not df.empty else 100,
+            ),
+            "최근 30개 토탈": st.column_config.ProgressColumn(
+                "최근 30개 토탈", 
+                format="%d",
+                min_value=0, 
+                max_value=int(df['최근 30개 토탈'].max()) if not df.empty else 100,
+            ),
+            
             "메모": st.column_config.TextColumn("메모", width="medium"), 
         },
         hide_index=True,
