@@ -102,10 +102,11 @@ def get_gspread_client():
 def load_data():
     try:
         client = get_gspread_client()
-        sheet = client.open("유튜브보물창고_테스트").sheet1
+        doc = client.open("유튜브보물창고_테스트")
+        # 메인 시트 데이터
+        sheet = doc.sheet1
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
-        
         df['gs_row_index'] = range(2, len(df) + 2)
         
         numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
@@ -113,10 +114,19 @@ def load_data():
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
-        return df
+        
+        # 분류 관리 시트 데이터
+        try:
+            cat_sheet = doc.worksheet("분류관리")
+            cat_data = cat_sheet.get_all_records()
+            cat_df = pd.DataFrame(cat_data)
+        except:
+            cat_df = pd.DataFrame(columns=['분류1', '분류2'])
+            
+        return df, cat_df
     except Exception as e:
         st.error(f"데이터 로드 실패: {str(e)}")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
 def update_gs_rows(edited_df, original_df):
     try:
@@ -128,7 +138,6 @@ def update_gs_rows(edited_df, original_df):
         count = 0
         for idx, row in edited_df.iterrows():
             orig_row = original_df[original_df['gs_row_index'] == row['gs_row_index']].iloc[0]
-            
             fields_to_check = ['분류1', '분류2', '메모']
             for field in fields_to_check:
                 if str(row[field]) != str(orig_row[field]):
@@ -138,6 +147,21 @@ def update_gs_rows(edited_df, original_df):
     except Exception as e:
         st.error(f"업데이트 오류: {e}")
         return -1
+
+# --- 분류 저장 함수 ---
+def save_categories_to_sheet(cat_df):
+    try:
+        client = get_gspread_client()
+        doc = client.open("유튜브보물창고_테스트")
+        try: worksheet = doc.worksheet("분류관리")
+        except: worksheet = doc.add_worksheet(title="분류관리", rows=100, cols=5)
+        
+        worksheet.clear()
+        # 헤더 포함 데이터 쓰기
+        data_to_save = [cat_df.columns.values.tolist()] + cat_df.values.tolist()
+        worksheet.update('A1', data_to_save)
+        return True
+    except: return False
 
 # --- 설정 관련 ---
 def load_config_from_sheet():
@@ -160,8 +184,10 @@ def save_config_to_sheet(order_data):
         return True
     except: return False
 
-def sync_order_with_data(saved_order, df):
-    live_cat1 = set(df['분류1'].dropna().unique())
+def sync_order_with_data(saved_order, df, cat_df):
+    # 분류관리 시트의 데이터를 우선순위로 하여 동기화
+    live_cat1 = set(cat_df['분류1'].dropna().unique()) if not cat_df.empty else set(df['분류1'].dropna().unique())
+    
     current_cat1_order = saved_order.get('분류1_순서', [])
     new_cat1_order = [c for c in current_cat1_order if c in live_cat1]
     for c in sorted(list(live_cat1)):
@@ -170,7 +196,10 @@ def sync_order_with_data(saved_order, df):
     
     if '분류2_순서' not in saved_order: saved_order['분류2_순서'] = {}
     for cat1 in new_cat1_order:
-        live_cat2 = set(df[df['분류1'] == cat1]['분류2'].dropna().unique())
+        if not cat_df.empty:
+            live_cat2 = set(cat_df[cat_df['분류1'] == cat1]['분류2'].dropna().unique())
+        else:
+            live_cat2 = set(df[df['분류1'] == cat1]['분류2'].dropna().unique())
         live_cat2.add('전체')
         current_cat2_order = saved_order['분류2_순서'].get(cat1, ['전체'])
         new_cat2_order = [c for c in current_cat2_order if c in live_cat2]
@@ -181,7 +210,7 @@ def sync_order_with_data(saved_order, df):
 
 # --- 네비게이션 ---
 def show_navigation():
-    col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+    col1, col2, col3, col4, col5 = st.columns([2.5, 1, 1, 1, 1])
     with col1:
         if st.button("🎬 YouTube 보물창고", key="logo_home", use_container_width=False):
             st.session_state.page = "dashboard"
@@ -191,23 +220,68 @@ def show_navigation():
             st.session_state.page = "dashboard"
             st.rerun()
     with col3:
+        if st.button("📁 분류 관리", use_container_width=True):
+            st.session_state.page = "category_mgmt"
+            st.rerun()
+    with col4:
         if st.button("⚙️ 순서 설정", use_container_width=True):
             st.session_state.page = "settings"
             st.rerun()
-    with col4:
+    with col5:
         if st.button("🔄 새로고침", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
 
+# --- [신규] 분류 관리 페이지 ---
+def show_category_management():
+    st.markdown("## 📁 분류 관리")
+    df, cat_df = load_data()
+    
+    st.info("💡 '자동 추출' 버튼을 누르면 채널 리스트 시트에서 현재 사용 중인 분류1-분류2 조합을 모두 가져옵니다.")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("✨ 채널 리스트에서 분류 자동 추출", use_container_width=True):
+            if not df.empty:
+                new_cat_df = df[['분류1', '분류2']].drop_duplicates().sort_values(['분류1', '분류2'])
+                new_cat_df = new_cat_df[new_cat_df['분류1'] != ""]
+                if save_categories_to_sheet(new_cat_df):
+                    st.success("추출 완료 및 저장되었습니다!")
+                    st.cache_data.clear()
+                    st.rerun()
+    
+    with c2:
+        if st.button("💾 표의 변경사항 저장", type="primary", use_container_width=True):
+            if 'temp_cat_df' in st.session_state:
+                if save_categories_to_sheet(st.session_state.temp_cat_df):
+                    st.success("분류 관리 시트가 업데이트 되었습니다.")
+                    st.cache_data.clear()
+                    st.rerun()
+
+    edited_cat = st.data_editor(
+        cat_df,
+        use_container_width=True,
+        num_rows="dynamic",
+        key="cat_mgmt_editor",
+        column_config={
+            "분류1": st.column_config.TextColumn("분류1 (대분류)", required=True),
+            "분류2": st.column_config.TextColumn("분류2 (소분류)", required=True),
+        }
+    )
+    st.session_state.temp_cat_df = edited_cat
+
 # --- 대시보드 및 상세 페이지 ---
 def show_dashboard():
-    df = load_data()
+    df, cat_df = load_data()
     if df.empty: return
     
     # 순서 데이터 동기화
     if 'page_order' not in st.session_state:
         saved_order = load_config_from_sheet()
-        st.session_state.page_order = sync_order_with_data(saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, df)
+        st.session_state.page_order = sync_order_with_data(
+            saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, 
+            df, cat_df
+        )
 
     분류1_list = st.session_state.page_order['분류1_순서']
     if 'selected_분류1' not in st.session_state:
@@ -222,12 +296,11 @@ def show_dashboard():
                 st.rerun()
     
     if st.session_state.selected_분류1:
-        show_category_detail(df, st.session_state.selected_분류1)
+        show_category_detail(df, cat_df, st.session_state.selected_분류1)
 
-def show_category_detail(df, 분류1):
+def show_category_detail(df, cat_df, 분류1):
     df_filtered = df[df['분류1'] == 분류1].copy()
-    if df_filtered.empty: return
-
+    
     분류2_list = st.session_state.page_order['분류2_순서'].get(분류1, ['전체'])
     st.markdown(f"## 📊 {분류1}")
     
@@ -253,21 +326,6 @@ def show_category_detail(df, 분류1):
     
     st.markdown("---")
     
-    # --- 분류 추가 기능 (신규) ---
-    with st.expander("➕ 분류 항목 신규 추가 (여기에 없는 분류를 만들고 싶을 때)"):
-        c1, c2, c3 = st.columns([2, 2, 1])
-        new_cat1 = c1.text_input("새 분류1 이름", placeholder="예: 경제")
-        new_cat2 = c2.text_input("새 분류2 이름", placeholder="예: 주식")
-        if c3.button("리스트에 반영", use_container_width=True):
-            if new_cat1 or new_cat2:
-                st.info("새로운 분류가 옵션에 추가되었습니다. 아래 표에서 선택해 주세요.")
-                # 세션에 임시로 추가하여 데이터 에디터 옵션에 나오게 함
-                if 'extra_cat1' not in st.session_state: st.session_state.extra_cat1 = []
-                if 'extra_cat2' not in st.session_state: st.session_state.extra_cat2 = []
-                if new_cat1 and new_cat1 not in st.session_state.extra_cat1: st.session_state.extra_cat1.append(new_cat1)
-                if new_cat2 and new_cat2 not in st.session_state.extra_cat2: st.session_state.extra_cat2.append(new_cat2)
-                st.rerun()
-
     # 상단 컨트롤바 (검색 + 정렬 + 저장버튼)
     ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 1, 1])
     with ctrl_col1:
@@ -298,9 +356,14 @@ def show_category_detail(df, 분류1):
     ]
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # --- 분류 옵션 리스트 생성 (신규) ---
-    all_cat1 = sorted(list(set(df['분류1'].unique().tolist() + st.session_state.get('extra_cat1', []))))
-    all_cat2 = sorted(list(set(df['분류2'].unique().tolist() + st.session_state.get('extra_cat2', []))))
+    # --- [동적 옵션] 분류 옵션 리스트 생성 ---
+    # 전체 분류1 리스트
+    all_cat1_options = sorted(list(cat_df['분류1'].unique())) if not cat_df.empty else sorted(list(df['분류1'].unique()))
+    # 현재 선택된 분류1에 매칭되는 분류2 리스트 (동적 필터링 핵심)
+    if not cat_df.empty:
+        allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
+    else:
+        allowed_cat2_options = sorted(list(df[df['분류1'] == 분류1]['분류2'].unique()))
 
     # 데이터 에디터 출력
     st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개) - *수정 후 하단 저장 버튼을 눌러주세요*")
@@ -320,8 +383,9 @@ def show_category_detail(df, 분류1):
             "최근 30개 토탈": st.column_config.NumberColumn(disabled=True),
             "채널명": st.column_config.TextColumn(disabled=True),
             "운영기간": st.column_config.TextColumn(disabled=True),
-            "분류1": st.column_config.SelectboxColumn("분류1", options=all_cat1, required=True),
-            "분류2": st.column_config.SelectboxColumn("분류2", options=all_cat2, required=True),
+            # 동적으로 필터링된 옵션 적용
+            "분류1": st.column_config.SelectboxColumn("분류1", options=all_cat1_options, required=True),
+            "분류2": st.column_config.SelectboxColumn("분류2", options=allowed_cat2_options, required=True),
             "메모": st.column_config.TextColumn("메모", width="large"),
         },
         hide_index=True,
@@ -337,9 +401,6 @@ def show_category_detail(df, 분류1):
                 if update_count > 0:
                     st.success(f"✅ {update_count}개의 항목이 수정되었습니다.")
                     st.cache_data.clear()
-                    # 추가했던 임시 카테고리 초기화
-                    if 'extra_cat1' in st.session_state: st.session_state.extra_cat1 = []
-                    if 'extra_cat2' in st.session_state: st.session_state.extra_cat2 = []
                     st.rerun()
                 elif update_count == 0:
                     st.info("변경사항이 없습니다.")
@@ -349,11 +410,12 @@ def show_category_detail(df, 분류1):
 # --- 설정 페이지 (기존 유지) ---
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
-    df = load_data()
+    df, cat_df = load_data()
     if df.empty: return
     
     tab1, tab2, tab3 = st.tabs(["📂 분류1 순서", "📁 분류2 순서", "💾 저장"])
 
+    # (생략: 기존 chunk_list 및 sort_items 로직 유지)
     with tab1:
         st.info("💡 카드를 드래그하여 순서를 변경하세요.")
         current_list = st.session_state.page_order['분류1_순서']
@@ -400,8 +462,14 @@ def main():
     if 'page' not in st.session_state: st.session_state.page = "dashboard"
     show_navigation()
     st.markdown("---")
-    if st.session_state.page == "dashboard": show_dashboard()
-    else: show_settings()
+    
+    if st.session_state.page == "dashboard":
+        show_dashboard()
+    elif st.session_state.page == "category_mgmt":
+        show_category_management()
+    elif st.session_state.page == "settings":
+        show_settings()
+        
     st.markdown(f"<p style='text-align:right; color:gray;'>Update: {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
