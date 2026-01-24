@@ -272,18 +272,39 @@ def show_dashboard():
         )
 
     분류1_list = st.session_state.page_order['분류1_순서']
-    if 'selected_분류1' not in st.session_state:
-        st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else None
     
+    # --- 국가 필터 추가 ---
     with st.sidebar:
+        st.markdown("## 🌍 국가 필터")
+        if '국가' in df.columns:
+            country_options = ["전체"] + sorted([c for c in df['국가'].unique() if c])
+            selected_country = st.selectbox("조회할 국가를 선택하세요", country_options, key="global_country_filter")
+            
+            # 국가 필터 적용
+            if selected_country != "전체":
+                df = df[df['국가'] == selected_country]
+        else:
+            st.warning("시트에 '국가' 컬럼이 없습니다.")
+            selected_country = "전체"
+
+        st.markdown("---")
         st.markdown("## 📂 카테고리")
+        
+        if 'selected_분류1' not in st.session_state:
+            st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else None
+            
         for cat in 분류1_list:
+            # 해당 국가에 데이터가 있는 카테고리만 표시하거나 전체 표시 (여기서는 필터링된 데이터 기반 카운트 표시)
+            count = len(df[df['분류1'] == cat])
+            display_text = f"{cat} ({count})"
+            
             is_active = (st.session_state.selected_분류1 == cat)
-            if st.button(cat, key=f"side_{cat}", use_container_width=True, type="primary" if is_active else "secondary"):
+            if st.button(display_text, key=f"side_{cat}", use_container_width=True, type="primary" if is_active else "secondary"):
                 st.session_state.selected_분류1 = cat
                 st.rerun()
     
     if st.session_state.selected_분류1:
+        # 필터링된 df를 상세 페이지로 전달
         show_category_detail(df, cat_df, st.session_state.selected_분류1)
 
 def show_category_detail(df, cat_df, 분류1):
@@ -355,7 +376,7 @@ def show_category_detail(df, cat_df, 분류1):
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
     display_columns = [
-        '채널명', '분류1', '분류2', '메모', '운영기간', 
+        '채널명', '국가', '분류1', '분류2', '메모', '운영기간', 
         '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', 
         '최근 20개 토탈', '최근 30개 토탈', 'URL', 'gs_row_index'
     ]
@@ -379,6 +400,7 @@ def show_category_detail(df, cat_df, 분류1):
         column_config={
             "URL": st.column_config.LinkColumn("링크", display_text="보기"),
             "gs_row_index": None,
+            "국가": st.column_config.TextColumn("국가", disabled=True),
             "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True),
             "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True),
             "동영상": st.column_config.NumberColumn(disabled=True),
