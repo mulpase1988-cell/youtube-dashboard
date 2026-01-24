@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 커스텀 CSS (기존 유지)
+# 커스텀 CSS
 st.markdown("""
 <style>
     button[key="logo_home"] {
@@ -73,20 +73,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 유틸리티 함수 (소수점 제거 버전) ---
+# --- 유틸리티 함수 ---
 def format_korean_number(num):
-    """숫자를 한국어 단위(억, 만) 정수로 변환"""
     if pd.isna(num) or num == 0: return "0"
     try:
         num = int(float(str(num).replace(',', '')))
-        if num >= 100000000:
-            return f"{num // 100000000}억"
-        elif num >= 10000:
-            return f"{num // 10000}만"
-        else:
-            return f"{num:,}"
-    except:
-        return str(num)
+        if num >= 100000000: return f"{num // 100000000}억"
+        elif num >= 10000: return f"{num // 10000}만"
+        else: return f"{num:,}"
+    except: return str(num)
 
 # --- 구글 시트 연결 ---
 def get_gspread_client():
@@ -122,6 +117,34 @@ def load_data():
     except Exception as e:
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
+
+# --- 백업 기능 추가 ---
+def run_backup():
+    try:
+        client = get_gspread_client()
+        doc = client.open("유튜브보물창고_테스트")
+        source_sheet = doc.sheet1
+        
+        # 현재 날짜 기준 홀수/짝수 판별
+        day = datetime.now().day
+        target_name = "백업_홀수" if day % 2 != 0 else "백업_짝수"
+        
+        # 원본 데이터 가져오기
+        all_values = source_sheet.get_all_values()
+        
+        # 대상 시트 확인 및 생성
+        try:
+            target_sheet = doc.worksheet(target_name)
+        except gspread.exceptions.WorksheetNotFound:
+            target_sheet = doc.add_worksheet(title=target_name, rows=len(all_values)+100, cols=len(all_values[0])+5)
+        
+        # 데이터 복사 (기존 내용 삭제 후 쓰기)
+        target_sheet.clear()
+        target_sheet.update('A1', all_values)
+        
+        return True, target_name
+    except Exception as e:
+        return False, str(e)
 
 def update_gs_rows(edited_df, original_df):
     try:
@@ -199,7 +222,8 @@ def sync_order_with_data(saved_order, df, cat_df):
 
 # --- 네비게이션 ---
 def show_navigation():
-    col1, col2, col3, col4, col5 = st.columns([2.5, 1, 1, 1, 1])
+    # 백업 버튼을 위해 컬럼 레이아웃 조정 (6개로 변경)
+    col1, col2, col3, col4, col5, col6 = st.columns([2.5, 1, 1, 1, 1, 1])
     with col1:
         if st.button("🎬 YouTube 보물창고", key="logo_home", use_container_width=False):
             st.session_state.page = "dashboard"
@@ -217,6 +241,14 @@ def show_navigation():
             st.session_state.page = "settings"
             st.rerun()
     with col5:
+        # 백업 버튼 추가
+        if st.button("💾 백업하기", use_container_width=True):
+            success, target = run_backup()
+            if success:
+                st.toast(f"✅ '{target}' 시트에 백업 완료!", icon="💾")
+            else:
+                st.error(f"백업 실패: {target}")
+    with col6:
         if st.button("🔄 새로고침", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
@@ -273,19 +305,15 @@ def show_dashboard():
 
     분류1_list = st.session_state.page_order['분류1_순서']
     
-    # --- 국가 필터 추가 ---
     with st.sidebar:
         st.markdown("## 🌍 국가 필터")
         if '국가' in df.columns:
             country_options = ["전체"] + sorted([c for c in df['국가'].unique() if c])
             selected_country = st.selectbox("조회할 국가를 선택하세요", country_options, key="global_country_filter")
-            
-            # 국가 필터 적용
             if selected_country != "전체":
                 df = df[df['국가'] == selected_country]
         else:
             st.warning("시트에 '국가' 컬럼이 없습니다.")
-            selected_country = "전체"
 
         st.markdown("---")
         st.markdown("## 📂 카테고리")
@@ -294,22 +322,18 @@ def show_dashboard():
             st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else None
             
         for cat in 분류1_list:
-            # 해당 국가에 데이터가 있는 카테고리만 표시하거나 전체 표시 (여기서는 필터링된 데이터 기반 카운트 표시)
             count = len(df[df['분류1'] == cat])
             display_text = f"{cat} ({count})"
-            
             is_active = (st.session_state.selected_분류1 == cat)
             if st.button(display_text, key=f"side_{cat}", use_container_width=True, type="primary" if is_active else "secondary"):
                 st.session_state.selected_분류1 = cat
                 st.rerun()
     
     if st.session_state.selected_분류1:
-        # 필터링된 df를 상세 페이지로 전달
         show_category_detail(df, cat_df, st.session_state.selected_분류1)
 
 def show_category_detail(df, cat_df, 분류1):
     df_filtered = df[df['분류1'] == 분류1].copy()
-    
     st.markdown(f"## 📊 {분류1}")
     
     with st.expander("➕ 새 장르 추가"):
@@ -329,11 +353,8 @@ def show_category_detail(df, cat_df, 분류1):
                             st.rerun()
                     else:
                         st.warning("이미 존재하는 장르입니다.")
-                else:
-                    st.error("장르명을 입력해주세요.")
 
     분류2_list = st.session_state.page_order['분류2_순서'].get(분류1, ['전체'])
-    
     if f'selected_분류2_{분류1}' not in st.session_state:
         st.session_state[f'selected_분류2_{분류1}'] = '전체'
     
@@ -354,7 +375,6 @@ def show_category_detail(df, cat_df, 분류1):
     df_display = df_filtered[df_filtered['분류2'] == selected_분류2].copy() if selected_분류2 != '전체' else df_filtered.copy()
     
     st.markdown("---")
-    
     ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 1, 1])
     with ctrl_col1:
         search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
@@ -375,14 +395,9 @@ def show_category_detail(df, cat_df, 분류1):
     else:
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    display_columns = [
-        '채널명', '국가', '분류1', '분류2', '메모', '운영기간', 
-        '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', 
-        '최근 20개 토탈', '최근 30개 토탈', 'URL', 'gs_row_index'
-    ]
+    display_columns = ['채널명', '국가', '분류1', '분류2', '메모', '운영기간', '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', 'URL', 'gs_row_index']
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # 표시 데이터 포맷팅
     format_cols = ['조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
     for col in format_cols:
         if col in df_to_edit.columns:
@@ -392,7 +407,6 @@ def show_category_detail(df, cat_df, 분류1):
     allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
 
     st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
-    
     edited_df = st.data_editor(
         df_to_edit,
         use_container_width=True,
@@ -400,16 +414,13 @@ def show_category_detail(df, cat_df, 분류1):
         column_config={
             "URL": st.column_config.LinkColumn("링크", display_text="보기"),
             "gs_row_index": None,
-            "국가": st.column_config.TextColumn("국가", disabled=True),
             "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True),
             "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True),
-            "동영상": st.column_config.NumberColumn(disabled=True),
             "조회수": st.column_config.TextColumn("조회수", disabled=True),
             "최근 5개 토탈": st.column_config.TextColumn("최근 5개 토탈", disabled=True),
             "최근 10개 토탈": st.column_config.TextColumn("최근 10개 토탈", disabled=True),
             "최근 20개 토탈": st.column_config.TextColumn("최근 20개 토탈", disabled=True),
             "최근 30개 토탈": st.column_config.TextColumn("최근 30개 토탈", disabled=True),
-            "채널명": st.column_config.TextColumn(disabled=True),
             "메모": st.column_config.TextColumn("메모", width="medium"), 
         },
         hide_index=True,
@@ -421,14 +432,10 @@ def show_category_detail(df, cat_df, 분류1):
         if st.button("💾 변경사항 시트에 저장", type="primary", use_container_width=True):
             with st.spinner("구글 시트 업데이트 중..."):
                 update_count = update_gs_rows(edited_df, df_display)
-                if update_count > 0:
+                if update_count >= 0:
                     st.success(f"✅ {update_count}개의 항목이 수정되었습니다.")
                     st.cache_data.clear()
                     st.rerun()
-                elif update_count == 0:
-                    st.info("변경사항이 없습니다.")
-                else:
-                    st.error("저장에 실패했습니다.")
 
 # --- 순서 설정 페이지 ---
 def show_settings():
