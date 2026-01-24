@@ -106,7 +106,6 @@ def load_data():
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
         
-        # 모든 숫자 컬럼 처리 (최근 5, 10, 20개 포함)
         numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
                           '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
         for col in numeric_columns:
@@ -230,7 +229,6 @@ def show_category_detail(df, 분류1):
     
     st.markdown("---")
     
-    # [수정] 테이블/드래그 버튼 삭제 및 검색/정렬 레이아웃 조정
     col1, col2 = st.columns([3, 1])
     with col1: 
         search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
@@ -252,25 +250,25 @@ def show_category_detail(df, 분류1):
     else:
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # [수정] 표시 컬럼 설정 (구독자 제외, 최근 5/10/20 추가)
-    display_columns = ['채널명', 'URL', '분류2', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', '동영상', '조회수']
+    # [수정] 이미지와 동일한 컬럼 순서 설정
+    display_columns = ['채널명', '분류2', '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', 'URL']
     df_fmt = df_display[[c for c in display_columns if c in df_display.columns]].copy()
     
-    # 숫자 포맷팅 (URL 제외하고 숫자형 데이터만)
+    # 숫자 포맷팅
     for col in df_fmt.columns:
         if col != 'URL' and df_fmt[col].dtype in ['int64', 'float64']: 
             df_fmt[col] = df_fmt[col].apply(format_korean_number)
         
     st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
-    # [수정] URL을 보러가기 버튼 링크로 설정
+    # [수정] 테이블 표시 및 'URL' 컬럼을 '링크'로 이름 변경하여 표시
     st.dataframe(
         df_fmt,
         use_container_width=True,
         height=600,
         column_config={
             "URL": st.column_config.LinkColumn(
-                "링크",
+                "링크",        # 헤더 이름을 '링크'로 설정
                 display_text="보러가기"
             )
         },
