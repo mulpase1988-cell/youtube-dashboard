@@ -73,16 +73,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 유틸리티 함수 ---
+# --- 유틸리티 함수 (소수점 제거 버전) ---
 def format_korean_number(num):
-    """숫자를 한국어 단위(억, 만)로 직관적으로 변환"""
+    """숫자를 한국어 단위(억, 만) 정수로 변환"""
     if pd.isna(num) or num == 0: return "0"
     try:
         num = int(float(str(num).replace(',', '')))
         if num >= 100000000:
-            return f"{num / 100000000:.1f}억".replace('.0억', '억')
+            return f"{num // 100000000}억"
         elif num >= 10000:
-            return f"{num / 10000:.1f}만".replace('.0만', '만')
+            return f"{num // 10000}만"
         else:
             return f"{num:,}"
     except:
@@ -354,7 +354,6 @@ def show_category_detail(df, cat_df, 분류1):
     else:
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # 표시용 컬럼들
     display_columns = [
         '채널명', '분류1', '분류2', '메모', '운영기간', 
         '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', 
@@ -362,7 +361,7 @@ def show_category_detail(df, cat_df, 분류1):
     ]
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # [수정 사항] 조회수 관련 컬럼들을 한국어 단위로 변환 (표시용)
+    # 표시 데이터 포맷팅
     format_cols = ['조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
     for col in format_cols:
         if col in df_to_edit.columns:
@@ -383,7 +382,6 @@ def show_category_detail(df, cat_df, 분류1):
             "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True),
             "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True),
             "동영상": st.column_config.NumberColumn(disabled=True),
-            # [수정 사항] 포맷팅된 컬럼들은 이제 문자열이므로 TextColumn으로 설정 (정렬은 위에서 숫자로 이미 완료됨)
             "조회수": st.column_config.TextColumn("조회수", disabled=True),
             "최근 5개 토탈": st.column_config.TextColumn("최근 5개 토탈", disabled=True),
             "최근 10개 토탈": st.column_config.TextColumn("최근 10개 토탈", disabled=True),
@@ -400,8 +398,6 @@ def show_category_detail(df, cat_df, 분류1):
         st.write("") 
         if st.button("💾 변경사항 시트에 저장", type="primary", use_container_width=True):
             with st.spinner("구글 시트 업데이트 중..."):
-                # 실제 업데이트는 원본 숫자 데이터프레임과 비교해야 하므로 
-                # df_display(변환 전 원본 숫자 보유)를 바탕으로 수정 내용을 체크합니다.
                 update_count = update_gs_rows(edited_df, df_display)
                 if update_count > 0:
                     st.success(f"✅ {update_count}개의 항목이 수정되었습니다.")
@@ -412,7 +408,7 @@ def show_category_detail(df, cat_df, 분류1):
                 else:
                     st.error("저장에 실패했습니다.")
 
-# --- 순서 설정 페이지 --- (기존 유지)
+# --- 순서 설정 페이지 ---
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
     df, cat_df = load_data()
