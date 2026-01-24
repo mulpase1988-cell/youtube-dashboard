@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 커스텀 CSS (로고 버튼 스타일 + 기존 스타일)
+# 커스텀 CSS (로고 버튼 디자인 + 기존 스타일 유지)
 st.markdown("""
 <style>
     /* 로고 버튼을 제목처럼 보이게 하는 스타일 */
@@ -181,11 +181,11 @@ def sync_order_with_data(saved_order, df):
     if '채널_순서' not in saved_order: saved_order['채널_순서'] = {}
     return saved_order
 
-# 네비게이션
+# 네비게이션바
 def show_navigation():
     col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
     with col1:
-        # 로고 클릭 시 대시보드로 이동
+        # 로고 클릭 시 대시보드(홈)로 이동
         if st.button("🎬 YouTube 보물창고", key="logo_home", use_container_width=False):
             st.session_state.page = "dashboard"
             st.rerun()
@@ -275,14 +275,13 @@ def show_category_detail(df, 분류1):
     else:
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # [수정] 컬럼 순서 조정: '운영기간' 바로 옆에 '메모' 배치
+    # [수정] 요청하신 이미지와 동일한 컬럼 순서로 배치
     display_columns = [
-        '채널명', '분류2', '운영기간', '메모', 
+        '채널명', '분류2', '메모', '운영기간', 
         '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', 
         '최근 20개 토탈', '최근 30개 토탈', '키워드', 'URL'
     ]
     
-    # 데이터프레임에 실제 존재하는 컬럼만 필터링
     df_fmt = df_display[[c for c in display_columns if c in df_display.columns]].copy()
     
     # 숫자 포맷팅
