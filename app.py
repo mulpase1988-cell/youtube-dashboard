@@ -232,7 +232,7 @@ def show_navigation():
             st.cache_data.clear()
             st.rerun()
 
-# --- [신규] 분류 관리 페이지 ---
+# --- 분류 관리 페이지 ---
 def show_category_management():
     st.markdown("## 📁 분류 관리")
     df, cat_df = load_data()
@@ -288,7 +288,7 @@ def show_dashboard():
         st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else None
     
     with st.sidebar:
-        st.markdown("## 📂 분류 선택")
+        st.markdown("## 📂 카테고리") # 요청사항: '분류 선택' -> '카테고리'
         for cat in 분류1_list:
             is_active = (st.session_state.selected_분류1 == cat)
             if st.button(cat, key=f"side_{cat}", use_container_width=True, type="primary" if is_active else "secondary"):
@@ -301,8 +301,31 @@ def show_dashboard():
 def show_category_detail(df, cat_df, 분류1):
     df_filtered = df[df['분류1'] == 분류1].copy()
     
-    분류2_list = st.session_state.page_order['분류2_순서'].get(분류1, ['전체'])
     st.markdown(f"## 📊 {분류1}")
+    
+    # --- [신규] 소분류(분류2) 추가 기능 영역 ---
+    with st.expander("➕ 새 분류2(소분류) 추가"):
+        col_input, col_btn = st.columns([3, 1])
+        with col_input:
+            new_sub_cat = st.text_input(f"'{분류1}' 카테고리에 추가할 소분류명 입력", key=f"input_new_{분류1}")
+        with col_btn:
+            st.write("") # 간격 맞춤
+            if st.button("분류 추가 저장", use_container_width=True, type="primary"):
+                if new_sub_cat:
+                    # 중복 체크 후 저장
+                    if not ((cat_df['분류1'] == 분류1) & (cat_df['분류2'] == new_sub_cat)).any():
+                        new_row = pd.DataFrame({'분류1': [분류1], '분류2': [new_sub_cat]})
+                        updated_cat_df = pd.concat([cat_df, new_row], ignore_index=True)
+                        if save_categories_to_sheet(updated_cat_df):
+                            st.success(f"'{new_sub_cat}' 추가 완료!")
+                            st.cache_data.clear() # 데이터 리로드 유도
+                            st.rerun()
+                    else:
+                        st.warning("이미 존재하는 소분류입니다.")
+                else:
+                    st.error("소분류명을 입력해주세요.")
+
+    분류2_list = st.session_state.page_order['분류2_순서'].get(분류1, ['전체'])
     
     if f'selected_분류2_{분류1}' not in st.session_state:
         st.session_state[f'selected_분류2_{분류1}'] = '전체'
@@ -326,7 +349,7 @@ def show_category_detail(df, cat_df, 분류1):
     
     st.markdown("---")
     
-    # 상단 컨트롤바 (검색 + 정렬 + 저장버튼)
+    # 상단 컨트롤바
     ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 1, 1])
     with ctrl_col1:
         search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
@@ -336,7 +359,7 @@ def show_category_detail(df, cat_df, 분류1):
     if search_query: 
         df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
     
-    # 정렬 로직
+    # 정렬 로직 (기존 유지)
     channel_order_key = f"{분류1}_{selected_분류2}"
     if sort_by == '사용자 지정':
         if '채널_순서' in st.session_state.page_order and channel_order_key in st.session_state.page_order['채널_순서']:
@@ -348,25 +371,18 @@ def show_category_detail(df, cat_df, 분류1):
     else:
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # 표시용 데이터 준비
     display_columns = [
         '채널명', '분류1', '분류2', '메모', '운영기간', 
         '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', 
-        '최근 20개 토탈', '최근 30개 토탈', '키워드', 'URL', 'gs_row_index'
+        '최근 20개 토탈', '최근 30개 토탈', 'URL', 'gs_row_index'
     ]
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # --- [동적 옵션] 분류 옵션 리스트 생성 ---
-    # 전체 분류1 리스트
+    # 드롭다운 옵션 설정
     all_cat1_options = sorted(list(cat_df['분류1'].unique())) if not cat_df.empty else sorted(list(df['분류1'].unique()))
-    # 현재 선택된 분류1에 매칭되는 분류2 리스트 (동적 필터링 핵심)
-    if not cat_df.empty:
-        allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
-    else:
-        allowed_cat2_options = sorted(list(df[df['분류1'] == 분류1]['분류2'].unique()))
+    allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
 
-    # 데이터 에디터 출력
-    st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개) - *수정 후 하단 저장 버튼을 눌러주세요*")
+    st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
     edited_df = st.data_editor(
         df_to_edit,
@@ -375,24 +391,17 @@ def show_category_detail(df, cat_df, 분류1):
         column_config={
             "URL": st.column_config.LinkColumn("링크", display_text="보러가기"),
             "gs_row_index": None,
-            "동영상": st.column_config.NumberColumn(disabled=True),
-            "조회수": st.column_config.NumberColumn(disabled=True),
-            "최근 5개 토탈": st.column_config.NumberColumn(disabled=True),
-            "최근 10개 토탈": st.column_config.NumberColumn(disabled=True),
-            "최근 20개 토탈": st.column_config.NumberColumn(disabled=True),
-            "최근 30개 토탈": st.column_config.NumberColumn(disabled=True),
-            "채널명": st.column_config.TextColumn(disabled=True),
-            "운영기간": st.column_config.TextColumn(disabled=True),
-            # 동적으로 필터링된 옵션 적용
             "분류1": st.column_config.SelectboxColumn("분류1", options=all_cat1_options, required=True),
             "분류2": st.column_config.SelectboxColumn("분류2", options=allowed_cat2_options, required=True),
+            "동영상": st.column_config.NumberColumn(disabled=True),
+            "조회수": st.column_config.NumberColumn(disabled=True),
+            "채널명": st.column_config.TextColumn(disabled=True),
             "메모": st.column_config.TextColumn("메모", width="large"),
         },
         hide_index=True,
         key=f"editor_{분류1}_{selected_분류2}"
     )
 
-    # 변경사항 저장 버튼
     with ctrl_col3:
         st.write("") 
         if st.button("💾 변경사항 시트에 저장", type="primary", use_container_width=True):
@@ -415,7 +424,6 @@ def show_settings():
     
     tab1, tab2, tab3 = st.tabs(["📂 분류1 순서", "📁 분류2 순서", "💾 저장"])
 
-    # (생략: 기존 chunk_list 및 sort_items 로직 유지)
     with tab1:
         st.info("💡 카드를 드래그하여 순서를 변경하세요.")
         current_list = st.session_state.page_order['분류1_순서']
