@@ -14,46 +14,50 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 커스텀 CSS
+# 커스텀 CSS (엑셀/표 스타일 - 번호 고정, 내용 이동)
 st.markdown("""
 <style>
     /* 1. 카운터 초기화 */
     .stApp { counter-reset: item-rank; }
     div[data-testid="stTabContent"] { counter-reset: item-rank; }
 
-    /* 2. Sortable 아이템 스타일 */
+    /* 2. Sortable 아이템 스타일 (카드 전체) */
     .sortable-item {
-        background-color: white !important;
-        color: #333 !important;
-        border: 1px solid #ccc !important;
+        background-color: white !important;  /* 흰색 배경 */
+        color: #333 !important;              /* 검은 글씨 */
+        border: 1px solid #ccc !important;   /* 회색 테두리 */
         border-radius: 4px !important;
-        padding: 0 !important;
+        padding: 0 !important;               /* 내부 패딩 제거 (번호박스 꽉 채우기) */
         margin-bottom: 8px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
         font-size: 15px !important;
         font-weight: 500 !important;
         cursor: grab !important;
+        
+        /* Flex 레이아웃으로 [번호|내용] 배치 */
         display: flex !important;
         align-items: center !important;
         height: 42px !important;
         overflow: hidden !important;
+        
+        /* 카운터 증가 */
         counter-increment: item-rank;
     }
     
-    /* 3. 번호 박스 */
+    /* 3. 번호 박스 (왼쪽 회색 영역) */
     .sortable-item::before {
-        content: counter(item-rank);
-        background-color: #eee !important;
+        content: counter(item-rank);         /* 1, 2, 3... 자동 생성 */
+        background-color: #eee !important;   /* 회색 배경 */
         color: #555 !important;
         font-weight: bold !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        width: 45px !important;
-        height: 100% !important;
+        width: 45px !important;              /* 너비 고정 */
+        height: 100% !important;             /* 높이 꽉 채우기 */
         border-right: 1px solid #ccc !important;
         margin-right: 12px !important;
-        flex-shrink: 0 !important;
+        flex-shrink: 0 !important;           /* 찌그러짐 방지 */
     }
     
     /* 호버 효과 */
@@ -72,7 +76,7 @@ st.markdown("""
     /* 헤더 숨기기 */
     .sortable-container-header { display: none !important; }
     
-    /* 네비게이션 버튼 */
+    /* 기존 스타일 유지 */
     .nav-button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -81,46 +85,24 @@ st.markdown("""
         text-decoration: none;
         font-weight: bold;
     }
-    
-    /* 테이블 스타일 */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 1rem 0;
-        font-size: 14px;
-    }
-    table thead tr {
+    .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
         color: white;
-        text-align: left;
+        text-align: center;
+        margin-bottom: 1rem;
     }
-    table th {
-        padding: 12px;
+    .metric-card h3 { font-size: 2rem; margin: 0; font-weight: bold; }
+    .category-btn {
+        padding: 0.75rem 1.5rem;
+        border: 2px solid #667eea;
+        border-radius: 25px;
+        background: white;
+        color: #667eea;
         font-weight: bold;
-        border: 1px solid #ddd;
+        cursor: pointer;
         text-align: center;
-    }
-    table td {
-        padding: 10px;
-        border: 1px solid #ddd;
-        text-align: center;
-    }
-    table tbody tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
-    table tbody tr:hover {
-        background-color: #f0f0ff;
-    }
-    
-    /* URL 링크 스타일 */
-    table a {
-        color: #1E90FF !important;
-        font-weight: 600 !important;
-        text-decoration: none !important;
-    }
-    table a:hover {
-        color: #0066CC !important;
-        text-decoration: underline !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -277,29 +259,32 @@ def show_dashboard():
         if saved_order:
             st.session_state.page_order = sync_order_with_data(saved_order, df)
         else:
-            st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}}, df)
+            st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, df)
 
     분류1_list = st.session_state.page_order['분류1_순서']
     
     if 'selected_분류1' not in st.session_state:
         st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else None
     
-    # 사이드바에 분류 선택
-    with st.sidebar:
-        st.markdown("### 📂 분류 선택")
-        
-        for cat in 분류1_list:
-            is_active = (st.session_state.selected_분류1 == cat)
-            if st.button(
-                cat, 
-                key=f"sidebar_btn_{cat}", 
-                use_container_width=True,
-                type="primary" if is_active else "secondary"
-            ):
-                st.session_state.selected_분류1 = cat
-                st.rerun()
+    st.markdown("### 📂 분류 선택")
+    buttons_per_row = 6
+    num_rows = (len(분류1_list) + buttons_per_row - 1) // buttons_per_row
     
-    # 선택된 분류1 데이터 표시
+    for row in range(num_rows):
+        cols = st.columns(buttons_per_row)
+        start_idx = row * buttons_per_row
+        end_idx = min(start_idx + buttons_per_row, len(분류1_list))
+        
+        for idx, col in enumerate(cols):
+            if start_idx + idx < end_idx:
+                cat = 분류1_list[start_idx + idx]
+                with col:
+                    is_active = (st.session_state.selected_분류1 == cat)
+                    if st.button(cat, key=f"btn_{cat}_{row}_{idx}", use_container_width=True, type="primary" if is_active else "secondary"):
+                        st.session_state.selected_분류1 = cat
+                        st.rerun()
+    
+    st.markdown("---")
     if st.session_state.selected_분류1:
         show_category_detail(df, st.session_state.selected_분류1)
 
@@ -314,29 +299,27 @@ def show_category_detail(df, 분류1):
         분류2_list += sorted(df_filtered['분류2'].dropna().unique().tolist())
 
     st.markdown(f"## 📊 {분류1}")
-    
     col1, col2 = st.columns([1, 3])
-    with col1: 
-        selected_분류2 = st.selectbox("🔍 분류2 선택", 분류2_list, key=f"분류2_{분류1}")
+    with col1: selected_분류2 = st.selectbox("🔍 분류2 선택", 분류2_list, key=f"분류2_{분류1}")
     
     df_display = df_filtered[df_filtered['분류2'] == selected_분류2].copy() if selected_분류2 != '전체' else df_filtered.copy()
     
-    # 검색 및 정렬
+    col1, col2, col3, col4 = st.columns(4)
+    with col1: st.markdown(f"<div class='metric-card'><h3>{len(df_display)}</h3><p>총 채널 수</p></div>", unsafe_allow_html=True)
+    with col2: st.markdown(f"<div class='metric-card'><h3>{format_korean_number(df_display['구독자'].sum())}</h3><p>총 구독자</p></div>", unsafe_allow_html=True)
+    with col3: st.markdown(f"<div class='metric-card'><h3>{format_korean_number(df_display['조회수'].sum())}</h3><p>총 조회수</p></div>", unsafe_allow_html=True)
+    with col4: st.markdown(f"<div class='metric-card'><h3>{format_korean_number(df_display['최근 30개 토탈'].sum())}</h3><p>최근 30개 토탈</p></div>", unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # 검색, 정렬, 표시 방식 선택
     col1, col2, col3 = st.columns([2, 1, 1])
     with col1: 
         search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
     with col2: 
-        sort_by = st.selectbox(
-            "정렬 기준", 
-            ['최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정'],
-            key=f"sort_{분류1}"
-        )
+        sort_by = st.selectbox("정렬 기준", ['최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '구독자', '조회수', '사용자 지정'], key=f"sort_{분류1}")
     with col3:
-        view_mode = st.selectbox(
-            "표시 방식",
-            ['테이블', '드래그'],
-            key=f"view_mode_{분류1}"
-        )
+        view_mode = st.selectbox("표시 방식", ['테이블', '드래그'], key=f"view_mode_{분류1}")
     
     if search_query: 
         df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
@@ -365,18 +348,6 @@ def show_category_detail(df, 분류1):
             pass
     else:
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
-    
-    # 테이블 컬럼 설정
-    display_columns = [
-        col for col in [
-            '채널명', 'URL', '국가', '분류2', 
-            '동영상', '조회수',
-            '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈'
-        ] 
-        if col in df_display.columns
-    ]
-    
-    df_fmt = df_display[display_columns].copy()
     
     # ========== 드래그 모드 ==========
     if view_mode == '드래그':
@@ -432,129 +403,17 @@ def show_category_detail(df, 분류1):
         return  # 드래그 모드에서는 여기서 종료
     
     # ========== 테이블 모드 (기존 코드) ==========
-    # 숫자 포맷팅 (URL 제외)
+    display_columns = [col for col in ['채널명', 'URL', '국가', '분류2', '구독자', '동영상', '조회수', '최근 30개 토탈'] if col in df_display.columns]
+    df_fmt = df_display[display_columns].copy()
     for col in df_fmt.columns:
-        if col != 'URL' and df_fmt[col].dtype in ['int64', 'float64']: 
+        if df_fmt[col].dtype in ['int64', 'float64']: 
             df_fmt[col] = df_fmt[col].apply(format_korean_number)
-    
-    # URL을 파란색 '보기' 링크로 변환
-    if 'URL' in df_fmt.columns:
-        df_fmt['URL'] = df_fmt['URL'].apply(
-            lambda x: f'<a href="{x}" target="_blank" style="color: #1E90FF; font-weight: 600; text-decoration: none;">보기</a>' 
-            if pd.notna(x) and x != '' else ''
-        )
-    
-    # ========== 페이지네이션 ==========
-    total_rows = len(df_fmt)
-    
-    # 페이지 크기 선택 (상단에 배치)
-    col1, col2, col3 = st.columns([1, 2, 2])
-    with col1:
-        rows_per_page = st.selectbox(
-            "페이지당 표시",
-            options=[50, 100, 200, 500],
-            index=0,
-            key=f"rows_per_page_{분류1}"
-        )
-    
-    total_pages = (total_rows + rows_per_page - 1) // rows_per_page
-    
-    # 페이지 번호 초기화
-    page_key = f"page_{분류1}_{selected_분류2}"
-    if page_key not in st.session_state:
-        st.session_state[page_key] = 1
-    
-    # 페이지 크기 변경 시 1페이지로 리셋
-    page_size_key = f"prev_page_size_{분류1}"
-    if page_size_key not in st.session_state:
-        st.session_state[page_size_key] = rows_per_page
-    
-    if st.session_state[page_size_key] != rows_per_page:
-        st.session_state[page_key] = 1
-        st.session_state[page_size_key] = rows_per_page
-    
-    current_page = st.session_state[page_key]
-    
-    # 페이지가 범위를 벗어나면 조정
-    if current_page > total_pages:
-        current_page = total_pages
-        st.session_state[page_key] = total_pages
-    
-    # 페이지 범위 계산
-    start_idx = (current_page - 1) * rows_per_page
-    end_idx = min(start_idx + rows_per_page, total_rows)
-    
-    df_page = df_fmt.iloc[start_idx:end_idx]
-    
-    # 헤더와 페이지 정보
-    st.markdown(f"### 📋 채널 리스트 (총 {total_rows}개 | {current_page}/{total_pages} 페이지)")
-    
-    # 테이블 표시
-    st.markdown(
-        df_page.to_html(escape=False, index=False),
-        unsafe_allow_html=True
-    )
-    
-    # 페이지네이션 컨트롤
-    st.markdown("---")
-    
-    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1.5, 1, 1, 1])
-    
-    with col1:
-        if st.button("⏮️ 처음", key=f"first_{분류1}", disabled=(current_page == 1)):
-            st.session_state[page_key] = 1
-            st.rerun()
-    
-    with col2:
-        if st.button("◀️ 이전", key=f"prev_{분류1}", disabled=(current_page == 1)):
-            st.session_state[page_key] = max(1, current_page - 1)
-            st.rerun()
-    
-    with col3:
-        # 페이지 번호 입력
-        col_input1, col_input2 = st.columns([2, 1])
-        with col_input1:
-            new_page = st.number_input(
-                "페이지 이동",
-                min_value=1,
-                max_value=total_pages,
-                value=current_page,
-                step=1,
-                key=f"page_input_{분류1}",
-                label_visibility="collapsed"
-            )
-        with col_input2:
-            if st.button("이동", key=f"go_{분류1}"):
-                if new_page != current_page:
-                    st.session_state[page_key] = new_page
-                    st.rerun()
-    
-    with col4:
-        if st.button("▶️ 다음", key=f"next_{분류1}", disabled=(current_page == total_pages)):
-            st.session_state[page_key] = min(total_pages, current_page + 1)
-            st.rerun()
-    
-    with col5:
-        if st.button("⏭️ 마지막", key=f"last_{분류1}", disabled=(current_page == total_pages)):
-            st.session_state[page_key] = total_pages
-            st.rerun()
-    
-    with col6:
-        # CSV 다운로드 (현재 페이지)
-        csv = df_page.to_csv(index=False, encoding='utf-8-sig')
-        st.download_button(
-            label="📥 CSV",
-            data=csv,
-            file_name=f"youtube_{분류1}_page{current_page}.csv",
-            mime="text/csv",
-            key=f"download_{분류1}"
-        )
-    
-    # 현재 표시 범위 정보
-    st.info(f"📄 {start_idx + 1}~{end_idx}번째 채널 표시 중 (전체 {total_rows}개 | 페이지당 {rows_per_page}개)")
+        
+    st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
+    st.dataframe(df_fmt, use_container_width=True, height=500)
 
 # -------------------------------------------------------------
-# 순서 설정
+# [수정] 순서 설정 (엑셀/표 스타일 적용)
 # -------------------------------------------------------------
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
@@ -568,24 +427,26 @@ def show_settings():
                 st.session_state.page_order = sync_order_with_data(saved_order, df)
                 st.toast("✅ 설정 로드 완료!")
             else:
-                st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}}, df)
+                st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, df)
 
     tab1, tab2, tab3 = st.tabs(["📂 분류1 순서", "📁 분류2 순서", "💾 저장"])
 
-    # 탭 1: 분류1
+    # --- 탭 1: 분류1 ---
     with tab1:
-        st.info("💡 카드를 드래그하여 순서를 변경하세요.")
+        st.info("💡 카드를 드래그하여 순서를 변경하세요. 번호는 고정되어 있습니다.")
         
         current_list = st.session_state.page_order['분류1_순서']
         
+        # 5열 그리드
         chunked_list = chunk_list(current_list, 5) 
         sortable_data = [{'header': '', 'items': chunk} for chunk in chunked_list]
         
+        # key를 변경하여 컴포넌트 강제 리로드 (스타일 즉시 적용)
         sorted_data = sort_items(
             sortable_data,
             multi_containers=True,
             direction='vertical',
-            key='sortable_cat1_v5'
+            key='sortable_cat1_excel_v4'
         )
         
         new_order = [item for container in sorted_data for item in container['items']]
@@ -594,7 +455,7 @@ def show_settings():
             st.session_state.page_order['분류1_순서'] = new_order
             st.rerun()
 
-    # 탭 2: 분류2
+    # --- 탭 2: 분류2 ---
     with tab2:
         col_sel, col_sort = st.columns([1, 3])
         
@@ -610,14 +471,16 @@ def show_settings():
             
             current_sub = st.session_state.page_order['분류2_순서'].get(selected_cat1, ['전체'])
             
+            # 4열 그리드
             chunked_sub = chunk_list(current_sub, 4) 
             sortable_sub_data = [{'header': '', 'items': chunk} for chunk in chunked_sub]
             
+            # key를 변경하여 컴포넌트 강제 리로드
             sorted_sub_data = sort_items(
                 sortable_sub_data,
                 multi_containers=True,
                 direction='vertical',
-                key=f'sortable_cat2_{selected_cat1}_v5'
+                key=f'sortable_cat2_{selected_cat1}_excel_v4'
             )
             
             new_sub_order = [item for container in sorted_sub_data for item in container['items']]
@@ -626,7 +489,7 @@ def show_settings():
                 st.session_state.page_order['분류2_순서'][selected_cat1] = new_sub_order
                 st.rerun()
 
-    # 탭 3: 저장
+    # --- 탭 3: 저장 ---
     with tab3:
         st.markdown("### 💾 설정 저장")
         st.info("변경된 순서를 구글 시트에 영구적으로 저장합니다.")
@@ -661,9 +524,7 @@ def show_settings():
                 st.rerun()
 
 def main():
-    if 'page' not in st.session_state: 
-        st.session_state.page = "dashboard"
-    
+    if 'page' not in st.session_state: st.session_state.page = "dashboard"
     show_navigation()
     st.markdown("---")
     
@@ -675,11 +536,8 @@ def main():
         else:
             st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, df)
 
-    if st.session_state.page == "dashboard": 
-        show_dashboard()
-    elif st.session_state.page == "settings": 
-        show_settings()
-    
+    if st.session_state.page == "dashboard": show_dashboard()
+    elif st.session_state.page == "settings": show_settings()
     st.markdown("---")
     st.markdown(f"*Update: {datetime.now().strftime('%Y-%m-%d %H:%M')}*")
 
