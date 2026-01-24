@@ -212,7 +212,6 @@ def show_navigation():
             st.session_state.page = "dashboard"
             st.rerun()
     with col3:
-        # 명칭 변경: 분류 관리 -> 카테고리설정
         if st.button("📁 카테고리설정", use_container_width=True):
             st.session_state.page = "category_mgmt"
             st.rerun()
@@ -225,9 +224,9 @@ def show_navigation():
             st.cache_data.clear()
             st.rerun()
 
-# --- 카테고리설정 페이지 (기존 분류 관리) ---
+# --- 카테고리설정 페이지 ---
 def show_category_management():
-    st.markdown("## 📁 카테고리설정") # 명칭 변경
+    st.markdown("## 📁 카테고리설정")
     df, cat_df = load_data()
     
     st.info("💡 '자동 추출' 버튼을 누르면 채널 리스트 시트에서 현재 사용 중인 카테고리-장르 조합을 모두 가져옵니다.")
@@ -257,7 +256,6 @@ def show_category_management():
         num_rows="dynamic",
         key="cat_mgmt_editor",
         column_config={
-            # 명칭 변경: 분류1 -> 카테고리, 분류2 -> 장르
             "분류1": st.column_config.TextColumn("카테고리", required=True),
             "분류2": st.column_config.TextColumn("장르", required=True),
         }
@@ -296,14 +294,13 @@ def show_category_detail(df, cat_df, 분류1):
     
     st.markdown(f"## 📊 {분류1}")
     
-    # --- [명칭 변경] 장르(분류2) 추가 기능 영역 ---
-    with st.expander("➕ 새 장르 추가"): # 명칭 변경
+    with st.expander("➕ 새 장르 추가"):
         col_input, col_btn = st.columns([3, 1])
         with col_input:
             new_sub_cat = st.text_input(f"'{분류1}' 카테고리에 추가할 장르명 입력", key=f"input_new_{분류1}")
         with col_btn:
             st.write("") 
-            if st.button("장르 추가 저장", use_container_width=True, type="primary"): # 명칭 변경
+            if st.button("장르 추가 저장", use_container_width=True, type="primary"):
                 if new_sub_cat:
                     if not ((cat_df['분류1'] == 분류1) & (cat_df['분류2'] == new_sub_cat)).any():
                         new_row = pd.DataFrame({'분류1': [분류1], '분류2': [new_sub_cat]})
@@ -377,16 +374,15 @@ def show_category_detail(df, cat_df, 분류1):
         use_container_width=True,
         height=600,
         column_config={
-            # 명칭 변경: 보러가기 -> 보기
             "URL": st.column_config.LinkColumn("링크", display_text="보기"),
             "gs_row_index": None,
-            # 명칭 변경: 분류1 -> 카테고리, 분류2 -> 장르
             "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True),
             "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True),
             "동영상": st.column_config.NumberColumn(disabled=True),
             "조회수": st.column_config.NumberColumn(disabled=True),
             "채널명": st.column_config.TextColumn(disabled=True),
-            "메모": st.column_config.TextColumn("메모", width="large"),
+            # [수정사항] 메모 컬럼의 너비를 medium으로 설정하여 장르 칸과 밸런스를 맞춤
+            "메모": st.column_config.TextColumn("메모", width="medium"), 
         },
         hide_index=True,
         key=f"editor_{분류1}_{selected_분류2}"
@@ -412,7 +408,6 @@ def show_settings():
     df, cat_df = load_data()
     if df.empty: return
     
-    # 명칭 변경: 분류1/분류2 -> 카테고리/장르
     tab1, tab2, tab3 = st.tabs(["📂 카테고리 순서", "📁 장르 순서", "💾 저장"])
 
     with tab1:
@@ -429,7 +424,6 @@ def show_settings():
     with tab2:
         col_sel, col_sort = st.columns([1, 3])
         with col_sel:
-            # 명칭 변경: 대분류 -> 카테고리
             selected_cat1 = st.radio("카테고리", st.session_state.page_order['분류1_순서'], key="set_cat2_sel")
         with col_sort:
             current_sub = st.session_state.page_order['분류2_순서'].get(selected_cat1, ['전체'])
