@@ -96,7 +96,7 @@ def add_status_dot(date_str):
         # 7일 이내: 초록, 30일 이내: 노랑, 그 외: 검정(혹은 없음)
         if diff <= 7: return f"{date_str} 🟢"
         elif diff <= 30: return f"{date_str} 🟡"
-        else: return f"{date_str}" # 오래된 건 아이콘 없음
+        else: return f"{date_str}" 
     except:
         return str(date_str)
 
@@ -409,7 +409,7 @@ def show_category_detail(df, cat_df, 분류1):
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
-    # 표시할 컬럼 지정 (요청: 조회수와 토탈 사이에 최근업로드 추가)
+    # 표시할 컬럼 지정
     display_columns = ['채널명', '국가', '분류1', '분류2', '메모', '운영기간', '동영상', '조회수', '최근업로드', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', 'URL', 'gs_row_index']
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
@@ -417,16 +417,19 @@ def show_category_detail(df, cat_df, 분류1):
     if '최근업로드' in df_to_edit.columns:
         df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(add_status_dot)
 
-    # 2. '조회수'만 한글 포맷("1.5억")으로 변경 (나머지 토탈 컬럼은 막대그래프를 위해 숫자 유지)
-    if '조회수' in df_to_edit.columns:
-        df_to_edit['조회수'] = df_to_edit['조회수'].apply(format_korean_number)
+    # 2. 조회수 및 최근 토탈 컬럼들을 모두 한글 포맷("1.5억")으로 변경
+    # [수정됨] 토탈 컬럼들도 한글로 변환 (막대 그래프 제거 및 텍스트화)
+    format_cols = ['조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
+    for col in format_cols:
+        if col in df_to_edit.columns:
+            df_to_edit[col] = df_to_edit[col].apply(format_korean_number)
 
     all_cat1_options = sorted(list(cat_df['분류1'].unique())) if not cat_df.empty else sorted(list(df['분류1'].unique()))
     allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
 
     st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
-    # 3. Data Editor 설정 (Progress Bar 및 컬럼 디자인)
+    # 3. Data Editor 설정 (Progress Bar 제거 -> TextColumn 사용)
     edited_df = st.data_editor(
         df_to_edit,
         use_container_width=True,
@@ -437,38 +440,13 @@ def show_category_detail(df, cat_df, 분류1):
             "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True),
             "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True),
             
-            # 조회수: 텍스트로 표시 (한글 포맷)
+            # 조회수 & 토탈 컬럼: 텍스트로 표시 (막대 그래프 X, 한글 포맷 O)
             "조회수": st.column_config.TextColumn("조회수", disabled=True),
-            
-            # 최근업로드: 텍스트로 표시 (상태 점 포함)
             "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="medium"),
-            
-            # 토탈 컬럼들: Progress Bar로 시각화 (데이터 바 효과)
-            "최근 5개 토탈": st.column_config.ProgressColumn(
-                "최근 5개 토탈", 
-                help="최근 5개 영상 조회수 합계",
-                format="%d",  # 정수로 표시
-                min_value=0, 
-                max_value=int(df['최근 5개 토탈'].max()) if not df.empty else 100,
-            ),
-            "최근 10개 토탈": st.column_config.ProgressColumn(
-                "최근 10개 토탈", 
-                format="%d",
-                min_value=0, 
-                max_value=int(df['최근 10개 토탈'].max()) if not df.empty else 100,
-            ),
-            "최근 20개 토탈": st.column_config.ProgressColumn(
-                "최근 20개 토탈", 
-                format="%d",
-                min_value=0, 
-                max_value=int(df['최근 20개 토탈'].max()) if not df.empty else 100,
-            ),
-            "최근 30개 토탈": st.column_config.ProgressColumn(
-                "최근 30개 토탈", 
-                format="%d",
-                min_value=0, 
-                max_value=int(df['최근 30개 토탈'].max()) if not df.empty else 100,
-            ),
+            "최근 5개 토탈": st.column_config.TextColumn("최근 5개 토탈", disabled=True),
+            "최근 10개 토탈": st.column_config.TextColumn("최근 10개 토탈", disabled=True),
+            "최근 20개 토탈": st.column_config.TextColumn("최근 20개 토탈", disabled=True),
+            "최근 30개 토탈": st.column_config.TextColumn("최근 30개 토탈", disabled=True),
             
             "메모": st.column_config.TextColumn("메모", width="medium"), 
         },
