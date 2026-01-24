@@ -14,10 +14,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 커스텀 CSS (로고 버튼 디자인 + 기존 스타일 유지)
+# 커스텀 CSS (기존 유지)
 st.markdown("""
 <style>
-    /* 로고 버튼을 제목처럼 보이게 하는 스타일 */
     button[key="logo_home"] {
         border: none !important;
         background: transparent !important;
@@ -30,14 +29,9 @@ st.markdown("""
         display: flex !important;
         align-items: center !important;
     }
-    button[key="logo_home"]:hover {
-        color: #FF0000 !important;
-        background: transparent !important;
-    }
-
+    button[key="logo_home"]:hover { color: #FF0000 !important; background: transparent !important; }
     .stApp { counter-reset: item-rank; }
     div[data-testid="stTabContent"] { counter-reset: item-rank; }
-
     .sortable-item {
         background-color: white !important;
         color: #333 !important;
@@ -55,7 +49,6 @@ st.markdown("""
         overflow: hidden !important;
         counter-increment: item-rank;
     }
-    
     .sortable-item::before {
         content: counter(item-rank);
         background-color: #eee !important;
@@ -70,23 +63,21 @@ st.markdown("""
         margin-right: 12px !important;
         flex-shrink: 0 !important;
     }
-    
     .sortable-item:hover {
         border-color: #667eea !important;
         background-color: #f8f9fa !important;
         transform: translateY(-1px);
         box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
     }
-
     .sortable-container-header { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# 숫자 포맷 함수
+# 숫자 포맷 함수 (기존 유지)
 def format_korean_number(num):
     if pd.isna(num) or num == 0: return "0"
     try:
-        num = int(num)
+        num = int(float(str(num).replace(',', '')))
         if num >= 100000000:
             eok = num // 100000000
             man = (num % 100000000) // 10000
@@ -100,19 +91,7 @@ def format_korean_number(num):
     except:
         return str(num)
 
-# 리스트 청크 함수
-def chunk_list(data, num_chunks):
-    if not data: return [[] for _ in range(num_chunks)]
-    avg = len(data) / float(num_chunks)
-    chunks = []
-    last = 0.0
-    for _ in range(num_chunks):
-        next_val = last + avg
-        chunks.append(data[int(last):int(next_val)])
-        last = next_val
-    return chunks
-
-# 구글 시트 연결
+# 구글 시트 연결 (기존 유지)
 def get_gspread_client():
     credentials_dict = dict(st.secrets["gcp_service_account"])
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -127,6 +106,9 @@ def load_data():
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
         
+        # 구글 시트 수정을 위해 원본 행 번호 저장 (2부터 시작: 헤더1 + 0인덱스보정1)
+        df['gs_row_index'] = range(2, len(df) + 2)
+        
         numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
                           '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
         for col in numeric_columns:
@@ -137,6 +119,48 @@ def load_data():
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame()
 
+# 구글 시트 특정 행 업데이트 함수 (새로 추가)
+def update_gs_rows(edited_df, original_df):
+    try:
+        client = get_gspread_client()
+        sheet = client.open("유튜브보물창고_테스트").sheet1
+        
+        # 변경된 데이터 추출
+        # 채널명이나 gs_row_index를 기준으로 비교
+        diff = edited_df[edited_df['메모'] != original_df['메모']] # 예시: 메모가 바뀐 경우
+        # 실제로는 모든 컬럼을 비교하거나 st.data_editor의 state를 이용
+        
+        headers = sheet.row_values(1)
+        col_map = {name: i+1 for i, name in enumerate(headers)}
+        
+        # 효율적인 업데이트를 위해 변경사항 체크
+        count = 0
+        for idx, row in edited_df.iterrows():
+            orig_row = original_df[original_df['gs_row_index'] == row['gs_row_index']].iloc[0]
+            
+            # 수정 가능한 항목 리스트
+            fields_to_check = ['분류1', '분류2', '메모']
+            for field in fields_to_check:
+                if str(row[field]) != str(orig_row[field]):
+                    sheet.update_cell(int(row['gs_row_index']), col_map[field], str(row[field]))
+                    count += 1
+        return count
+    except Exception as e:
+        st.error(f"업데이트 오류: {e}")
+        return -1
+
+# 리스트 청크 (기존 유지)
+def chunk_list(data, num_chunks):
+    if not data: return [[] for _ in range(num_chunks)]
+    avg = len(data) / float(num_chunks)
+    chunks = []
+    last = 0.0
+    for _ in range(num_chunks):
+        next_val = last + avg
+        chunks.append(data[int(last):int(next_val)])
+        last = next_val
+    return chunks
+
 def load_config_from_sheet():
     try:
         client = get_gspread_client()
@@ -144,22 +168,18 @@ def load_config_from_sheet():
         worksheet = doc.worksheet("config")
         config_json = worksheet.acell('A1').value
         return json.loads(config_json) if config_json else None
-    except:
-        return None
+    except: return None
 
 def save_config_to_sheet(order_data):
     try:
         client = get_gspread_client()
         doc = client.open("유튜브보물창고_테스트")
-        try:
-            worksheet = doc.worksheet("config")
-        except:
-            worksheet = doc.add_worksheet(title="config", rows=10, cols=10)
+        try: worksheet = doc.worksheet("config")
+        except: worksheet = doc.add_worksheet(title="config", rows=10, cols=10)
         json_str = json.dumps(order_data, ensure_ascii=False)
         worksheet.update_acell('A1', json_str)
         return True
-    except:
-        return False
+    except: return False
 
 def sync_order_with_data(saved_order, df):
     live_cat1 = set(df['분류1'].dropna().unique())
@@ -178,14 +198,11 @@ def sync_order_with_data(saved_order, df):
         for c in sorted(list(live_cat2)):
             if c not in new_cat2_order: new_cat2_order.append(c)
         saved_order['분류2_순서'][cat1] = new_cat2_order
-    if '채널_순서' not in saved_order: saved_order['채널_순서'] = {}
     return saved_order
 
-# 네비게이션바
 def show_navigation():
     col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
     with col1:
-        # 로고 클릭 시 대시보드(홈)로 이동
         if st.button("🎬 YouTube 보물창고", key="logo_home", use_container_width=False):
             st.session_state.page = "dashboard"
             st.rerun()
@@ -235,7 +252,6 @@ def show_category_detail(df, 분류1):
     if f'selected_분류2_{분류1}' not in st.session_state:
         st.session_state[f'selected_분류2_{분류1}'] = '전체'
     
-    # 분류2 선택 버튼
     buttons_per_row = 8
     num_rows = (len(분류2_list) + buttons_per_row - 1) // buttons_per_row
     for row in range(num_rows):
@@ -254,16 +270,17 @@ def show_category_detail(df, 분류1):
     
     st.markdown("---")
     
-    col1, col2 = st.columns([3, 1])
-    with col1: 
+    # 상단 컨트롤바 (검색 + 정렬 + 저장버튼)
+    ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 1, 1])
+    with ctrl_col1:
         search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
-    with col2: 
+    with ctrl_col2:
         sort_by = st.selectbox("정렬 기준", ['최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정'], key=f"sort_{분류1}")
     
     if search_query: 
         df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
     
-    # 정렬 로직
+    # 정렬 로직 (기존 유지)
     channel_order_key = f"{분류1}_{selected_분류2}"
     if sort_by == '사용자 지정':
         if '채널_순서' in st.session_state.page_order and channel_order_key in st.session_state.page_order['채널_순서']:
@@ -275,39 +292,54 @@ def show_category_detail(df, 분류1):
     else:
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # [수정] 요청하신 이미지와 동일한 컬럼 순서로 배치
+    # 표시용 데이터 준비
     display_columns = [
-        '채널명', '분류2', '메모', '운영기간', 
+        '채널명', '분류1', '분류2', '메모', '운영기간', 
         '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', 
-        '최근 20개 토탈', '최근 30개 토탈', '키워드', 'URL'
+        '최근 20개 토탈', '최근 30개 토탈', '키워드', 'URL', 'gs_row_index'
     ]
+    df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
+
+    # 데이터 에디터 출력
+    st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개) - *분류 및 메모 수정 가능*")
     
-    df_fmt = df_display[[c for c in display_columns if c in df_display.columns]].copy()
-    
-    # 숫자 포맷팅
-    numeric_fmt_cols = ['동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
-    for col in numeric_fmt_cols:
-        if col in df_fmt.columns:
-            df_fmt[col] = df_fmt[col].apply(format_korean_number)
-        
-    st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
-    
-    # 테이블 표시 설정
-    st.dataframe(
-        df_fmt,
+    edited_df = st.data_editor(
+        df_to_edit,
         use_container_width=True,
         height=600,
         column_config={
-            "URL": st.column_config.LinkColumn(
-                "링크",
-                display_text="보러가기"
-            ),
-            "키워드": st.column_config.TextColumn("키워드"),
-            "메모": st.column_config.TextColumn("메모"),
-            "운영기간": st.column_config.TextColumn("운영기간")
+            "URL": st.column_config.LinkColumn("링크", display_text="보러가기"),
+            "gs_row_index": None, # 행 번호는 숨김
+            "동영상": st.column_config.NumberColumn(disabled=True),
+            "조회수": st.column_config.NumberColumn(disabled=True),
+            "최근 5개 토탈": st.column_config.NumberColumn(disabled=True),
+            "최근 10개 토탈": st.column_config.NumberColumn(disabled=True),
+            "최근 20개 토탈": st.column_config.NumberColumn(disabled=True),
+            "최근 30개 토탈": st.column_config.NumberColumn(disabled=True),
+            "채널명": st.column_config.TextColumn(disabled=True),
+            "운영기간": st.column_config.TextColumn(disabled=True),
+            "분류1": st.column_config.TextColumn("분류1"),
+            "분류2": st.column_config.TextColumn("분류2"),
+            "메모": st.column_config.TextColumn("메모", width="large"),
         },
-        hide_index=True
+        hide_index=True,
+        key=f"editor_{분류1}_{selected_분류2}"
     )
+
+    # 변경사항 저장 버튼
+    with ctrl_col3:
+        st.write("") # 간격 맞춤
+        if st.button("💾 변경사항 시트에 저장", type="primary", use_container_width=True):
+            with st.spinner("구글 시트 업데이트 중..."):
+                update_count = update_gs_rows(edited_df, df_to_edit)
+                if update_count > 0:
+                    st.success(f"✅ {update_count}개의 항목이 수정되었습니다.")
+                    st.cache_data.clear()
+                    st.rerun()
+                elif update_count == 0:
+                    st.info("변경사항이 없습니다.")
+                else:
+                    st.error("저장에 실패했습니다.")
 
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
@@ -342,13 +374,10 @@ def show_settings():
                 st.rerun()
 
     with tab3:
-        if st.button("💾 구글 시트에 최종 저장", type="primary", use_container_width=True):
+        if st.button("💾 구글 시트에 순서 설정 저장", type="primary", use_container_width=True):
             if save_config_to_sheet(st.session_state.page_order):
-                st.success("✅ 저장 완료!")
+                st.success("✅ 순서 설정 저장 완료!")
                 st.cache_data.clear()
-        if st.button("🗑️ 모든 채널 개별 순서 초기화", use_container_width=True):
-            st.session_state.page_order['채널_순서'] = {}
-            st.rerun()
 
 def main():
     if 'page' not in st.session_state: st.session_state.page = "dashboard"
