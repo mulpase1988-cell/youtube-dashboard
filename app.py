@@ -76,29 +76,38 @@ st.markdown("""
 
 # --- 유틸리티 함수 ---
 
-# [수정됨] 숫자 포맷팅 + 이모지 추가 함수
+def format_korean_number(num):
+    """숫자를 '1.5억', '5300만' 등의 한글 포맷 문자열로 변환 (이모지 없음)"""
+    if pd.isna(num) or num == 0: return "0"
+    try:
+        num = int(float(str(num).replace(',', '')))
+        if num >= 100000000: return f"{num // 100000000}억"
+        elif num >= 10000: return f"{num // 10000}만"
+        else: return f"{num:,}"
+    except: return str(num)
+
 def format_korean_number_with_icon(num):
     """
-    숫자를 한글 포맷으로 변환하고, 크기에 따라 이모지를 앞에 붙임
-    - 1000만 이상: 🏆
-    - 100만 이상: 🔥
-    - 30만 이상: 🔺
+    최근 토탈 전용 포맷팅: 숫자 크기에 따라 이모지 추가
+    - 1000만 이상: 💎 (다이아몬드)
+    - 100만 이상: 🔥 (불꽃)
+    - 30만 이상: 🔺 (상승)
     """
     if pd.isna(num) or num == 0: return "0"
     try:
         val = int(float(str(num).replace(',', '')))
         
-        # 한글 포맷팅
+        # 기본 한글 포맷팅
         if val >= 100000000: text = f"{val // 100000000}억"
         elif val >= 10000: text = f"{val // 10000}만"
         else: text = f"{val:,}"
         
-        # 이모지 로직 (기준값은 필요에 따라 수정 가능)
-        if val >= 10000000: # 1000만 이상
-            return f"🏆 {text}"
-        elif val >= 1000000: # 100만 이상
+        # 이모지 로직
+        if val >= 10000000:   # 1,000만 이상
+            return f"💎 {text}"
+        elif val >= 1000000:  # 100만 이상
             return f"🔥 {text}"
-        elif val >= 300000: # 30만 이상
+        elif val >= 300000:   # 30만 이상
             return f"🔺 {text}"
         else:
             return text
@@ -111,7 +120,6 @@ def add_status_dot(date_str):
         dt = datetime.strptime(str(date_str).split(' ')[0], "%Y-%m-%d")
         diff = (datetime.now() - dt).days
         
-        # 7일 이내: 초록, 30일 이내: 노랑
         if diff <= 7: return f"{date_str} 🟢"
         elif diff <= 30: return f"{date_str} 🟡"
         else: return f"{date_str}" 
@@ -433,10 +441,13 @@ def show_category_detail(df, cat_df, 분류1):
     if '최근업로드' in df_to_edit.columns:
         df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(add_status_dot)
 
-    # 2. 조회수 및 최근 토탈 컬럼: 한글 포맷 + 이모지 아이콘 적용 (🏆, 🔥, 🔺)
-    # [수정됨] 새로운 함수 format_korean_number_with_icon 적용
-    format_cols = ['조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
-    for col in format_cols:
+    # 2. '조회수' 컬럼: 이모지 없이 순수 한글 포맷만 적용
+    if '조회수' in df_to_edit.columns:
+        df_to_edit['조회수'] = df_to_edit['조회수'].apply(format_korean_number)
+
+    # 3. '최근 X개 토탈' 컬럼: 이모지(💎, 🔥, 🔺) 포함 포맷 적용
+    icon_cols = ['최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
+    for col in icon_cols:
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
 
@@ -445,7 +456,7 @@ def show_category_detail(df, cat_df, 분류1):
 
     st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
-    # 3. Data Editor 설정
+    # 4. Data Editor 설정
     edited_df = st.data_editor(
         df_to_edit,
         use_container_width=True,
@@ -456,9 +467,13 @@ def show_category_detail(df, cat_df, 분류1):
             "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True),
             "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True),
             
-            # 텍스트로 표시 (이모지가 텍스트에 포함됨)
+            # 조회수: 이모지 없음
             "조회수": st.column_config.TextColumn("조회수", disabled=True),
+            
+            # 최근업로드: 🟢/🟡 상태 점
             "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="medium"),
+            
+            # 토탈 컬럼: 이모지(💎, 🔥, 🔺) 적용됨
             "최근 5개 토탈": st.column_config.TextColumn("최근 5개 토탈", disabled=True),
             "최근 10개 토탈": st.column_config.TextColumn("최근 10개 토탈", disabled=True),
             "최근 20개 토탈": st.column_config.TextColumn("최근 20개 토탈", disabled=True),
