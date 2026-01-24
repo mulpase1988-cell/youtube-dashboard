@@ -73,7 +73,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 숫자 포맷 함수 (기존 유지)
+# --- 유틸리티 함수 ---
 def format_korean_number(num):
     if pd.isna(num) or num == 0: return "0"
     try:
@@ -91,7 +91,7 @@ def format_korean_number(num):
     except:
         return str(num)
 
-# 구글 시트 연결 (기존 유지)
+# --- 구글 시트 연결 ---
 def get_gspread_client():
     credentials_dict = dict(st.secrets["gcp_service_account"])
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -106,7 +106,6 @@ def load_data():
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
         
-        # 구글 시트 수정을 위해 원본 행 번호 저장 (2부터 시작: 헤더1 + 0인덱스보정1)
         df['gs_row_index'] = range(2, len(df) + 2)
         
         numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
@@ -119,26 +118,17 @@ def load_data():
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame()
 
-# 구글 시트 특정 행 업데이트 함수 (새로 추가)
 def update_gs_rows(edited_df, original_df):
     try:
         client = get_gspread_client()
         sheet = client.open("유튜브보물창고_테스트").sheet1
-        
-        # 변경된 데이터 추출
-        # 채널명이나 gs_row_index를 기준으로 비교
-        diff = edited_df[edited_df['메모'] != original_df['메모']] # 예시: 메모가 바뀐 경우
-        # 실제로는 모든 컬럼을 비교하거나 st.data_editor의 state를 이용
-        
         headers = sheet.row_values(1)
         col_map = {name: i+1 for i, name in enumerate(headers)}
         
-        # 효율적인 업데이트를 위해 변경사항 체크
         count = 0
         for idx, row in edited_df.iterrows():
             orig_row = original_df[original_df['gs_row_index'] == row['gs_row_index']].iloc[0]
             
-            # 수정 가능한 항목 리스트
             fields_to_check = ['분류1', '분류2', '메모']
             for field in fields_to_check:
                 if str(row[field]) != str(orig_row[field]):
@@ -149,18 +139,7 @@ def update_gs_rows(edited_df, original_df):
         st.error(f"업데이트 오류: {e}")
         return -1
 
-# 리스트 청크 (기존 유지)
-def chunk_list(data, num_chunks):
-    if not data: return [[] for _ in range(num_chunks)]
-    avg = len(data) / float(num_chunks)
-    chunks = []
-    last = 0.0
-    for _ in range(num_chunks):
-        next_val = last + avg
-        chunks.append(data[int(last):int(next_val)])
-        last = next_val
-    return chunks
-
+# --- 설정 관련 ---
 def load_config_from_sheet():
     try:
         client = get_gspread_client()
@@ -200,6 +179,7 @@ def sync_order_with_data(saved_order, df):
         saved_order['분류2_순서'][cat1] = new_cat2_order
     return saved_order
 
+# --- 네비게이션 ---
 def show_navigation():
     col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
     with col1:
@@ -219,10 +199,12 @@ def show_navigation():
             st.cache_data.clear()
             st.rerun()
 
+# --- 대시보드 및 상세 페이지 ---
 def show_dashboard():
     df = load_data()
     if df.empty: return
     
+    # 순서 데이터 동기화
     if 'page_order' not in st.session_state:
         saved_order = load_config_from_sheet()
         st.session_state.page_order = sync_order_with_data(saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, df)
@@ -252,6 +234,7 @@ def show_category_detail(df, 분류1):
     if f'selected_분류2_{분류1}' not in st.session_state:
         st.session_state[f'selected_분류2_{분류1}'] = '전체'
     
+    # 상단 분류2 탭 버튼들
     buttons_per_row = 8
     num_rows = (len(분류2_list) + buttons_per_row - 1) // buttons_per_row
     for row in range(num_rows):
@@ -270,6 +253,21 @@ def show_category_detail(df, 분류1):
     
     st.markdown("---")
     
+    # --- 분류 추가 기능 (신규) ---
+    with st.expander("➕ 분류 항목 신규 추가 (여기에 없는 분류를 만들고 싶을 때)"):
+        c1, c2, c3 = st.columns([2, 2, 1])
+        new_cat1 = c1.text_input("새 분류1 이름", placeholder="예: 경제")
+        new_cat2 = c2.text_input("새 분류2 이름", placeholder="예: 주식")
+        if c3.button("리스트에 반영", use_container_width=True):
+            if new_cat1 or new_cat2:
+                st.info("새로운 분류가 옵션에 추가되었습니다. 아래 표에서 선택해 주세요.")
+                # 세션에 임시로 추가하여 데이터 에디터 옵션에 나오게 함
+                if 'extra_cat1' not in st.session_state: st.session_state.extra_cat1 = []
+                if 'extra_cat2' not in st.session_state: st.session_state.extra_cat2 = []
+                if new_cat1 and new_cat1 not in st.session_state.extra_cat1: st.session_state.extra_cat1.append(new_cat1)
+                if new_cat2 and new_cat2 not in st.session_state.extra_cat2: st.session_state.extra_cat2.append(new_cat2)
+                st.rerun()
+
     # 상단 컨트롤바 (검색 + 정렬 + 저장버튼)
     ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 1, 1])
     with ctrl_col1:
@@ -280,7 +278,7 @@ def show_category_detail(df, 분류1):
     if search_query: 
         df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
     
-    # 정렬 로직 (기존 유지)
+    # 정렬 로직
     channel_order_key = f"{분류1}_{selected_분류2}"
     if sort_by == '사용자 지정':
         if '채널_순서' in st.session_state.page_order and channel_order_key in st.session_state.page_order['채널_순서']:
@@ -300,8 +298,12 @@ def show_category_detail(df, 분류1):
     ]
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
+    # --- 분류 옵션 리스트 생성 (신규) ---
+    all_cat1 = sorted(list(set(df['분류1'].unique().tolist() + st.session_state.get('extra_cat1', []))))
+    all_cat2 = sorted(list(set(df['분류2'].unique().tolist() + st.session_state.get('extra_cat2', []))))
+
     # 데이터 에디터 출력
-    st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개) - *분류 및 메모 수정 가능*")
+    st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개) - *수정 후 하단 저장 버튼을 눌러주세요*")
     
     edited_df = st.data_editor(
         df_to_edit,
@@ -309,7 +311,7 @@ def show_category_detail(df, 분류1):
         height=600,
         column_config={
             "URL": st.column_config.LinkColumn("링크", display_text="보러가기"),
-            "gs_row_index": None, # 행 번호는 숨김
+            "gs_row_index": None,
             "동영상": st.column_config.NumberColumn(disabled=True),
             "조회수": st.column_config.NumberColumn(disabled=True),
             "최근 5개 토탈": st.column_config.NumberColumn(disabled=True),
@@ -318,8 +320,8 @@ def show_category_detail(df, 분류1):
             "최근 30개 토탈": st.column_config.NumberColumn(disabled=True),
             "채널명": st.column_config.TextColumn(disabled=True),
             "운영기간": st.column_config.TextColumn(disabled=True),
-            "분류1": st.column_config.TextColumn("분류1"),
-            "분류2": st.column_config.TextColumn("분류2"),
+            "분류1": st.column_config.SelectboxColumn("분류1", options=all_cat1, required=True),
+            "분류2": st.column_config.SelectboxColumn("분류2", options=all_cat2, required=True),
             "메모": st.column_config.TextColumn("메모", width="large"),
         },
         hide_index=True,
@@ -328,19 +330,23 @@ def show_category_detail(df, 분류1):
 
     # 변경사항 저장 버튼
     with ctrl_col3:
-        st.write("") # 간격 맞춤
+        st.write("") 
         if st.button("💾 변경사항 시트에 저장", type="primary", use_container_width=True):
             with st.spinner("구글 시트 업데이트 중..."):
                 update_count = update_gs_rows(edited_df, df_to_edit)
                 if update_count > 0:
                     st.success(f"✅ {update_count}개의 항목이 수정되었습니다.")
                     st.cache_data.clear()
+                    # 추가했던 임시 카테고리 초기화
+                    if 'extra_cat1' in st.session_state: st.session_state.extra_cat1 = []
+                    if 'extra_cat2' in st.session_state: st.session_state.extra_cat2 = []
                     st.rerun()
                 elif update_count == 0:
                     st.info("변경사항이 없습니다.")
                 else:
                     st.error("저장에 실패했습니다.")
 
+# --- 설정 페이지 (기존 유지) ---
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
     df = load_data()
@@ -378,6 +384,17 @@ def show_settings():
             if save_config_to_sheet(st.session_state.page_order):
                 st.success("✅ 순서 설정 저장 완료!")
                 st.cache_data.clear()
+
+def chunk_list(data, num_chunks):
+    if not data: return [[] for _ in range(num_chunks)]
+    avg = len(data) / float(num_chunks)
+    chunks = []
+    last = 0.0
+    for _ in range(num_chunks):
+        next_val = last + avg
+        chunks.append(data[int(last):int(next_val)])
+        last = next_val
+    return chunks
 
 def main():
     if 'page' not in st.session_state: st.session_state.page = "dashboard"
