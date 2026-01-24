@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from streamlit_sortables import sort_items
 
-# 1. 페이지 설정
+# 페이지 설정
 st.set_page_config(
     page_title="YouTube 보물창고",
     page_icon="🎬",
@@ -14,31 +14,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. 강력한 커스텀 CSS (사이드바 오른쪽 이동 및 스타일)
+# 커스텀 CSS (사이드바 오른쪽 이동 및 기존 스타일)
 st.markdown("""
 <style>
-    /* [핵심] 사이드바를 오른쪽으로 강제 이동 (Flex Order 사용) */
+    /* 1. 사이드바를 오른쪽으로 이동시키는 핵심 설정 */
     [data-testid="stAppViewContainer"] {
-        display: flex;
         flex-direction: row-reverse !important;
     }
-
-    /* 메인 콘텐츠와 사이드바의 너비 및 배치 조정 */
-    [data-testid="stAppViewContainer"] > section[data-testid="stSidebar"] {
-        position: relative !important;
-        margin-left: auto !important;
-        border-left: 1px solid rgba(49, 51, 63, 0.2) !important;
+    [data-testid="stSidebar"] {
         border-right: none !important;
+        border-left: 1px solid rgba(49, 51, 63, 0.2) !important;
     }
 
-    /* 헤더(상단바) 위치 조정 */
-    [data-testid="stHeader"] {
-        right: 0px !important;
-        left: auto !important;
-        width: 100% !important;
-    }
-
-    /* 기존 스타일 유지 */
+    /* 2. 기존 스타일 유지 */
     .stApp { counter-reset: item-rank; }
     div[data-testid="stTabContent"] { counter-reset: item-rank; }
 
@@ -74,12 +62,19 @@ st.markdown("""
         margin-right: 12px !important;
         flex-shrink: 0 !important;
     }
+    
+    .sortable-item:hover {
+        border-color: #667eea !important;
+        background-color: #f8f9fa !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+    }
 
     .sortable-container-header { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 데이터 처리 함수 ---
+# --- 이하 데이터 로드 및 UI 로직은 이전과 동일 ---
 
 def format_korean_number(num):
     if pd.isna(num) or num == 0: return "0"
@@ -167,8 +162,6 @@ def sync_order_with_data(saved_order, df):
     if '채널_순서' not in saved_order: saved_order['채널_순서'] = {}
     return saved_order
 
-# --- UI 컴포넌트 ---
-
 def show_navigation():
     col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
     with col1: st.markdown("# 🎬 YouTube 보물창고")
@@ -188,12 +181,10 @@ def show_dashboard():
     if 'page_order' not in st.session_state:
         saved_order = load_config_from_sheet()
         st.session_state.page_order = sync_order_with_data(saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, df)
-    
     분류1_list = st.session_state.page_order['분류1_순서']
     if 'selected_분류1' not in st.session_state:
         st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else None
     
-    # 사이드바 (오른쪽으로 이동된 상태)
     with st.sidebar:
         st.markdown("## 📂 분류 선택")
         for cat in 분류1_list:
@@ -211,7 +202,6 @@ def show_category_detail(df, 분류1):
     st.markdown(f"## 📊 {분류1}")
     if f'selected_분류2_{분류1}' not in st.session_state: st.session_state[f'selected_분류2_{분류1}'] = '전체'
     
-    # 분류2 상단 버튼
     buttons_per_row = 8
     num_rows = (len(분류2_list) + buttons_per_row - 1) // buttons_per_row
     for row in range(num_rows):
@@ -228,15 +218,12 @@ def show_category_detail(df, 분류1):
     selected_분류2 = st.session_state[f'selected_분류2_{분류1}']
     df_display = df_filtered[df_filtered['분류2'] == selected_분류2].copy() if selected_분류2 != '전체' else df_filtered.copy()
     st.markdown("---")
-    
-    # 검색 및 정렬
     col1, col2 = st.columns([3, 1])
     with col1: search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
     with col2: sort_by = st.selectbox("정렬 기준", ['최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정'], key=f"sort_{분류1}")
     
     if search_query: df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
     
-    # 정렬
     channel_order_key = f"{분류1}_{selected_분류2}"
     if sort_by == '사용자 지정':
         if '채널_순서' in st.session_state.page_order and channel_order_key in st.session_state.page_order['채널_순서']:
@@ -247,26 +234,15 @@ def show_category_detail(df, 분류1):
             df_display = df_display.set_index('채널명').loc[ordered].reset_index()
     else: df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # 사진과 동일한 컬럼 순서
     display_columns = ['채널명', '분류2', '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', 'URL']
     df_fmt = df_display[[c for c in display_columns if c in df_display.columns]].copy()
-    
     for col in df_fmt.columns:
         if col != 'URL' and df_fmt[col].dtype in ['int64', 'float64']: 
             df_fmt[col] = df_fmt[col].apply(format_korean_number)
         
     st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
-    
-    # 테이블 출력 (URL -> 링크 버튼)
-    st.dataframe(
-        df_fmt, 
-        use_container_width=True, 
-        height=600, 
-        hide_index=True,
-        column_config={
-            "URL": st.column_config.LinkColumn("링크", display_text="보러가기")
-        }
-    )
+    st.dataframe(df_fmt, use_container_width=True, height=600, hide_index=True,
+                 column_config={"URL": st.column_config.LinkColumn("링크", display_text="보러가기")})
 
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
