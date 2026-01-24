@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 커스텀 CSS (기존 스타일 유지 + 로고 버튼 스타일 추가)
+# 커스텀 CSS (로고 버튼 스타일 + 기존 스타일)
 st.markdown("""
 <style>
     /* 로고 버튼을 제목처럼 보이게 하는 스타일 */
@@ -31,7 +31,7 @@ st.markdown("""
         align-items: center !important;
     }
     button[key="logo_home"]:hover {
-        color: #FF0000 !important; /* 호버 시 약간의 변화 */
+        color: #FF0000 !important;
         background: transparent !important;
     }
 
@@ -82,7 +82,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# [함수 부분은 기존과 동일하므로 중복 생략...]
+# 숫자 포맷 함수
 def format_korean_number(num):
     if pd.isna(num) or num == 0: return "0"
     try:
@@ -100,6 +100,7 @@ def format_korean_number(num):
     except:
         return str(num)
 
+# 리스트 청크 함수
 def chunk_list(data, num_chunks):
     if not data: return [[] for _ in range(num_chunks)]
     avg = len(data) / float(num_chunks)
@@ -111,6 +112,7 @@ def chunk_list(data, num_chunks):
         last = next_val
     return chunks
 
+# 구글 시트 연결
 def get_gspread_client():
     credentials_dict = dict(st.secrets["gcp_service_account"])
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -124,7 +126,9 @@ def load_data():
         sheet = client.open("유튜브보물창고_테스트").sheet1
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
-        numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
+        
+        numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
+                          '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
@@ -140,18 +144,22 @@ def load_config_from_sheet():
         worksheet = doc.worksheet("config")
         config_json = worksheet.acell('A1').value
         return json.loads(config_json) if config_json else None
-    except: return None
+    except:
+        return None
 
 def save_config_to_sheet(order_data):
     try:
         client = get_gspread_client()
         doc = client.open("유튜브보물창고_테스트")
-        try: worksheet = doc.worksheet("config")
-        except: worksheet = doc.add_worksheet(title="config", rows=10, cols=10)
+        try:
+            worksheet = doc.worksheet("config")
+        except:
+            worksheet = doc.add_worksheet(title="config", rows=10, cols=10)
         json_str = json.dumps(order_data, ensure_ascii=False)
         worksheet.update_acell('A1', json_str)
         return True
-    except: return False
+    except:
+        return False
 
 def sync_order_with_data(saved_order, df):
     live_cat1 = set(df['분류1'].dropna().unique())
@@ -160,6 +168,7 @@ def sync_order_with_data(saved_order, df):
     for c in sorted(list(live_cat1)):
         if c not in new_cat1_order: new_cat1_order.append(c)
     saved_order['분류1_순서'] = new_cat1_order
+    
     if '분류2_순서' not in saved_order: saved_order['분류2_순서'] = {}
     for cat1 in new_cat1_order:
         live_cat2 = set(df[df['분류1'] == cat1]['분류2'].dropna().unique())
@@ -172,11 +181,11 @@ def sync_order_with_data(saved_order, df):
     if '채널_순서' not in saved_order: saved_order['채널_순서'] = {}
     return saved_order
 
-# 수정된 네비게이션 함수
+# 네비게이션
 def show_navigation():
     col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
     with col1:
-        # 🎬 로고 텍스트를 버튼으로 변경하여 클릭 시 홈(대시보드)으로 이동
+        # 로고 클릭 시 대시보드로 이동
         if st.button("🎬 YouTube 보물창고", key="logo_home", use_container_width=False):
             st.session_state.page = "dashboard"
             st.rerun()
@@ -193,16 +202,18 @@ def show_navigation():
             st.cache_data.clear()
             st.rerun()
 
-# [대시보드 및 상세 페이지 부분은 기존과 동일]
 def show_dashboard():
     df = load_data()
     if df.empty: return
+    
     if 'page_order' not in st.session_state:
         saved_order = load_config_from_sheet()
         st.session_state.page_order = sync_order_with_data(saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, df)
+
     분류1_list = st.session_state.page_order['분류1_순서']
     if 'selected_분류1' not in st.session_state:
         st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else None
+    
     with st.sidebar:
         st.markdown("## 📂 분류 선택")
         for cat in 분류1_list:
@@ -210,16 +221,21 @@ def show_dashboard():
             if st.button(cat, key=f"side_{cat}", use_container_width=True, type="primary" if is_active else "secondary"):
                 st.session_state.selected_분류1 = cat
                 st.rerun()
+    
     if st.session_state.selected_분류1:
         show_category_detail(df, st.session_state.selected_분류1)
 
 def show_category_detail(df, 분류1):
     df_filtered = df[df['분류1'] == 분류1].copy()
     if df_filtered.empty: return
+
     분류2_list = st.session_state.page_order['분류2_순서'].get(분류1, ['전체'])
     st.markdown(f"## 📊 {분류1}")
+    
     if f'selected_분류2_{분류1}' not in st.session_state:
         st.session_state[f'selected_분류2_{분류1}'] = '전체'
+    
+    # 분류2 선택 버튼
     buttons_per_row = 8
     num_rows = (len(분류2_list) + buttons_per_row - 1) // buttons_per_row
     for row in range(num_rows):
@@ -232,13 +248,22 @@ def show_category_detail(df, 분류1):
                 if col.button(cat2, key=f"cat2_{분류1}_{cat2}", use_container_width=True, type="primary" if is_active else "secondary"):
                     st.session_state[f'selected_분류2_{분류1}'] = cat2
                     st.rerun()
+    
     selected_분류2 = st.session_state[f'selected_분류2_{분류1}']
     df_display = df_filtered[df_filtered['분류2'] == selected_분류2].copy() if selected_분류2 != '전체' else df_filtered.copy()
+    
     st.markdown("---")
+    
     col1, col2 = st.columns([3, 1])
-    with col1: search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
-    with col2: sort_by = st.selectbox("정렬 기준", ['최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정'], key=f"sort_{분류1}")
-    if search_query: df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
+    with col1: 
+        search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
+    with col2: 
+        sort_by = st.selectbox("정렬 기준", ['최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정'], key=f"sort_{분류1}")
+    
+    if search_query: 
+        df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
+    
+    # 정렬 로직
     channel_order_key = f"{분류1}_{selected_분류2}"
     if sort_by == '사용자 지정':
         if '채널_순서' in st.session_state.page_order and channel_order_key in st.session_state.page_order['채널_순서']:
@@ -247,24 +272,51 @@ def show_category_detail(df, 분류1):
             ordered = [n for n in saved_order if n in current_names]
             ordered += [n for n in current_names if n not in ordered]
             df_display = df_display.set_index('채널명').loc[ordered].reset_index()
-    else: df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
-    display_columns = ['채널명', '분류2', '운영기간', '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', '키워드', 'URL']
+    else:
+        df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
+    
+    # [수정] 컬럼 순서 조정: '운영기간' 바로 옆에 '메모' 배치
+    display_columns = [
+        '채널명', '분류2', '운영기간', '메모', 
+        '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', 
+        '최근 20개 토탈', '최근 30개 토탈', '키워드', 'URL'
+    ]
+    
+    # 데이터프레임에 실제 존재하는 컬럼만 필터링
     df_fmt = df_display[[c for c in display_columns if c in df_display.columns]].copy()
+    
+    # 숫자 포맷팅
     numeric_fmt_cols = ['동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
     for col in numeric_fmt_cols:
-        if col in df_fmt.columns: df_fmt[col] = df_fmt[col].apply(format_korean_number)
+        if col in df_fmt.columns:
+            df_fmt[col] = df_fmt[col].apply(format_korean_number)
+        
     st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
-    st.dataframe(df_fmt, use_container_width=True, height=600, column_config={
-        "URL": st.column_config.LinkColumn("링크", display_text="보러가기"),
-        "키워드": st.column_config.TextColumn("키워드 (클릭하여 복사)", help="셀을 더블클릭하여 내용을 복사할 수 있습니다."),
-        "운영기간": st.column_config.TextColumn("운영기간")
-    }, hide_index=True)
+    
+    # 테이블 표시 설정
+    st.dataframe(
+        df_fmt,
+        use_container_width=True,
+        height=600,
+        column_config={
+            "URL": st.column_config.LinkColumn(
+                "링크",
+                display_text="보러가기"
+            ),
+            "키워드": st.column_config.TextColumn("키워드"),
+            "메모": st.column_config.TextColumn("메모"),
+            "운영기간": st.column_config.TextColumn("운영기간")
+        },
+        hide_index=True
+    )
 
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
     df = load_data()
     if df.empty: return
+    
     tab1, tab2, tab3 = st.tabs(["📂 분류1 순서", "📁 분류2 순서", "💾 저장"])
+
     with tab1:
         st.info("💡 카드를 드래그하여 순서를 변경하세요.")
         current_list = st.session_state.page_order['분류1_순서']
@@ -275,9 +327,11 @@ def show_settings():
         if new_order != current_list:
             st.session_state.page_order['분류1_순서'] = new_order
             st.rerun()
+
     with tab2:
         col_sel, col_sort = st.columns([1, 3])
-        with col_sel: selected_cat1 = st.radio("대분류", st.session_state.page_order['분류1_순서'], key="set_cat2_sel")
+        with col_sel:
+            selected_cat1 = st.radio("대분류", st.session_state.page_order['분류1_순서'], key="set_cat2_sel")
         with col_sort:
             current_sub = st.session_state.page_order['분류2_순서'].get(selected_cat1, ['전체'])
             chunked_sub = chunk_list(current_sub, 4) 
@@ -287,6 +341,7 @@ def show_settings():
             if new_sub != current_sub:
                 st.session_state.page_order['분류2_순서'][selected_cat1] = new_sub
                 st.rerun()
+
     with tab3:
         if st.button("💾 구글 시트에 최종 저장", type="primary", use_container_width=True):
             if save_config_to_sheet(st.session_state.page_order):
