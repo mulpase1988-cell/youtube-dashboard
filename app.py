@@ -67,17 +67,20 @@ st.markdown("""
 # 숫자 포맷 함수
 def format_korean_number(num):
     if pd.isna(num) or num == 0: return "0"
-    num = int(num)
-    if num >= 100000000:
-        eok = num // 100000000
-        man = (num % 100000000) // 10000
-        return f"{eok}.{man//1000}억" if man > 0 else f"{eok}억"
-    elif num >= 10000:
-        man = num // 10000
-        cheon = (num % 10000) // 1000
-        return f"{man}.{cheon}만" if cheon > 0 else f"{man}만"
-    else:
-        return f"{num:,}"
+    try:
+        num = int(num)
+        if num >= 100000000:
+            eok = num // 100000000
+            man = (num % 100000000) // 10000
+            return f"{eok}.{man//1000}억" if man > 0 else f"{eok}억"
+        elif num >= 10000:
+            man = num // 10000
+            cheon = (num % 10000) // 1000
+            return f"{man}.{cheon}만" if cheon > 0 else f"{man}만"
+        else:
+            return f"{num:,}"
+    except:
+        return str(num)
 
 # 리스트 청크 함수
 def chunk_list(data, num_chunks):
@@ -250,27 +253,35 @@ def show_category_detail(df, 분류1):
     else:
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # [수정] 이미지와 동일한 컬럼 순서 설정
-    display_columns = ['채널명', '분류2', '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', 'URL']
+    # [수정] 운영기간 및 키워드 추가된 컬럼 순서
+    display_columns = ['채널명', '분류2', '운영기간', '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', '키워드', 'URL']
+    
+    # 데이터프레임에 해당 컬럼이 없는 경우를 대비해 존재하는 컬럼만 선택
     df_fmt = df_display[[c for c in display_columns if c in df_display.columns]].copy()
     
-    # 숫자 포맷팅
-    for col in df_fmt.columns:
-        if col != 'URL' and df_fmt[col].dtype in ['int64', 'float64']: 
+    # 숫자 포맷팅 (키워드/운영기간 제외)
+    numeric_fmt_cols = ['동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
+    for col in numeric_fmt_cols:
+        if col in df_fmt.columns:
             df_fmt[col] = df_fmt[col].apply(format_korean_number)
         
     st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
-    # [수정] 테이블 표시 및 'URL' 컬럼을 '링크'로 이름 변경하여 표시
+    # [수정] 테이블 표시: 키워드 복사 가능하도록 설정
     st.dataframe(
         df_fmt,
         use_container_width=True,
         height=600,
         column_config={
             "URL": st.column_config.LinkColumn(
-                "링크",        # 헤더 이름을 '링크'로 설정
+                "링크",
                 display_text="보러가기"
-            )
+            ),
+            "키워드": st.column_config.TextColumn(
+                "키워드 (클릭하여 복사)",
+                help="셀을 더블클릭하여 내용을 복사할 수 있습니다."
+            ),
+            "운영기간": st.column_config.TextColumn("운영기간")
         },
         hide_index=True
     )
