@@ -118,7 +118,7 @@ def add_status_dot(date_str):
     날짜 문자열을 받아 최신성에 따라 상태 점(Dot)을 추가
     - 3개월(90일) 이내: 🟢 (초록 - 활동 활발)
     - 3~6개월(180일) 이내: 🟠 (주황 - 활동 뜸함)
-    - 6개월 이상: 표시 없음
+    - 6개월 이상: ❌ (빨강 X - 활동 중단/오래됨)
     """
     if not date_str or pd.isna(date_str): return ""
     try:
@@ -129,8 +129,8 @@ def add_status_dot(date_str):
             return f"{date_str} 🟢"
         elif diff <= 180:   # 6개월 이내 (3~6개월)
             return f"{date_str} 🟠"
-        else:               # 6개월 경과 (표시 없음)
-            return f"{date_str}" 
+        else:               # 6개월 경과
+            return f"{date_str} ❌" 
     except:
         return str(date_str)
 
@@ -478,7 +478,7 @@ def show_category_detail(df, cat_df, 분류1):
             # 조회수: 이모지 없음
             "조회수": st.column_config.TextColumn("조회수", disabled=True),
             
-            # 최근업로드: 🟢/🟠 상태 점
+            # 최근업로드: 🟢/🟠/❌ 상태 점
             "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="medium"),
             
             # 토탈 컬럼: 이모지(💎, 🔥, 🔺) 적용됨
