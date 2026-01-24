@@ -14,11 +14,38 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 커스텀 CSS
+# 커스텀 CSS (디자인 유지 및 버튼 스타일 추가)
 st.markdown("""
 <style>
     .stApp { counter-reset: item-rank; }
     div[data-testid="stTabContent"] { counter-reset: item-rank; }
+
+    /* 테이블 헤더 스타일 */
+    .table-header {
+        background-color: #f0f2f6;
+        padding: 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        border-bottom: 2px solid #d1d5db;
+        margin-bottom: 5px;
+        font-size: 14px;
+    }
+
+    /* 테이블 행 스타일 */
+    .table-row {
+        padding: 8px 10px;
+        border-bottom: 1px solid #eee;
+        align-items: center;
+        display: flex;
+        font-size: 14px;
+    }
+
+    /* 링크 버튼 스타일 */
+    .link-text {
+        color: #0066cc;
+        text-decoration: none;
+        font-weight: bold;
+    }
 
     .sortable-item {
         background-color: white !important;
@@ -52,15 +79,6 @@ st.markdown("""
         margin-right: 12px !important;
         flex-shrink: 0 !important;
     }
-    
-    .sortable-item:hover {
-        border-color: #667eea !important;
-        background-color: #f8f9fa !important;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
-    }
-
-    .sortable-container-header { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -82,19 +100,7 @@ def format_korean_number(num):
     except:
         return str(num)
 
-# 리스트 청크 함수
-def chunk_list(data, num_chunks):
-    if not data: return [[] for _ in range(num_chunks)]
-    avg = len(data) / float(num_chunks)
-    chunks = []
-    last = 0.0
-    for _ in range(num_chunks):
-        next_val = last + avg
-        chunks.append(data[int(last):int(next_val)])
-        last = next_val
-    return chunks
-
-# 구글 시트 연결
+# 구글 시트 연결 및 데이터 로드 (운영기간, 키워드 포함)
 def get_gspread_client():
     credentials_dict = dict(st.secrets["gcp_service_account"])
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -242,49 +248,51 @@ def show_category_detail(df, 분류1):
         df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
     
     # 정렬 로직
-    channel_order_key = f"{분류1}_{selected_분류2}"
-    if sort_by == '사용자 지정':
-        if '채널_순서' in st.session_state.page_order and channel_order_key in st.session_state.page_order['채널_순서']:
-            saved_order = st.session_state.page_order['채널_순서'][channel_order_key]
-            current_names = df_display['채널명'].tolist()
-            ordered = [n for n in saved_order if n in current_names]
-            ordered += [n for n in current_names if n not in ordered]
-            df_display = df_display.set_index('채널명').loc[ordered].reset_index()
-    else:
+    if sort_by != '사용자 지정':
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # [수정] 운영기간 및 키워드 추가된 컬럼 순서
-    display_columns = ['채널명', '분류2', '운영기간', '동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', '키워드', 'URL']
-    
-    # 데이터프레임에 해당 컬럼이 없는 경우를 대비해 존재하는 컬럼만 선택
-    df_fmt = df_display[[c for c in display_columns if c in df_display.columns]].copy()
-    
-    # 숫자 포맷팅 (키워드/운영기간 제외)
-    numeric_fmt_cols = ['동영상', '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
-    for col in numeric_fmt_cols:
-        if col in df_fmt.columns:
-            df_fmt[col] = df_fmt[col].apply(format_korean_number)
-        
     st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
+
+    # --- 커스텀 테이블 구현 시작 ---
+    # 헤더 컬럼 설정 (사용자 요청 순서: 분류2 옆 운영기간, 최근 30개 토탈 옆 키워드)
+    cols = st.columns([1.5, 1.2, 1.2, 0.8, 1, 1, 1, 1, 1.2, 1, 0.8])
+    headers = ["채널명", "분류2", "운영기간", "동영상", "조회수", "최근5", "최근10", "최근20", "최근30", "키워드", "링크"]
     
-    # [수정] 테이블 표시: 키워드 복사 가능하도록 설정
-    st.dataframe(
-        df_fmt,
-        use_container_width=True,
-        height=600,
-        column_config={
-            "URL": st.column_config.LinkColumn(
-                "링크",
-                display_text="보러가기"
-            ),
-            "키워드": st.column_config.TextColumn(
-                "키워드 (클릭하여 복사)",
-                help="셀을 더블클릭하여 내용을 복사할 수 있습니다."
-            ),
-            "운영기간": st.column_config.TextColumn("운영기간")
-        },
-        hide_index=True
-    )
+    for col, header in zip(cols, headers):
+        col.markdown(f"**{header}**")
+    st.markdown("---")
+
+    # 데이터 행 반복
+    for i, row in df_display.iterrows():
+        c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 = st.columns([1.5, 1.2, 1.2, 0.8, 1, 1, 1, 1, 1.2, 1, 0.8])
+        
+        c1.write(row['채널명'])
+        c2.write(row['분류2'])
+        c3.write(row.get('운영기간', '-'))
+        c4.write(format_korean_number(row['동영상']))
+        c5.write(format_korean_number(row['조회수']))
+        c6.write(format_korean_number(row['최근 5개 토탈']))
+        c7.write(format_korean_number(row['최근 10개 토탈']))
+        c8.write(format_korean_number(row['최근 20개 토탈']))
+        c9.write(format_korean_number(row['최근 30개 토탈']))
+        
+        # 키워드 복사 버튼 (클릭 시 하단에 복사 가능한 텍스트 박스 표시)
+        kw = str(row.get('키워드', ''))
+        if c10.button("키워드", key=f"kw_btn_{i}", help="클릭하여 복사 준비"):
+            st.session_state.copy_text = kw
+            st.toast(f"'{row['채널명']}' 키워드가 하단에 표시되었습니다.")
+
+        # 링크
+        url = row.get('URL', '#')
+        c11.markdown(f"[보러가기]({url})")
+
+    # 복사 도우미 (버튼 클릭 시 여기에 나타남)
+    if 'copy_text' in st.session_state and st.session_state.copy_text:
+        st.info("💡 아래 텍스트를 복사하세요:")
+        st.code(st.session_state.copy_text, language=None)
+        if st.button("닫기"):
+            st.session_state.copy_text = ""
+            st.rerun()
 
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
@@ -292,7 +300,7 @@ def show_settings():
     if df.empty: return
     
     tab1, tab2, tab3 = st.tabs(["📂 분류1 순서", "📁 분류2 순서", "💾 저장"])
-
+    # (기존 설정 코드와 동일...)
     with tab1:
         st.info("💡 카드를 드래그하여 순서를 변경하세요.")
         current_list = st.session_state.page_order['분류1_순서']
@@ -307,25 +315,34 @@ def show_settings():
     with tab2:
         col_sel, col_sort = st.columns([1, 3])
         with col_sel:
-            selected_cat1 = st.radio("대분류", st.session_state.page_order['분류1_순서'], key="set_cat2_sel")
-        with col_sort:
-            current_sub = st.session_state.page_order['분류2_순서'].get(selected_cat1, ['전체'])
-            chunked_sub = chunk_list(current_sub, 4) 
-            sortable_sub = [{'header': '', 'items': chunk} for chunk in chunked_sub]
-            sorted_sub = sort_items(sortable_sub, multi_containers=True, direction='vertical', key=f'sort_cat2_{selected_cat1}_v5')
-            new_sub = [item for container in sorted_sub for item in container['items']]
-            if new_sub != current_sub:
-                st.session_state.page_order['분류2_순서'][selected_cat1] = new_sub
-                st.rerun()
+            if st.session_state.page_order['분류1_순서']:
+                selected_cat1 = st.radio("대분류", st.session_state.page_order['분류1_순서'], key="set_cat2_sel")
+                with col_sort:
+                    current_sub = st.session_state.page_order['분류2_순서'].get(selected_cat1, ['전체'])
+                    chunked_sub = chunk_list(current_sub, 4) 
+                    sortable_sub = [{'header': '', 'items': chunk} for chunk in chunked_sub]
+                    sorted_sub = sort_items(sortable_sub, multi_containers=True, direction='vertical', key=f'sort_cat2_{selected_cat1}_v5')
+                    new_sub = [item for container in sorted_sub for item in container['items']]
+                    if new_sub != current_sub:
+                        st.session_state.page_order['분류2_순서'][selected_cat1] = new_sub
+                        st.rerun()
 
     with tab3:
         if st.button("💾 구글 시트에 최종 저장", type="primary", use_container_width=True):
             if save_config_to_sheet(st.session_state.page_order):
                 st.success("✅ 저장 완료!")
                 st.cache_data.clear()
-        if st.button("🗑️ 모든 채널 개별 순서 초기화", use_container_width=True):
-            st.session_state.page_order['채널_순서'] = {}
-            st.rerun()
+
+def chunk_list(data, num_chunks):
+    if not data: return [[] for _ in range(num_chunks)]
+    avg = len(data) / float(num_chunks)
+    chunks = []
+    last = 0.0
+    for _ in range(num_chunks):
+        next_val = last + avg
+        chunks.append(data[int(last):int(next_val)])
+        last = next_val
+    return chunks
 
 def main():
     if 'page' not in st.session_state: st.session_state.page = "dashboard"
