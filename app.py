@@ -242,6 +242,11 @@ def sync_order_with_data(saved_order, df):
         saved_order['분류2_순서'][cat1] = new_cat2_order
         
     saved_order['분류2_순서'] = {k:v for k,v in saved_order['분류2_순서'].items() if k in new_cat1_order}
+    
+    # 채널 순서 초기화
+    if '채널_순서' not in saved_order:
+        saved_order['채널_순서'] = {}
+    
     return saved_order
 
 # -------------------------------------------------------------
@@ -317,20 +322,49 @@ def show_category_detail(df, 분류1):
     df_display = df_filtered[df_filtered['분류2'] == selected_분류2].copy() if selected_분류2 != '전체' else df_filtered.copy()
     
     # 검색 및 정렬
-    col1, col2 = st.columns([2, 1])
+    col1, col2, col3 = st.columns([2, 1, 1])
     with col1: 
         search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
     with col2: 
         sort_by = st.selectbox(
             "정렬 기준", 
-            ['최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수'],
+            ['최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정'],
             key=f"sort_{분류1}"
+        )
+    with col3:
+        view_mode = st.selectbox(
+            "표시 방식",
+            ['테이블', '드래그'],
+            key=f"view_mode_{분류1}"
         )
     
     if search_query: 
         df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
     
-    df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
+    # 정렬 처리
+    channel_order_key = f"{분류1}_{selected_분류2}"
+    
+    if sort_by == '사용자 지정':
+        # 사용자 지정 순서가 있으면 그것을 사용
+        if 'page_order' in st.session_state and '채널_순서' in st.session_state.page_order:
+            if channel_order_key in st.session_state.page_order['채널_순서']:
+                saved_channel_order = st.session_state.page_order['채널_순서'][channel_order_key]
+                # 현재 필터링된 채널들을 순서대로 정렬
+                channel_names = df_display['채널명'].tolist()
+                ordered_names = [name for name in saved_channel_order if name in channel_names]
+                # 저장된 순서에 없는 새 채널들을 뒤에 추가
+                new_names = [name for name in channel_names if name not in ordered_names]
+                ordered_names.extend(new_names)
+                # 순서대로 데이터프레임 재정렬
+                df_display = df_display.set_index('채널명').loc[ordered_names].reset_index()
+            else:
+                # 저장된 순서가 없으면 현재 순서 유지
+                pass
+        else:
+            # 기본 순서 유지
+            pass
+    else:
+        df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
     # 테이블 컬럼 설정
     display_columns = [
@@ -344,6 +378,60 @@ def show_category_detail(df, 분류1):
     
     df_fmt = df_display[display_columns].copy()
     
+    # ========== 드래그 모드 ==========
+    if view_mode == '드래그':
+        st.markdown("### 🎯 채널 순서 변경 (드래그 앤 드롭)")
+        st.info("💡 채널 카드를 드래그하여 순서를 변경하세요. 변경 후 '순서 저장' 버튼을 눌러 저장하세요.")
+        
+        # 채널 리스트 생성 (채널명 + 주요 정보)
+        channel_items = []
+        for idx, row in df_display.iterrows():
+            channel_name = row['채널명']
+            recent_30 = format_korean_number(row['최근 30개 토탈']) if '최근 30개 토탈' in row else '0'
+            views = format_korean_number(row['조회수']) if '조회수' in row else '0'
+            channel_items.append(f"{channel_name} | 최근30개: {recent_30} | 조회수: {views}")
+        
+        # 3열 그리드로 표시
+        chunked_channels = chunk_list(channel_items, 3)
+        sortable_channel_data = [{'header': '', 'items': chunk} for chunk in chunked_channels]
+        
+        sorted_channel_data = sort_items(
+            sortable_channel_data,
+            multi_containers=True,
+            direction='vertical',
+            key=f'sortable_channels_{분류1}_{selected_분류2}_v1'
+        )
+        
+        new_channel_order = [item.split(' | ')[0] for container in sorted_channel_data for item in container['items']]
+        
+        # 순서 저장 버튼
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("💾 순서 저장하기", type="primary", use_container_width=True, key=f"save_channel_order_{분류1}_{selected_분류2}"):
+                if 'page_order' not in st.session_state:
+                    st.session_state.page_order = {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}
+                
+                if '채널_순서' not in st.session_state.page_order:
+                    st.session_state.page_order['채널_순서'] = {}
+                
+                st.session_state.page_order['채널_순서'][channel_order_key] = new_channel_order
+                
+                # 구글 시트에 저장
+                with st.spinner("저장 중..."):
+                    success = save_config_to_sheet(st.session_state.page_order)
+                    if success:
+                        st.success("✅ 채널 순서가 저장되었습니다!")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error("❌ 저장 실패")
+        
+        st.markdown("---")
+        st.info(f"📊 총 {len(channel_items)}개 채널")
+        
+        return  # 드래그 모드에서는 여기서 종료
+    
+    # ========== 테이블 모드 (기존 코드) ==========
     # 숫자 포맷팅 (URL 제외)
     for col in df_fmt.columns:
         if col != 'URL' and df_fmt[col].dtype in ['int64', 'float64']: 
@@ -554,8 +642,23 @@ def show_settings():
         
         st.markdown("---")
         if st.button("🔄 기본 순서로 초기화 (알파벳순)", use_container_width=True):
-            st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}}, df)
+            st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, df)
             st.rerun()
+        
+        st.markdown("---")
+        st.markdown("### 🗑️ 채널 순서 초기화")
+        st.warning("저장된 모든 채널 순서를 삭제합니다.")
+        if st.button("🗑️ 모든 채널 순서 삭제", use_container_width=True):
+            if 'page_order' in st.session_state and '채널_순서' in st.session_state.page_order:
+                st.session_state.page_order['채널_순서'] = {}
+                with st.spinner("삭제 중..."):
+                    success = save_config_to_sheet(st.session_state.page_order)
+                    if success:
+                        st.success("✅ 채널 순서가 초기화되었습니다!")
+                        st.cache_data.clear()
+                    else:
+                        st.error("❌ 초기화 실패")
+                st.rerun()
 
 def main():
     if 'page' not in st.session_state: 
@@ -570,7 +673,7 @@ def main():
         if saved_order:
             st.session_state.page_order = sync_order_with_data(saved_order, df)
         else:
-            st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}}, df)
+            st.session_state.page_order = sync_order_with_data({'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, df)
 
     if st.session_state.page == "dashboard": 
         show_dashboard()
