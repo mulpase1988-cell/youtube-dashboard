@@ -363,20 +363,9 @@ def show_dashboard():
         st.markdown("---")
         st.markdown("## 📂 카테고리")
         
-        # --- 전체 보기 버튼 추가 ---
-        total_count = len(df)
         if 'selected_분류1' not in st.session_state:
-            st.session_state.selected_분류1 = "전체" # 기본값을 전체로 변경 (선택사항)
-
-        is_all_active = (st.session_state.selected_분류1 == "전체")
-        if st.button(f"전체 ({total_count})", key="side_all", use_container_width=True, type="primary" if is_all_active else "secondary"):
-            st.session_state.selected_분류1 = "전체"
-            st.rerun()
-        
-        # --- 기존 카테고리 루프 ---
-        if not st.session_state.selected_분류1: # 만약 초기화 문제로 None이면 첫번째로
-             st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else "전체"
-
+            st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else None
+            
         for cat in 분류1_list:
             count = len(df[df['분류1'] == cat])
             display_text = f"{cat} ({count})"
@@ -389,58 +378,45 @@ def show_dashboard():
         show_category_detail(df, cat_df, st.session_state.selected_분류1)
 
 def show_category_detail(df, cat_df, 분류1):
-    # '전체' 선택 시 필터링 없이 전체 데이터 사용
-    if 분류1 == "전체":
-        df_filtered = df.copy()
-        st.markdown(f"## 📊 전체 ({len(df_filtered)}개)")
-    else:
-        df_filtered = df[df['분류1'] == 분류1].copy()
-        st.markdown(f"## 📊 {분류1}")
-        
-        # '전체'가 아닐 때만 장르 추가 기능 노출
-        with st.expander("➕ 새 장르 추가"):
-            col_input, col_btn = st.columns([3, 1])
-            with col_input:
-                new_sub_cat = st.text_input(f"'{분류1}' 카테고리에 추가할 장르명 입력", key=f"input_new_{분류1}")
-            with col_btn:
-                st.write("") 
-                if st.button("장르 추가 저장", use_container_width=True, type="primary"):
-                    if new_sub_cat:
-                        if not ((cat_df['분류1'] == 분류1) & (cat_df['분류2'] == new_sub_cat)).any():
-                            new_row = pd.DataFrame({'분류1': [분류1], '분류2': [new_sub_cat]})
-                            updated_cat_df = pd.concat([cat_df, new_row], ignore_index=True)
-                            if save_categories_to_sheet(updated_cat_df):
-                                st.success(f"장르 '{new_sub_cat}' 추가 완료!")
-                                st.cache_data.clear()
-                                st.rerun()
-                        else:
-                            st.warning("이미 존재하는 장르입니다.")
+    df_filtered = df[df['분류1'] == 분류1].copy()
+    st.markdown(f"## 📊 {분류1}")
+    
+    with st.expander("➕ 새 장르 추가"):
+        col_input, col_btn = st.columns([3, 1])
+        with col_input:
+            new_sub_cat = st.text_input(f"'{분류1}' 카테고리에 추가할 장르명 입력", key=f"input_new_{분류1}")
+        with col_btn:
+            st.write("") 
+            if st.button("장르 추가 저장", use_container_width=True, type="primary"):
+                if new_sub_cat:
+                    if not ((cat_df['분류1'] == 분류1) & (cat_df['분류2'] == new_sub_cat)).any():
+                        new_row = pd.DataFrame({'분류1': [분류1], '분류2': [new_sub_cat]})
+                        updated_cat_df = pd.concat([cat_df, new_row], ignore_index=True)
+                        if save_categories_to_sheet(updated_cat_df):
+                            st.success(f"장르 '{new_sub_cat}' 추가 완료!")
+                            st.cache_data.clear()
+                            st.rerun()
+                    else:
+                        st.warning("이미 존재하는 장르입니다.")
 
-    # 장르 선택 버튼 로직 ('전체' 모드에서는 생략하고 내부적으로 '전체' 선택 처리)
-    if 분류1 != "전체":
-        분류2_list = st.session_state.page_order['분류2_순서'].get(분류1, ['전체'])
-        if f'selected_분류2_{분류1}' not in st.session_state:
-            st.session_state[f'selected_분류2_{분류1}'] = '전체'
-        
-        buttons_per_row = 8
-        num_rows = (len(분류2_list) + buttons_per_row - 1) // buttons_per_row
-        for row in range(num_rows):
-            cols = st.columns(buttons_per_row)
-            for idx, col in enumerate(cols):
-                item_idx = row * buttons_per_row + idx
-                if item_idx < len(분류2_list):
-                    cat2 = 분류2_list[item_idx]
-                    is_active = (st.session_state[f'selected_분류2_{분류1}'] == cat2)
-                    if col.button(cat2, key=f"cat2_{분류1}_{cat2}", use_container_width=True, type="primary" if is_active else "secondary"):
-                        st.session_state[f'selected_분류2_{분류1}'] = cat2
-                        st.rerun()
-        selected_분류2 = st.session_state[f'selected_분류2_{분류1}']
-    else:
-        # 전체 모드일 경우 하위 분류(장르)는 무조건 '전체'로 간주
-        selected_분류2 = '전체'
-        st.session_state[f'selected_분류2_전체'] = '전체'
-
-    # 데이터 필터링 (장르 기준)
+    분류2_list = st.session_state.page_order['분류2_순서'].get(분류1, ['전체'])
+    if f'selected_분류2_{분류1}' not in st.session_state:
+        st.session_state[f'selected_분류2_{분류1}'] = '전체'
+    
+    buttons_per_row = 8
+    num_rows = (len(분류2_list) + buttons_per_row - 1) // buttons_per_row
+    for row in range(num_rows):
+        cols = st.columns(buttons_per_row)
+        for idx, col in enumerate(cols):
+            item_idx = row * buttons_per_row + idx
+            if item_idx < len(분류2_list):
+                cat2 = 분류2_list[item_idx]
+                is_active = (st.session_state[f'selected_분류2_{분류1}'] == cat2)
+                if col.button(cat2, key=f"cat2_{분류1}_{cat2}", use_container_width=True, type="primary" if is_active else "secondary"):
+                    st.session_state[f'selected_분류2_{분류1}'] = cat2
+                    st.rerun()
+    
+    selected_분류2 = st.session_state[f'selected_분류2_{분류1}']
     df_display = df_filtered[df_filtered['분류2'] == selected_분류2].copy() if selected_분류2 != '전체' else df_filtered.copy()
     
     st.markdown("---")
@@ -467,6 +443,7 @@ def show_category_detail(df, cat_df, 분류1):
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
     # 요청하신 이미지 순서에 맞춰 display_columns 리스트 순서 변경
+    # 순서: 국가 > 카테고리 > 장르 > 메모 > 동영상 > 조회수 > 채널명 > 운영기간 > 최근업로드 > 토탈지표 > URL
     display_columns = [
         '국가', 
         '분류1', 
@@ -501,17 +478,10 @@ def show_category_detail(df, cat_df, 분류1):
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
 
-    # 에디터 옵션 설정 (전체 보기일 경우 모든 옵션 허용)
     all_cat1_options = sorted(list(cat_df['분류1'].unique())) if not cat_df.empty else sorted(list(df['분류1'].unique()))
-    
-    if 분류1 == "전체":
-         # 전체 보기일 때는 모든 존재하는 장르를 옵션으로 제공
-         allowed_cat2_options = sorted(list(cat_df['분류2'].unique())) if not cat_df.empty else sorted(list(df['분류2'].unique()))
-    else:
-         allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
+    allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
 
-    if 분류1 != "전체":
-        st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
+    st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
     # 4. Data Editor 설정
     edited_df = st.data_editor(
