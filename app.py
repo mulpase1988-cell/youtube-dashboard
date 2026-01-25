@@ -116,19 +116,21 @@ def format_korean_number_with_icon(num):
 def add_status_dot(date_str):
     """
     날짜 문자열을 받아 최신성에 따라 상태 점(Dot)을 추가
-    - 3개월(90일) 이내: 🟢 (초록 - 활동 활발)
-    - 3~6개월(180일) 이내: 🟠 (주황 - 활동 뜸함)
-    - 6개월 이상: ❌ (빨강 X - 활동 중단/오래됨)
+    [요구사항 반영]
+    - 1개월(30일) 이내: 🟢 (초록)
+    - 1~6개월(180일) 이내: 🔵 (파랑)
+    - 6개월 이상: ❌ (X)
     """
     if not date_str or pd.isna(date_str): return ""
     try:
+        # 날짜 형식이 'YYYY-MM-DD'라고 가정 (시간이 포함된 경우 split)
         dt = datetime.strptime(str(date_str).split(' ')[0], "%Y-%m-%d")
         diff = (datetime.now() - dt).days
         
-        if diff <= 90:      # 3개월 이내
+        if diff <= 30:      # 1개월 이내
             return f"{date_str} 🟢"
-        elif diff <= 180:   # 6개월 이내 (3~6개월)
-            return f"{date_str} 🟠"
+        elif diff <= 180:   # 6개월 이내 (1~6개월)
+            return f"{date_str} 🔵"
         else:               # 6개월 경과
             return f"{date_str} ❌" 
     except:
@@ -363,18 +365,17 @@ def show_dashboard():
         st.markdown("---")
         st.markdown("## 📂 카테고리")
         
-        # --- 전체 보기 버튼 추가 ---
+        # --- 전체 보기 버튼 ---
         total_count = len(df)
         if 'selected_분류1' not in st.session_state:
-            st.session_state.selected_분류1 = "전체" # 기본값을 전체로 변경 (선택사항)
+            st.session_state.selected_분류1 = "전체"
 
         is_all_active = (st.session_state.selected_분류1 == "전체")
         if st.button(f"전체 ({total_count})", key="side_all", use_container_width=True, type="primary" if is_all_active else "secondary"):
             st.session_state.selected_분류1 = "전체"
             st.rerun()
         
-        # --- 기존 카테고리 루프 ---
-        if not st.session_state.selected_분류1: # 만약 초기화 문제로 None이면 첫번째로
+        if not st.session_state.selected_분류1:
              st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else "전체"
 
         for cat in 분류1_list:
@@ -389,7 +390,7 @@ def show_dashboard():
         show_category_detail(df, cat_df, st.session_state.selected_분류1)
 
 def show_category_detail(df, cat_df, 분류1):
-    # '전체' 선택 시 필터링 없이 전체 데이터 사용
+    # '전체' 선택 시 로직
     if 분류1 == "전체":
         df_filtered = df.copy()
         st.markdown(f"## 📊 전체 ({len(df_filtered)}개)")
@@ -397,7 +398,6 @@ def show_category_detail(df, cat_df, 분류1):
         df_filtered = df[df['분류1'] == 분류1].copy()
         st.markdown(f"## 📊 {분류1}")
         
-        # '전체'가 아닐 때만 장르 추가 기능 노출
         with st.expander("➕ 새 장르 추가"):
             col_input, col_btn = st.columns([3, 1])
             with col_input:
@@ -416,7 +416,6 @@ def show_category_detail(df, cat_df, 분류1):
                         else:
                             st.warning("이미 존재하는 장르입니다.")
 
-    # 장르 선택 버튼 로직 ('전체' 모드에서는 생략하고 내부적으로 '전체' 선택 처리)
     if 분류1 != "전체":
         분류2_list = st.session_state.page_order['분류2_순서'].get(분류1, ['전체'])
         if f'selected_분류2_{분류1}' not in st.session_state:
@@ -436,11 +435,9 @@ def show_category_detail(df, cat_df, 분류1):
                         st.rerun()
         selected_분류2 = st.session_state[f'selected_분류2_{분류1}']
     else:
-        # 전체 모드일 경우 하위 분류(장르)는 무조건 '전체'로 간주
         selected_분류2 = '전체'
         st.session_state[f'selected_분류2_전체'] = '전체'
 
-    # 데이터 필터링 (장르 기준)
     df_display = df_filtered[df_filtered['분류2'] == selected_분류2].copy() if selected_분류2 != '전체' else df_filtered.copy()
     
     st.markdown("---")
@@ -466,7 +463,7 @@ def show_category_detail(df, cat_df, 분류1):
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
-    # 요청하신 이미지 순서에 맞춰 display_columns 리스트 순서 변경
+    # 요청 사항: '최근업로드' 컬럼을 '운영기간' 옆에 배치
     display_columns = [
         '국가', 
         '분류1', 
@@ -476,7 +473,7 @@ def show_category_detail(df, cat_df, 분류1):
         '조회수', 
         '채널명', 
         '운영기간', 
-        '최근업로드', 
+        '최근업로드',  # <-- 여기에 배치
         '최근 5개 토탈', 
         '최근 10개 토탈', 
         '최근 20개 토탈', 
@@ -487,7 +484,7 @@ def show_category_detail(df, cat_df, 분류1):
     
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # 1. 날짜에 상태 점(Dot) 추가
+    # 1. 날짜에 상태 점(Dot) 추가 (1개월:🟢 / 6개월:🔵 / 그외:❌)
     if '최근업로드' in df_to_edit.columns:
         df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(add_status_dot)
 
@@ -501,11 +498,9 @@ def show_category_detail(df, cat_df, 분류1):
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
 
-    # 에디터 옵션 설정 (전체 보기일 경우 모든 옵션 허용)
     all_cat1_options = sorted(list(cat_df['분류1'].unique())) if not cat_df.empty else sorted(list(df['분류1'].unique()))
     
     if 분류1 == "전체":
-         # 전체 보기일 때는 모든 존재하는 장르를 옵션으로 제공
          allowed_cat2_options = sorted(list(cat_df['분류2'].unique())) if not cat_df.empty else sorted(list(df['분류2'].unique()))
     else:
          allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
@@ -524,13 +519,11 @@ def show_category_detail(df, cat_df, 분류1):
             "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True),
             "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True),
             
-            # 조회수: 이모지 없음
             "조회수": st.column_config.TextColumn("조회수", disabled=True),
             
-            # 최근업로드: 🟢/🟠/❌ 상태 점
+            # 최근업로드: 변경된 이모지 적용
             "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="medium"),
             
-            # 토탈 컬럼: 이모지(💎, 🔥, 🔺) 적용됨
             "최근 5개 토탈": st.column_config.TextColumn("최근 5개 토탈", disabled=True),
             "최근 10개 토탈": st.column_config.TextColumn("최근 10개 토탈", disabled=True),
             "최근 20개 토탈": st.column_config.TextColumn("최근 20개 토탈", disabled=True),
