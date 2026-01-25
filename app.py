@@ -116,24 +116,25 @@ def format_korean_number_with_icon(num):
 def add_status_dot(date_str):
     """
     날짜 문자열을 받아 최신성에 따라 상태 점(Dot)을 추가
-    [요구사항 반영]
     - 1개월(30일) 이내: 🟢 (초록)
     - 1~6개월(180일) 이내: 🔵 (파랑)
     - 6개월 이상: ❌ (X)
     """
-    if not date_str or pd.isna(date_str): return ""
+    if not date_str or pd.isna(date_str) or str(date_str).strip() == "": return ""
     try:
-        # 날짜 형식이 'YYYY-MM-DD'라고 가정 (시간이 포함된 경우 split)
-        dt = datetime.strptime(str(date_str).split(' ')[0], "%Y-%m-%d")
+        # 날짜 포맷이 다양할 수 있으므로 YYYY-MM-DD 형식 시도
+        clean_date = str(date_str).split(' ')[0].replace('.', '-').replace('/', '-')
+        dt = datetime.strptime(clean_date, "%Y-%m-%d")
         diff = (datetime.now() - dt).days
         
         if diff <= 30:      # 1개월 이내
-            return f"{date_str} 🟢"
+            return f"{clean_date} 🟢"
         elif diff <= 180:   # 6개월 이내 (1~6개월)
-            return f"{date_str} 🔵"
+            return f"{clean_date} 🔵"
         else:               # 6개월 경과
-            return f"{date_str} ❌" 
+            return f"{clean_date} ❌" 
     except:
+        # 날짜 파싱 실패 시 원본 문자열 반환 (데이터가 숨겨지지 않도록)
         return str(date_str)
 
 # --- 구글 시트 연결 ---
@@ -153,6 +154,18 @@ def load_data():
         df = pd.DataFrame(data)
         df['gs_row_index'] = range(2, len(df) + 2)
         
+        # --- [추가됨] 컬럼명 자동 보정: 사용자가 '최근 업로드', '최근 영상' 등으로 적어도 인식 ---
+        rename_map = {
+            '최근 업로드': '최근업로드',
+            '최근 업로드일': '최근업로드',
+            '최근영상': '최근업로드',
+            '최근 영상': '최근업로드',
+            '업로드일': '최근업로드',
+            '마지막 업로드': '최근업로드'
+        }
+        df = df.rename(columns=rename_map)
+        # -------------------------------------------------------------------------
+
         numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
                           '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
         for col in numeric_columns:
@@ -463,7 +476,6 @@ def show_category_detail(df, cat_df, 분류1):
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
-    # 요청 사항: '최근업로드' 컬럼을 '운영기간' 옆에 배치
     display_columns = [
         '국가', 
         '분류1', 
