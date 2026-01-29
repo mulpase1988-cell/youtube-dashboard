@@ -118,37 +118,36 @@ def format_korean_number_with_icon(num):
             return text
     except: return str(num)
 
-def format_date_with_activity(date_str, count):
+def add_status_dot(date_str, ten_day_count):
     """
-    날짜와 '10일 기준'(W열) 값을 받아 이모지 상태 표시
+    10일 기준 값에 따라 상태 점(Dot)을 추가
     - 5개 이상: 🟢 (초록)
     - 2개 이상 5개 미만: 🔵 (파랑)
     - 2개 미만: ❌ (X)
     """
-    if pd.isna(date_str) or str(date_str).strip() == "": return ""
+    if not date_str or pd.isna(date_str) or str(date_str).strip() == "": 
+        return ""
     
-    # 날짜 포맷 정리 (YYYY-MM-DD)
     try:
+        # 날짜 포맷팅
         clean_date = str(date_str).split(' ')[0].replace('.', '-').replace('/', '-')
-    except:
-        clean_date = str(date_str)
         
-    # 카운트 값(10일 기준) 숫자 변환
-    try:
-        if pd.isna(count) or str(count).strip() == "":
-            val = 0
+        # 10일 기준 값을 숫자로 변환
+        try:
+            count = int(float(str(ten_day_count).replace(',', ''))) if not pd.isna(ten_day_count) else 0
+        except:
+            count = 0
+        
+        # 10일 기준 값에 따라 이모티콘 결정
+        if count >= 5:
+            return f"{clean_date} 🟢"
+        elif count >= 2:
+            return f"{clean_date} 🔵"
         else:
-            val = int(float(str(count).replace(',', '')))
+            return f"{clean_date} ❌"
     except:
-        val = 0
-        
-    # 조건에 따른 이모지 반환
-    if val >= 5:
-        return f"{clean_date} 🟢"
-    elif val >= 2:
-        return f"{clean_date} 🔵"
-    else:
-        return f"{clean_date} ❌"
+        # 날짜 파싱 실패 시 원본 문자열 반환
+        return str(date_str)
 
 # --- 구글 시트 연결 ---
 def get_gspread_client():
@@ -180,7 +179,7 @@ def load_data():
         # -------------------------------------------------------------------------
 
         numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
-                          '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
+                          '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', '10일기준']
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
@@ -511,6 +510,7 @@ def show_category_detail(df, cat_df, 분류1):
         '최근 10개 토탈', 
         '최근 20개 토탈', 
         '최근 30개 토탈', 
+        '10일기준',  # 추가: W열 데이터
         'URL', 
         'gs_row_index'
     ]
@@ -518,29 +518,18 @@ def show_category_detail(df, cat_df, 분류1):
     # 시트에 없는 컬럼은 제외하고 선택
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # 1. 날짜에 상태 점(Dot) 추가 (10일 기준 값 참조 수정)
+    # 1. 날짜에 상태 점(Dot) 추가 - 10일기준 값을 함께 전달
     if '최근업로드' in df_to_edit.columns:
-        # W열의 헤더 이름을 찾습니다 ('10일 기준' 또는 '10일기준')
-        w_col = None
-        if '10일 기준' in df_display.columns:
-            w_col = '10일 기준'
-        elif '10일기준' in df_display.columns:
-            w_col = '10일기준'
-            
-        if w_col:
-            # df_to_edit는 df_display의 필터링된 복사본이므로 index가 동일합니다.
-            # zip을 사용하여 날짜(df_to_edit)와 기준값(df_display)을 동시에 순회합니다.
-            dates = df_to_edit['최근업로드']
-            counts = df_display.loc[df_to_edit.index, w_col]
-            
-            formatted_dates = []
-            for d, c in zip(dates, counts):
-                formatted_dates.append(format_date_with_activity(d, c))
-            
-            df_to_edit['최근업로드'] = formatted_dates
+        if '10일기준' in df_to_edit.columns:
+            df_to_edit['최근업로드'] = df_to_edit.apply(
+                lambda row: add_status_dot(row['최근업로드'], row['10일기준']), 
+                axis=1
+            )
         else:
-            # 기준 컬럼이 없는 경우 날짜만 깔끔하게 표시
-            df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(lambda x: str(x).split(' ')[0] if x else "")
+            # 10일기준 컬럼이 없을 경우 기본값 0으로 처리
+            df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(
+                lambda x: add_status_dot(x, 0)
+            )
 
     # 2. '조회수' 컬럼 포맷팅
     if '조회수' in df_to_edit.columns:
@@ -564,33 +553,37 @@ def show_category_detail(df, cat_df, 분류1):
     
     # 4. Data Editor 설정
     # [변경] 컬럼 너비 최적화를 위해 width="small"을 적극 활용
+    # 10일기준 컬럼은 숨김 처리
+    column_config = {
+        "URL": st.column_config.LinkColumn("링크", display_text="보기", width="small"),
+        "gs_row_index": None,
+        "10일기준": None,  # 10일기준 컬럼 숨김
+        "국가": st.column_config.TextColumn("국가", width="small"),
+        "동영상": st.column_config.NumberColumn("동영상", width="small"),
+        "조회수": st.column_config.TextColumn("조회수", disabled=True, width="small"),
+        "채널명": st.column_config.TextColumn("채널명", width="medium"),
+        
+        "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True, width="small"),
+        "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True, width="small"),
+        
+        "키워드": st.column_config.TextColumn("키워드", width="medium"),
+        "템플릿": st.column_config.TextColumn("템플릿", width="small"),
+        "메모": st.column_config.TextColumn("메모", width="medium"),
+        "운영기간": st.column_config.TextColumn("운영기간", width="small"),
+
+        "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="small"),
+        
+        "최근 5개 토탈": st.column_config.TextColumn("최근 5개", disabled=True, width="small"),
+        "최근 10개 토탈": st.column_config.TextColumn("최근 10개", disabled=True, width="small"),
+        "최근 20개 토탈": st.column_config.TextColumn("최근 20개", disabled=True, width="small"),
+        "최근 30개 토탈": st.column_config.TextColumn("최근 30개", disabled=True, width="small"),
+    }
+    
     edited_df = st.data_editor(
         df_to_edit,
         use_container_width=True,
         height=600,
-        column_config={
-            "URL": st.column_config.LinkColumn("링크", display_text="보기", width="small"),
-            "gs_row_index": None,
-            "국가": st.column_config.TextColumn("국가", width="small"),
-            "동영상": st.column_config.NumberColumn("동영상", width="small"),
-            "조회수": st.column_config.TextColumn("조회수", disabled=True, width="small"),
-            "채널명": st.column_config.TextColumn("채널명", width="medium"), # 채널명은 조금 넓게
-            
-            "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True, width="small"),
-            "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True, width="small"),
-            
-            "키워드": st.column_config.TextColumn("키워드", width="medium"),
-            "템플릿": st.column_config.TextColumn("템플릿", width="small"),
-            "메모": st.column_config.TextColumn("메모", width="medium"),
-            "운영기간": st.column_config.TextColumn("운영기간", width="small"),
-
-            "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="small"),
-            
-            "최근 5개 토탈": st.column_config.TextColumn("최근 5개", disabled=True, width="small"),
-            "최근 10개 토탈": st.column_config.TextColumn("최근 10개", disabled=True, width="small"),
-            "최근 20개 토탈": st.column_config.TextColumn("최근 20개", disabled=True, width="small"),
-            "최근 30개 토탈": st.column_config.TextColumn("최근 30개", disabled=True, width="small"),
-        },
+        column_config=column_config,
         hide_index=True,
         key=f"editor_{분류1}_{selected_분류2}"
     )
