@@ -118,29 +118,37 @@ def format_korean_number_with_icon(num):
             return text
     except: return str(num)
 
-def add_status_dot(date_str):
+def format_date_with_activity(date_str, count):
     """
-    날짜 문자열을 받아 최신성에 따라 상태 점(Dot)을 추가
-    - 1개월(30일) 이내: 🟢 (초록)
-    - 1~6개월(180일) 이내: 🔵 (파랑)
-    - 6개월 이상: ❌ (X)
+    날짜와 '10일 기준'(W열) 값을 받아 이모지 상태 표시
+    - 5개 이상: 🟢 (초록)
+    - 2개 이상 5개 미만: 🔵 (파랑)
+    - 2개 미만: ❌ (X)
     """
-    if not date_str or pd.isna(date_str) or str(date_str).strip() == "": return ""
+    if pd.isna(date_str) or str(date_str).strip() == "": return ""
+    
+    # 날짜 포맷 정리 (YYYY-MM-DD)
     try:
-        # 날짜 포맷이 다양할 수 있으므로 YYYY-MM-DD 형식 시도
         clean_date = str(date_str).split(' ')[0].replace('.', '-').replace('/', '-')
-        dt = datetime.strptime(clean_date, "%Y-%m-%d")
-        diff = (datetime.now() - dt).days
-        
-        if diff <= 15:      # 15일 이내
-            return f"{clean_date} 🟢"
-        elif diff <= 30:   # 1개월 이내 
-            return f"{clean_date} 🔵"
-        else:               # 6개월 경과
-            return f"{clean_date} ❌" 
     except:
-        # 날짜 파싱 실패 시 원본 문자열 반환 (데이터가 숨겨지지 않도록)
-        return str(date_str)
+        clean_date = str(date_str)
+        
+    # 카운트 값(10일 기준) 숫자 변환
+    try:
+        if pd.isna(count) or str(count).strip() == "":
+            val = 0
+        else:
+            val = int(float(str(count).replace(',', '')))
+    except:
+        val = 0
+        
+    # 조건에 따른 이모지 반환
+    if val >= 5:
+        return f"{clean_date} 🟢"
+    elif val >= 2:
+        return f"{clean_date} 🔵"
+    else:
+        return f"{clean_date} ❌"
 
 # --- 구글 시트 연결 ---
 def get_gspread_client():
@@ -510,9 +518,29 @@ def show_category_detail(df, cat_df, 분류1):
     # 시트에 없는 컬럼은 제외하고 선택
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # 1. 날짜에 상태 점(Dot) 추가
+    # 1. 날짜에 상태 점(Dot) 추가 (10일 기준 값 참조 수정)
     if '최근업로드' in df_to_edit.columns:
-        df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(add_status_dot)
+        # W열의 헤더 이름을 찾습니다 ('10일 기준' 또는 '10일기준')
+        w_col = None
+        if '10일 기준' in df_display.columns:
+            w_col = '10일 기준'
+        elif '10일기준' in df_display.columns:
+            w_col = '10일기준'
+            
+        if w_col:
+            # df_to_edit는 df_display의 필터링된 복사본이므로 index가 동일합니다.
+            # zip을 사용하여 날짜(df_to_edit)와 기준값(df_display)을 동시에 순회합니다.
+            dates = df_to_edit['최근업로드']
+            counts = df_display.loc[df_to_edit.index, w_col]
+            
+            formatted_dates = []
+            for d, c in zip(dates, counts):
+                formatted_dates.append(format_date_with_activity(d, c))
+            
+            df_to_edit['최근업로드'] = formatted_dates
+        else:
+            # 기준 컬럼이 없는 경우 날짜만 깔끔하게 표시
+            df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(lambda x: str(x).split(' ')[0] if x else "")
 
     # 2. '조회수' 컬럼 포맷팅
     if '조회수' in df_to_edit.columns:
