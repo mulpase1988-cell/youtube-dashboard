@@ -76,6 +76,19 @@ st.markdown("""
     div[data-testid="stDataFrame"] {
         width: 100%;
     }
+    /* ▼▼▼▼▼ [추가된 부분] 채널명 링크 색상 변경 ▼▼▼▼▼ */
+    div[data-testid="stDataFrame"] a {
+        color: #FFFFFF !important;  /* 평상시 색상: 흰색 (다크모드에 잘 보임) */
+        /* 다른 색상 추천: 
+           #FFD700 (노랑), #00FF00 (연두), #FF9999 (연한 빨강), #ADD8E6 (연한 파랑) 
+        */
+        text-decoration: none !important;
+    }
+    div[data-testid="stDataFrame"] a:hover {
+        color: #FF4B4B !important; /* 마우스 올렸을 때: 빨강 */
+        text-decoration: underline !important;
+    }
+    /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
 </style>
 """, unsafe_allow_html=True)
 
