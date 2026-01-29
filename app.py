@@ -71,6 +71,11 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
     }
     .sortable-container-header { display: none !important; }
+    
+    /* 데이터 에디터 너비 최적화 */
+    div[data-testid="stDataFrame"] {
+        width: 100%;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -481,17 +486,17 @@ def show_category_detail(df, cat_df, 분류1):
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
-    # [변경] '키워드', '템플릿' 컬럼 추가
+    # [변경 요청 반영] 2번째 사진의 순서대로 컬럼 재배치
     display_columns = [
         '국가', 
-        '분류1', 
-        '분류2', 
-        '키워드',  # 추가됨
-        '템플릿',  # 추가됨
-        '메모', 
         '동영상', 
         '조회수', 
         '채널명', 
+        '분류1',   # 카테고리
+        '분류2',   # 장르
+        '템플릿',  
+        '메모', 
+        '키워드',
         '운영기간', 
         '최근업로드',
         '최근 5개 토탈', 
@@ -530,29 +535,33 @@ def show_category_detail(df, cat_df, 분류1):
         st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
     # 4. Data Editor 설정
+    # [변경] 컬럼 너비 최적화를 위해 width="small"을 적극 활용
     edited_df = st.data_editor(
         df_to_edit,
         use_container_width=True,
         height=600,
         column_config={
-            "URL": st.column_config.LinkColumn("링크", display_text="보기"),
+            "URL": st.column_config.LinkColumn("링크", display_text="보기", width="small"),
             "gs_row_index": None,
-            "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True),
-            "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True),
+            "국가": st.column_config.TextColumn("국가", width="small"),
+            "동영상": st.column_config.NumberColumn("동영상", width="small"),
+            "조회수": st.column_config.TextColumn("조회수", disabled=True, width="small"),
+            "채널명": st.column_config.TextColumn("채널명", width="medium"), # 채널명은 조금 넓게
             
-            # [변경] 키워드와 템플릿 컬럼 설정 추가
+            "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True, width="small"),
+            "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True, width="small"),
+            
             "키워드": st.column_config.TextColumn("키워드", width="medium"),
-            "템플릿": st.column_config.TextColumn("템플릿", width="medium"),
+            "템플릿": st.column_config.TextColumn("템플릿", width="small"),
+            "메모": st.column_config.TextColumn("메모", width="medium"),
+            "운영기간": st.column_config.TextColumn("운영기간", width="small"),
 
-            "조회수": st.column_config.TextColumn("조회수", disabled=True),
-            "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="medium"),
+            "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="small"),
             
-            "최근 5개 토탈": st.column_config.TextColumn("최근 5개 토탈", disabled=True),
-            "최근 10개 토탈": st.column_config.TextColumn("최근 10개 토탈", disabled=True),
-            "최근 20개 토탈": st.column_config.TextColumn("최근 20개 토탈", disabled=True),
-            "최근 30개 토탈": st.column_config.TextColumn("최근 30개 토탈", disabled=True),
-            
-            "메모": st.column_config.TextColumn("메모", width="medium"), 
+            "최근 5개 토탈": st.column_config.TextColumn("최근 5개", disabled=True, width="small"),
+            "최근 10개 토탈": st.column_config.TextColumn("최근 10개", disabled=True, width="small"),
+            "최근 20개 토탈": st.column_config.TextColumn("최근 20개", disabled=True, width="small"),
+            "최근 30개 토탈": st.column_config.TextColumn("최근 30개", disabled=True, width="small"),
         },
         hide_index=True,
         key=f"editor_{분류1}_{selected_분류2}"
