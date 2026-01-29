@@ -79,9 +79,6 @@ st.markdown("""
     /* ▼▼▼▼▼ [추가된 부분] 채널명 링크 색상 변경 ▼▼▼▼▼ */
     div[data-testid="stDataFrame"] a {
         color: #FFFFFF !important;  /* 평상시 색상: 흰색 (다크모드에 잘 보임) */
-        /* 다른 색상 추천: 
-           #FFD700 (노랑), #00FF00 (연두), #FF9999 (연한 빨강), #ADD8E6 (연한 파랑) 
-        */
         text-decoration: none !important;
     }
     div[data-testid="stDataFrame"] a:hover {
@@ -484,7 +481,6 @@ def show_category_detail(df, cat_df, 분류1):
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
-    # [변경] URL 컬럼을 표시 리스트에서 제거 (채널명 클릭으로 대체하기 위함)
     display_columns = [
         '국가', 
         '동영상', 
@@ -502,7 +498,6 @@ def show_category_detail(df, cat_df, 분류1):
         '최근 20개 토탈', 
         '최근 30개 토탈', 
         'gs_row_index'
-        # 'URL' -> 제거됨
     ]
     
     # URL 데이터가 필요하므로 임시로 가져옴
@@ -526,11 +521,13 @@ def show_category_detail(df, cat_df, 분류1):
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
             
-    # [변경] 채널명을 클릭 가능하게 만들기 위해 데이터 교체
-    # '채널명' 컬럼에 실제로는 URL 데이터를 넣고, LinkColumn으로 표시합니다.
-    # 이렇게 하면 DataEditor 상에서 '채널명'이 클릭 가능한 링크가 됩니다.
+    # [수정] 채널명 표시 로직 변경
+    # 변경: [채널명](URL) 형태의 마크다운 문자열로 변환하여 '채널명' 그대로 표시 (구글 시트의 채널명 유지)
     if 'URL' in df_to_edit.columns and '채널명' in df_to_edit.columns:
-        df_to_edit['채널명'] = df_to_edit['URL']
+        df_to_edit['채널명'] = df_to_edit.apply(
+            lambda x: f"[{x['채널명']}]({x['URL']})" if pd.notna(x['URL']) and str(x['URL']).strip() != "" else x['채널명'], 
+            axis=1
+        )
         # URL 컬럼은 이제 필요 없으므로 DataFrame에서 제거 (화면 표시용)
         df_to_edit = df_to_edit.drop(columns=['URL'])
 
@@ -550,12 +547,11 @@ def show_category_detail(df, cat_df, 분류1):
         use_container_width=True,
         height=600,
         column_config={
-            # [변경] URL 컬럼 설정 제거 및 채널명 설정을 LinkColumn으로 변경
-            # display_text 정규식을 사용하여 URL에서 @핸들 또는 채널ID만 추출하여 보여줌
-            "채널명": st.column_config.LinkColumn(
+            # [수정] 채널명 설정 변경: LinkColumn 대신 TextColumn 사용 (마크다운 자동 렌더링)
+            "채널명": st.column_config.TextColumn(
                 "채널명", 
-                display_text=r"youtube\.com/(?:@|c/|channel/)?([^/?&]+)", 
-                width="medium"
+                width="medium",
+                disabled=True # 링크 텍스트가 깨지지 않도록 편집 비활성화 (필요시 해제 가능)
             ),
             
             "gs_row_index": None,
@@ -586,8 +582,6 @@ def show_category_detail(df, cat_df, 분류1):
         st.write("") 
         if st.button("💾 변경사항 시트에 저장", type="primary", use_container_width=True):
             with st.spinner("구글 시트 업데이트 중..."):
-                # update_gs_rows 함수는 원본(df_display)과 비교하므로
-                # df_to_edit의 '채널명'이 URL로 바뀌어 있어도 '분류','메모' 등의 수정사항 저장에는 문제없음
                 update_count = update_gs_rows(edited_df, df_display)
                 if update_count >= 0:
                     st.success(f"✅ {update_count}개의 항목이 수정되었습니다.")
