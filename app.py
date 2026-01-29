@@ -132,9 +132,9 @@ def add_status_dot(date_str):
         dt = datetime.strptime(clean_date, "%Y-%m-%d")
         diff = (datetime.now() - dt).days
         
-        if diff <= 30:      # 1개월 이내
+        if diff <= 15:      # 15일 이내
             return f"{clean_date} 🟢"
-        elif diff <= 180:   # 6개월 이내 (1~6개월)
+        elif diff <= 30:   # 1개월 이내 
             return f"{clean_date} 🔵"
         else:               # 6개월 경과
             return f"{clean_date} ❌" 
