@@ -94,9 +94,6 @@ def format_korean_number(num):
 def format_korean_number_with_icon(num):
     """
     최근 토탈 전용 포맷팅: 숫자 크기에 따라 이모지 추가
-    - 1000만 이상: 💎 (다이아몬드)
-    - 100만 이상: 🔥 (불꽃)
-    - 30만 이상: 🔺 (상승)
     """
     if pd.isna(num) or num == 0: return "0"
     try:
@@ -121,13 +118,9 @@ def format_korean_number_with_icon(num):
 def add_status_dot(date_str):
     """
     날짜 문자열을 받아 최신성에 따라 상태 점(Dot)을 추가
-    - 1개월(30일) 이내: 🟢 (초록)
-    - 1~6개월(180일) 이내: 🔵 (파랑)
-    - 6개월 이상: ❌ (X)
     """
     if not date_str or pd.isna(date_str) or str(date_str).strip() == "": return ""
     try:
-        # 날짜 포맷이 다양할 수 있으므로 YYYY-MM-DD 형식 시도
         clean_date = str(date_str).split(' ')[0].replace('.', '-').replace('/', '-')
         dt = datetime.strptime(clean_date, "%Y-%m-%d")
         diff = (datetime.now() - dt).days
@@ -139,7 +132,6 @@ def add_status_dot(date_str):
         else:               # 6개월 경과
             return f"{clean_date} ❌" 
     except:
-        # 날짜 파싱 실패 시 원본 문자열 반환 (데이터가 숨겨지지 않도록)
         return str(date_str)
 
 # --- 구글 시트 연결 ---
@@ -159,7 +151,6 @@ def load_data():
         df = pd.DataFrame(data)
         df['gs_row_index'] = range(2, len(df) + 2)
         
-        # --- [추가됨] 컬럼명 자동 보정 ---
         rename_map = {
             '최근 업로드': '최근업로드',
             '최근 업로드일': '최근업로드',
@@ -169,7 +160,6 @@ def load_data():
             '마지막 업로드': '최근업로드'
         }
         df = df.rename(columns=rename_map)
-        # -------------------------------------------------------------------------
 
         numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
                           '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
@@ -223,13 +213,10 @@ def update_gs_rows(edited_df, original_df):
         count = 0
         for idx, row in edited_df.iterrows():
             orig_row = original_df[original_df['gs_row_index'] == row['gs_row_index']].iloc[0]
-            # [변경] 저장 대상 필드에 '키워드', '템플릿' 추가
             fields_to_check = ['분류1', '분류2', '키워드', '템플릿', '메모']
             
             for field in fields_to_check:
-                # 데이터프레임에 해당 컬럼이 있고 값이 변경된 경우에만 업데이트
                 if field in row and str(row[field]) != str(orig_row[field]):
-                    # 구글 시트에 해당 헤더가 실제로 존재하는지 확인
                     if field in col_map:
                         sheet.update_cell(int(row['gs_row_index']), col_map[field], str(row[field]))
                         count += 1
@@ -388,7 +375,6 @@ def show_dashboard():
         st.markdown("---")
         st.markdown("## 📂 카테고리")
         
-        # --- 전체 보기 버튼 ---
         total_count = len(df)
         if 'selected_분류1' not in st.session_state:
             st.session_state.selected_분류1 = "전체"
@@ -413,7 +399,6 @@ def show_dashboard():
         show_category_detail(df, cat_df, st.session_state.selected_분류1)
 
 def show_category_detail(df, cat_df, 분류1):
-    # '전체' 선택 시 로직
     if 분류1 == "전체":
         df_filtered = df.copy()
         st.markdown(f"## 📊 전체 ({len(df_filtered)}개)")
@@ -486,14 +471,14 @@ def show_category_detail(df, cat_df, 분류1):
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
-    # [변경 요청 반영] 2번째 사진의 순서대로 컬럼 재배치
+    # [변경] URL 컬럼을 표시 리스트에서 제거 (채널명 클릭으로 대체하기 위함)
     display_columns = [
         '국가', 
         '동영상', 
         '조회수', 
         '채널명', 
-        '분류1',   # 카테고리
-        '분류2',   # 장르
+        '분류1',   
+        '분류2',   
         '템플릿',  
         '메모', 
         '키워드',
@@ -503,12 +488,16 @@ def show_category_detail(df, cat_df, 분류1):
         '최근 10개 토탈', 
         '최근 20개 토탈', 
         '최근 30개 토탈', 
-        'URL', 
         'gs_row_index'
+        # 'URL' -> 제거됨
     ]
     
-    # 시트에 없는 컬럼은 제외하고 선택
-    df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
+    # URL 데이터가 필요하므로 임시로 가져옴
+    cols_to_fetch = [c for c in display_columns if c in df_display.columns]
+    if 'URL' not in cols_to_fetch and 'URL' in df_display.columns:
+        cols_to_fetch.append('URL')
+
+    df_to_edit = df_display[cols_to_fetch].copy()
 
     # 1. 날짜에 상태 점(Dot) 추가
     if '최근업로드' in df_to_edit.columns:
@@ -523,6 +512,14 @@ def show_category_detail(df, cat_df, 분류1):
     for col in icon_cols:
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
+            
+    # [변경] 채널명을 클릭 가능하게 만들기 위해 데이터 교체
+    # '채널명' 컬럼에 실제로는 URL 데이터를 넣고, LinkColumn으로 표시합니다.
+    # 이렇게 하면 DataEditor 상에서 '채널명'이 클릭 가능한 링크가 됩니다.
+    if 'URL' in df_to_edit.columns and '채널명' in df_to_edit.columns:
+        df_to_edit['채널명'] = df_to_edit['URL']
+        # URL 컬럼은 이제 필요 없으므로 DataFrame에서 제거 (화면 표시용)
+        df_to_edit = df_to_edit.drop(columns=['URL'])
 
     all_cat1_options = sorted(list(cat_df['분류1'].unique())) if not cat_df.empty else sorted(list(df['분류1'].unique()))
     
@@ -535,18 +532,23 @@ def show_category_detail(df, cat_df, 분류1):
         st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
     # 4. Data Editor 설정
-    # [변경] 컬럼 너비 최적화를 위해 width="small"을 적극 활용
     edited_df = st.data_editor(
         df_to_edit,
         use_container_width=True,
         height=600,
         column_config={
-            "URL": st.column_config.LinkColumn("링크", display_text="보기", width="small"),
+            # [변경] URL 컬럼 설정 제거 및 채널명 설정을 LinkColumn으로 변경
+            # display_text 정규식을 사용하여 URL에서 @핸들 또는 채널ID만 추출하여 보여줌
+            "채널명": st.column_config.LinkColumn(
+                "채널명", 
+                display_text=r"youtube\.com/(?:@|c/|channel/)?([^/?&]+)", 
+                width="medium"
+            ),
+            
             "gs_row_index": None,
             "국가": st.column_config.TextColumn("국가", width="small"),
             "동영상": st.column_config.NumberColumn("동영상", width="small"),
             "조회수": st.column_config.TextColumn("조회수", disabled=True, width="small"),
-            "채널명": st.column_config.TextColumn("채널명", width="medium"), # 채널명은 조금 넓게
             
             "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True, width="small"),
             "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True, width="small"),
@@ -571,6 +573,8 @@ def show_category_detail(df, cat_df, 분류1):
         st.write("") 
         if st.button("💾 변경사항 시트에 저장", type="primary", use_container_width=True):
             with st.spinner("구글 시트 업데이트 중..."):
+                # update_gs_rows 함수는 원본(df_display)과 비교하므로
+                # df_to_edit의 '채널명'이 URL로 바뀌어 있어도 '분류','메모' 등의 수정사항 저장에는 문제없음
                 update_count = update_gs_rows(edited_df, df_display)
                 if update_count >= 0:
                     st.success(f"✅ {update_count}개의 항목이 수정되었습니다.")
