@@ -154,7 +154,7 @@ def load_data():
         df = pd.DataFrame(data)
         df['gs_row_index'] = range(2, len(df) + 2)
         
-        # --- [추가됨] 컬럼명 자동 보정: 사용자가 '최근 업로드', '최근 영상' 등으로 적어도 인식 ---
+        # --- [추가됨] 컬럼명 자동 보정 ---
         rename_map = {
             '최근 업로드': '최근업로드',
             '최근 업로드일': '최근업로드',
@@ -218,11 +218,16 @@ def update_gs_rows(edited_df, original_df):
         count = 0
         for idx, row in edited_df.iterrows():
             orig_row = original_df[original_df['gs_row_index'] == row['gs_row_index']].iloc[0]
-            fields_to_check = ['분류1', '분류2', '메모']
+            # [변경] 저장 대상 필드에 '키워드', '템플릿' 추가
+            fields_to_check = ['분류1', '분류2', '키워드', '템플릿', '메모']
+            
             for field in fields_to_check:
-                if str(row[field]) != str(orig_row[field]):
-                    sheet.update_cell(int(row['gs_row_index']), col_map[field], str(row[field]))
-                    count += 1
+                # 데이터프레임에 해당 컬럼이 있고 값이 변경된 경우에만 업데이트
+                if field in row and str(row[field]) != str(orig_row[field]):
+                    # 구글 시트에 해당 헤더가 실제로 존재하는지 확인
+                    if field in col_map:
+                        sheet.update_cell(int(row['gs_row_index']), col_map[field], str(row[field]))
+                        count += 1
         return count
     except Exception as e:
         st.error(f"업데이트 오류: {e}")
@@ -476,16 +481,19 @@ def show_category_detail(df, cat_df, 분류1):
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
+    # [변경] '키워드', '템플릿' 컬럼 추가
     display_columns = [
         '국가', 
         '분류1', 
         '분류2', 
+        '키워드',  # 추가됨
+        '템플릿',  # 추가됨
         '메모', 
         '동영상', 
         '조회수', 
         '채널명', 
         '운영기간', 
-        '최근업로드',  # <-- 여기에 배치
+        '최근업로드',
         '최근 5개 토탈', 
         '최근 10개 토탈', 
         '최근 20개 토탈', 
@@ -494,17 +502,18 @@ def show_category_detail(df, cat_df, 분류1):
         'gs_row_index'
     ]
     
+    # 시트에 없는 컬럼은 제외하고 선택
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # 1. 날짜에 상태 점(Dot) 추가 (1개월:🟢 / 6개월:🔵 / 그외:❌)
+    # 1. 날짜에 상태 점(Dot) 추가
     if '최근업로드' in df_to_edit.columns:
         df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(add_status_dot)
 
-    # 2. '조회수' 컬럼: 이모지 없이 순수 한글 포맷만 적용
+    # 2. '조회수' 컬럼 포맷팅
     if '조회수' in df_to_edit.columns:
         df_to_edit['조회수'] = df_to_edit['조회수'].apply(format_korean_number)
 
-    # 3. '최근 X개 토탈' 컬럼: 이모지(💎, 🔥, 🔺) 포함 포맷 적용
+    # 3. '최근 X개 토탈' 컬럼 포맷팅
     icon_cols = ['최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
     for col in icon_cols:
         if col in df_to_edit.columns:
@@ -531,9 +540,11 @@ def show_category_detail(df, cat_df, 분류1):
             "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True),
             "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True),
             
+            # [변경] 키워드와 템플릿 컬럼 설정 추가
+            "키워드": st.column_config.TextColumn("키워드", width="medium"),
+            "템플릿": st.column_config.TextColumn("템플릿", width="medium"),
+
             "조회수": st.column_config.TextColumn("조회수", disabled=True),
-            
-            # 최근업로드: 변경된 이모지 적용
             "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="medium"),
             
             "최근 5개 토탈": st.column_config.TextColumn("최근 5개 토탈", disabled=True),
