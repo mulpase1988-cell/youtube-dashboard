@@ -1622,7 +1622,7 @@ def get_hotdata_categories_by_country(country):
 
 def render_hotdata_sidebar_filters():
     """
-    실시간 탭 전용 사이드바 필터 (국가, 카테고리 버튼 형식)
+    실시간 탭 전용 사이드바 필터 (국가는 selectbox, 카테고리는 버튼)
     국가와 카테고리가 독립적으로 동작
     """
     df = load_hotdata()
@@ -1630,34 +1630,27 @@ def render_hotdata_sidebar_filters():
     with st.sidebar:
         st.markdown("## 🔴 실시간 필터")
         
-        # ======================== 국가 필터 (버튼) ========================
-        st.markdown("### 🌍 국가")
+        # ======================== 국가 필터 (Selectbox) ========================
+        st.markdown("### 🌍 국가 필터")
         
         countries = ["전체"] + get_hotdata_countries()
         selected_country = st.session_state.get('hotdata_country', '전체')
         
-        # 국가 버튼 배치 (3열)
-        country_cols = 3
-        for row_start in range(0, len(countries), country_cols):
-            row_end = min(row_start + country_cols, len(countries))
-            row_countries = countries[row_start:row_end]
-            
-            country_button_cols = st.columns(len(row_countries))
-            
-            for idx, country in enumerate(row_countries):
-                is_selected = country == selected_country
-                button_label = f"✅ {country}" if is_selected else f"☐ {country}"
-                
-                with country_button_cols[idx]:
-                    if st.button(
-                        button_label,
-                        key=f"hotdata_country_btn_{country}",
-                        use_container_width=True,
-                        type="primary" if is_selected else "secondary"
-                    ):
-                        st.session_state['hotdata_country'] = country
-                        st.session_state['hotdata_category'] = '전체'  # 국가 변경 시 카테고리 초기화
-                        st.rerun()
+        # Selectbox로 국가 선택
+        selected_country = st.selectbox(
+            "국가를 선택하세요",
+            countries,
+            index=countries.index(selected_country) if selected_country in countries else 0,
+            key="hotdata_country_selectbox",
+            label_visibility="collapsed"
+        )
+        
+        # 선택된 국가를 session_state에 저장
+        st.session_state['hotdata_country'] = selected_country
+        # 국가 변경 시 카테고리 초기화
+        if st.session_state.get('hotdata_country_prev') != selected_country:
+            st.session_state['hotdata_category'] = '전체'
+            st.session_state['hotdata_country_prev'] = selected_country
         
         st.markdown("---")
         
@@ -1685,6 +1678,7 @@ def render_hotdata_sidebar_filters():
         st.markdown("---")
     
     return selected_country, selected_category
+
 
 
 
