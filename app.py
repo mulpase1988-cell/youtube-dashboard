@@ -113,7 +113,7 @@ st.markdown("""
     /* 테이블 헤더 */
     .gallery-table-header {
         display: grid !important;
-        grid-template-columns: 3fr 1.2fr 1.8fr 0.9fr 1.3fr 0.7fr !important;
+        grid-template-columns: 2.5fr 1fr 1.8fr 0.8fr 1.2fr 0.6fr !important;
         gap: 0 !important;
         background: linear-gradient(135deg, #0f172a 0%, #1a2647 100%) !important;
         border-bottom: 2px solid rgba(255,255,255,0.12) !important;
@@ -137,13 +137,12 @@ st.markdown("""
     /* 테이블 행 */
     .gallery-table-row {
         display: grid !important;
-        grid-template-columns: 3fr 1.2fr 1.8fr 0.9fr 1.3fr 0.7fr !important;
+        grid-template-columns: 2.5fr 1fr 1.8fr 0.8fr 1.2fr 0.6fr !important;
         gap: 0 !important;
         border-bottom: 1px solid rgba(255,255,255,0.05) !important;
         padding: 14px 16px !important;
         align-items: center !important;
         transition: background-color 0.2s ease, border-color 0.2s ease !important;
-        min-height: 90px !important;
     }
     
     .gallery-table-row:hover {
@@ -161,82 +160,64 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* ======================== 채널 정보 셀 (개선형) ======================== */
+    /* ======================== 채널 정보 셀 ======================== */
     
-    .channel-info-cell-improved {
+    .channel-info-cell {
         display: flex !important;
-        align-items: flex-start !important;
+        align-items: center !important;
         gap: 12px !important;
-        flex-direction: row !important;
     }
     
-    .channel-avatar-image {
-        width: 60px !important;
-        height: 60px !important;
-        border-radius: 12px !important;
+    .channel-avatar {
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 8px !important;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 28px !important;
+        font-size: 22px !important;
         flex-shrink: 0 !important;
-        border: 2px solid rgba(255,255,255,0.1) !important;
-        box-shadow: 0 4px 12px rgba(102,126,234,0.2) !important;
-        overflow: hidden !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        box-shadow: 0 2px 8px rgba(102,126,234,0.15) !important;
     }
     
-    .channel-info-content {
+    .channel-text {
         display: flex !important;
         flex-direction: column !important;
-        gap: 4px !important;
+        gap: 2px !important;
         min-width: 0 !important;
-        flex: 1 !important;
     }
     
-    .channel-header-row {
-        display: flex !important;
-        align-items: baseline !important;
-        gap: 8px !important;
-        flex-wrap: wrap !important;
-    }
-    
-    .channel-name-improved {
-        font-size: 15px !important;
+    .channel-name-text {
+        font-size: 14px !important;
         font-weight: 700 !important;
         color: #ffffff !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        line-height: 1.2 !important;
     }
     
-    .channel-handle-improved {
-        font-size: 12px !important;
+    .channel-handle-text {
+        font-size: 11px !important;
         color: #a0aec0 !important;
-        font-weight: 500 !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
     }
     
-    .channel-tags-improved {
+    .channel-tags {
         display: flex !important;
         gap: 4px !important;
         flex-wrap: wrap !important;
-        margin-top: 2px !important;
+        margin-top: 4px !important;
     }
     
-    .channel-tag-improved {
-        background: linear-gradient(135deg, rgba(102,126,234,0.2) 0%, rgba(102,126,234,0.1) 100%) !important;
+    .channel-tag {
+        background-color: rgba(102,126,234,0.2) !important;
         border: 1px solid rgba(102,126,234,0.4) !important;
-        border-radius: 5px !important;
-        padding: 3px 8px !important;
-        font-size: 10px !important;
+        border-radius: 4px !important;
+        padding: 2px 6px !important;
+        font-size: 9px !important;
         color: #a8b8ff !important;
         white-space: nowrap !important;
-        font-weight: 600 !important;
-        line-height: 1 !important;
-        box-shadow: 0 1px 3px rgba(102,126,234,0.1) !important;
     }
     
     /* ======================== 구독자 셀 ======================== */
@@ -245,7 +226,6 @@ st.markdown("""
         display: flex !important;
         flex-direction: column !important;
         gap: 2px !important;
-        justify-content: center !important;
     }
     
     .subscriber-number {
@@ -269,7 +249,6 @@ st.markdown("""
         overflow-x: auto !important;
         scroll-behavior: smooth !important;
         padding: 0 4px !important;
-        justify-content: flex-start !important;
     }
     
     .thumbnails-cell::-webkit-scrollbar {
@@ -291,8 +270,8 @@ st.markdown("""
     }
     
     .thumbnail-item {
-        width: 50px !important;
-        height: 50px !important;
+        width: 56px !important;
+        height: 56px !important;
         border-radius: 6px !important;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         flex-shrink: 0 !important;
@@ -335,7 +314,6 @@ st.markdown("""
         flex-direction: column !important;
         gap: 2px !important;
         text-align: center !important;
-        justify-content: center !important;
     }
     
     .video-count-number {
@@ -355,7 +333,6 @@ st.markdown("""
         display: flex !important;
         flex-direction: column !important;
         gap: 2px !important;
-        justify-content: center !important;
     }
     
     .change-value {
@@ -387,13 +364,13 @@ st.markdown("""
     }
     
     .action-btn {
-        width: 36px !important;
-        height: 36px !important;
+        width: 32px !important;
+        height: 32px !important;
         border-radius: 6px !important;
         background-color: rgba(102,126,234,0.15) !important;
         border: 1px solid rgba(102,126,234,0.3) !important;
         color: #a8b8ff !important;
-        font-size: 16px !important;
+        font-size: 14px !important;
         cursor: pointer !important;
         display: flex !important;
         align-items: center !important;
@@ -1004,7 +981,7 @@ def render_pagination_controls(current_page, total_pages):
             st.rerun()
 
 def render_gallery_table(df):
-    """갤러리 테이블 렌더링 (개선된 채널 정보 셀)"""
+    """갤러리 테이블 렌더링 (최적화: 필요한 데이터만 처리)"""
     # 테이블 헤더
     header_html = """
     <div class="gallery-table-wrapper">
@@ -1026,12 +1003,10 @@ def render_gallery_table(df):
     st.markdown("</div>", unsafe_allow_html=True)
 
 def render_gallery_row(row, idx):
-    """갤러리 테이블 행 렌더링 (개선된 채널 정보)"""
+    """갤러리 테이블 행 렌더링 (성능 최적화)"""
     channel_name = row.get('채널명', 'N/A')
     category = row.get('분류1', '')
     genre = row.get('분류2', '')
-    template = row.get('템플릿', '')
-    memo = row.get('메모', '')
     url = row.get('URL', '')
     subscribers = int(row.get('구독자', 0))
     videos = int(row.get('동영상', 0))
@@ -1055,31 +1030,17 @@ def render_gallery_row(row, idx):
     </div>
     """
     
-    # 카테고리 태그 생성
-    tags_html = ""
-    if category:
-        tags_html += f'<span class="channel-tag-improved">{category}</span>'
-    if genre:
-        tags_html += f'<span class="channel-tag-improved">{genre}</span>'
-    if template:
-        tags_html += f'<span class="channel-tag-improved">{template}</span>'
-    if memo and len(memo) > 0:
-        # 메모는 짧게만 표시
-        memo_short = memo[:15] + ('...' if len(memo) > 15 else '')
-        tags_html += f'<span class="channel-tag-improved">{memo_short}</span>'
-    
-    # 행 HTML (개선된 채널 정보)
+    # 행 HTML (최소한의 HTML로 최적화)
     row_html = f"""
     <div class="gallery-table-row">
-        <div class="gallery-table-cell channel-info-cell-improved">
-            <div class="channel-avatar-image">{icon}</div>
-            <div class="channel-info-content">
-                <div class="channel-header-row">
-                    <div class="channel-name-improved">{channel_name}</div>
-                    <div class="channel-handle-improved">@{channel_name.lower().replace(' ', '')}</div>
-                </div>
-                <div class="channel-tags-improved">
-                    {tags_html}
+        <div class="gallery-table-cell channel-info-cell">
+            <div class="channel-avatar">{icon}</div>
+            <div class="channel-text">
+                <div class="channel-name-text">{channel_name}</div>
+                <div class="channel-handle-text">@{channel_name.lower()}</div>
+                <div class="channel-tags">
+                    <span class="channel-tag">{category}</span>
+                    <span class="channel-tag">{genre}</span>
                 </div>
             </div>
         </div>
