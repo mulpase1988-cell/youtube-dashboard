@@ -1013,12 +1013,12 @@ def render_gallery_table(df):
     
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ===== 수정: render_gallery_row 함수 (구글시트 AH 컬럼 썸네일 사용) =====
+# ===== 수정: render_gallery_row 함수 (구글시트 AH 컬럼 썸네일 - img 태그 사용) =====
 def render_gallery_row(row, idx):
     """
     갤러리 테이블 행 렌더링 (개선된 채널 정보: 프로필 이미지 + 채널명/핸들 + 카테고리/장르/템플릿 태그)
     
-    프로필 이미지 소스: 구글 시트의 'AH' 컬럼(썸네일) 링크 사용
+    프로필 이미지 소스: 구글 시트의 '썸네일' 컬럼(AH행) 링크 사용
     링크가 없으면 카테고리별 플레이스홀더 아이콘 표시
     
     구조:
@@ -1037,13 +1037,19 @@ def render_gallery_row(row, idx):
     change_val = int(row.get('15일조회수합계', 0))
     
     # ===== 프로필 이미지 소스 결정 =====
-    # AH 컬럼(썸네일) 에서 링크 가져오기
+    # '썸네일' 컬럼(AH)에서 링크 가져오기
     thumbnail_url = row.get('썸네일', '').strip() if pd.notna(row.get('썸네일', '')) else ''
     
     # 썸네일 링크가 있으면 이미지 사용, 없으면 아이콘 사용
-    if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 0:
-        # 이미지 URL을 background-image로 사용하는 HTML
-        profile_html = f'<div class="channel-profile-img" style="background-image: url(\'{thumbnail_url}\'); background-size: cover; background-position: center;"></div>'
+    if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 5:
+        # 이미지 URL을 <img> 태그로 사용 (둥근 사각형 스타일 적용)
+        profile_html = f'''<img 
+            src="{thumbnail_url}" 
+            class="channel-profile-img" 
+            style="width: 56px; height: 56px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 2px 8px rgba(102,126,234,0.2);" 
+            alt="{channel_name}" 
+            onerror="this.style.display='none'"
+        />'''
     else:
         # 썸네일이 없으면 카테고리별 아이콘 사용
         profile_icon = get_placeholder_icon(category)
@@ -1069,6 +1075,7 @@ def render_gallery_row(row, idx):
     row_html = f"""<div class="gallery-table-row"><div class="gallery-table-cell"><div class="channel-info-cell-v2">{profile_html}<div class="channel-content-wrapper"><div class="channel-text-info"><div class="channel-name-bold">{channel_name}</div><div class="channel-handle-light">@{channel_name.lower()}</div></div><div class="channel-tags-container">{tags_html}</div></div></div></div><div class="gallery-table-cell subscriber-cell"><div class="subscriber-number">{format_korean_number(subscribers)}</div><div class="subscriber-label">구독자</div></div><div class="gallery-table-cell">{thumbnails_html}</div><div class="gallery-table-cell video-count-cell"><div class="video-count-number">{videos}</div><div class="video-count-label">개</div></div><div class="gallery-table-cell daily-change-cell"><div class="change-value {change_color}">{change_symbol}{format_korean_number(change_val)}</div><div class="change-label">최근 15일</div></div><div class="gallery-table-cell action-cell"><div class="action-btn" title="상세보기">📊</div><div class="action-btn" title="즐겨찾기">❤️</div></div></div>"""
     
     st.markdown(row_html, unsafe_allow_html=True)
+
 
 
 # --- 대시보드 페이지 (사이드바 필터 적용) ---
