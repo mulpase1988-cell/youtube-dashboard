@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 커스텀 CSS
+# 커스텀 CSS (기존 + 새로운 카드 스타일)
 st.markdown("""
 <style>
     button[key="logo_home"] {
@@ -32,6 +32,7 @@ st.markdown("""
     button[key="logo_home"]:hover { color: #FF0000 !important; background: transparent !important; }
     .stApp { counter-reset: item-rank; }
     div[data-testid="stTabContent"] { counter-reset: item-rank; }
+    
     /* 순서 설정용 스타일 */
     .sortable-item {
         background-color: white !important;
@@ -75,6 +76,78 @@ st.markdown("""
     /* 데이터 에디터 너비 최적화 */
     div[data-testid="stDataFrame"] {
         width: 100%;
+    }
+    
+    /* [추가] 채널 카드 스타일 */
+    .channel-card {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
+        border-radius: 12px !important;
+        padding: 16px !important;
+        margin-bottom: 16px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+        color: #fff !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .channel-card:hover {
+        transform: translateY(-4px) !important;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3) !important;
+    }
+    
+    .channel-card-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .channel-name {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: #fff !important;
+        margin: 0 !important;
+    }
+    
+    .channel-handle {
+        font-size: 12px !important;
+        color: rgba(255,255,255,0.7) !important;
+        margin: 4px 0 0 0 !important;
+    }
+    
+    .channel-stats {
+        display: flex !important;
+        gap: 8px !important;
+        margin-bottom: 12px !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .stat-badge {
+        background: rgba(255,255,255,0.15) !important;
+        border-radius: 4px !important;
+        padding: 4px 8px !important;
+        font-size: 11px !important;
+        color: rgba(255,255,255,0.9) !important;
+    }
+    
+    .channel-subscribers {
+        font-size: 24px !important;
+        font-weight: 700 !important;
+        color: #fff !important;
+        margin: 12px 0 0 0 !important;
+    }
+    
+    .channel-change {
+        font-size: 14px !important;
+        margin-top: 8px !important;
+    }
+    
+    .positive {
+        color: #4ade80 !important;
+    }
+    
+    .negative {
+        color: #ef4444 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -305,7 +378,7 @@ def sync_order_with_data(saved_order, df, cat_df):
 
 # --- 네비게이션 ---
 def show_navigation():
-    col1, col2, col3, col4, col5, col6 = st.columns([2.5, 1, 1, 1, 1, 1])
+    col1, col2, col3, col4, col5, col6, col7 = st.columns([2.5, 1, 1, 1, 1, 1, 1])
     with col1:
         if st.button("🎬 YouTube 보물창고", key="logo_home", use_container_width=False):
             st.session_state.page = "dashboard"
@@ -315,21 +388,25 @@ def show_navigation():
             st.session_state.page = "dashboard"
             st.rerun()
     with col3:
+        if st.button("🎨 갤러리", use_container_width=True):
+            st.session_state.page = "gallery"
+            st.rerun()
+    with col4:
         if st.button("📁 카테고리설정", use_container_width=True):
             st.session_state.page = "category_mgmt"
             st.rerun()
-    with col4:
+    with col5:
         if st.button("⚙️ 순서 설정", use_container_width=True):
             st.session_state.page = "settings"
             st.rerun()
-    with col5:
+    with col6:
         if st.button("💾 백업하기", use_container_width=True):
             success, target = run_backup()
             if success:
                 st.toast(f"✅ '{target}' 시트에 백업 완료!", icon="💾")
             else:
                 st.error(f"백업 실패: {target}")
-    with col6:
+    with col7:
         if st.button("🔄 새로고침", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
@@ -371,6 +448,89 @@ def show_category_management():
         }
     )
     st.session_state.temp_cat_df = edited_cat
+
+# [추가] 갤러리 페이지
+def show_gallery():
+    st.markdown("## 🎨 채널 갤러리")
+    df, cat_df = load_data()
+    if df.empty: return
+    
+    if 'page_order' not in st.session_state:
+        saved_order = load_config_from_sheet()
+        st.session_state.page_order = sync_order_with_data(
+            saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, 
+            df, cat_df
+        )
+
+    분류1_list = st.session_state.page_order['분류1_순서']
+    
+    # 필터 설정
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        search_query = st.text_input("🔍 채널명 검색", key="gallery_search")
+    with col2:
+        selected_cat1 = st.selectbox("카테고리", ["전체"] + 분류1_list, key="gallery_cat")
+    with col3:
+        sort_option = st.selectbox("정렬", ["15일합계", "구독자", "조회수"], key="gallery_sort")
+    
+    # 데이터 필터링
+    df_filtered = df.copy()
+    
+    if selected_cat1 != "전체":
+        df_filtered = df_filtered[df_filtered['분류1'] == selected_cat1]
+    
+    if search_query:
+        df_filtered = df_filtered[df_filtered['채널명'].str.contains(search_query, case=False, na=False)]
+    
+    # 정렬
+    if sort_option == "15일합계":
+        df_filtered = df_filtered.sort_values('15일조회수합계', ascending=False)
+    elif sort_option == "구독자":
+        df_filtered = df_filtered.sort_values('구독자', ascending=False)
+    elif sort_option == "조회수":
+        df_filtered = df_filtered.sort_values('조회수', ascending=False)
+    
+    st.markdown(f"**총 {len(df_filtered)}개 채널**")
+    
+    # 카드 그리드 레이아웃 (5개 컬럼)
+    cols = st.columns(5)
+    
+    for idx, (_, row) in enumerate(df_filtered.iterrows()):
+        with cols[idx % 5]:
+            # 카드 HTML 생성
+            subscribers = int(row.get('구독자', 0))
+            change_val = int(row.get('15일조회수합계', 0))
+            change_color = "positive" if change_val >= 0 else "negative"
+            change_symbol = "+" if change_val >= 0 else ""
+            
+            categories = f"{row.get('분류1', '')} / {row.get('분류2', '')}"
+            url = row.get('URL', '#')
+            
+            card_html = f"""
+            <div class="channel-card">
+                <div class="channel-card-header">
+                    <div>
+                        <p class="channel-name">{row.get('채널명', 'N/A')}</p>
+                        <p class="channel-handle">@{row.get('채널명', 'N/A').lower()}</p>
+                    </div>
+                </div>
+                
+                <div class="channel-stats">
+                    <span class="stat-badge">{categories}</span>
+                </div>
+                
+                <div>
+                    <p class="channel-subscribers">{format_korean_number(subscribers)}</p>
+                    <p class="channel-change {change_color}">{change_symbol}{format_korean_number(change_val)} 최근 15일</p>
+                </div>
+            </div>
+            """
+            
+            st.markdown(card_html, unsafe_allow_html=True)
+            
+            # 상세보기 링크
+            if url and url != '#':
+                st.markdown(f"[🔗 채널 보기]({url})", unsafe_allow_html=True)
 
 # --- 대시보드 및 상세 페이지 ---
 def show_dashboard():
@@ -503,29 +663,27 @@ def show_category_detail(df, cat_df, 분류1):
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
-    # [수정] 컬럼 재배치 - 최근업로드, 최근 5~30개 토탈 제거
     display_columns = [
         '국가', 
         '동영상', 
         '조회수', 
         '채널명', 
-        '분류1',   # 카테고리
-        '분류2',   # 장르
+        '분류1',
+        '분류2',
         '템플릿',  
         '메모', 
         '키워드',
         '운영기간', 
         'URL', 
-        '5일조회수합계',  # Y열
-        '10일조회수합계', # Z열
-        '15일조회수합계', # AA열
+        '5일조회수합계',
+        '10일조회수합계',
+        '15일조회수합계',
         'gs_row_index'
     ]
     
-    # 시트에 없는 컬럼은 제외하고 선택
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # 3개 컬럼 포맷팅 (5일, 10일, 15일 조회수합계)
+    # 포맷팅
     new_cols = ['5일조회수합계', '10일조회수합계', '15일조회수합계']
     for col in new_cols:
         if col in df_to_edit.columns:
@@ -545,7 +703,6 @@ def show_category_detail(df, cat_df, 분류1):
     column_config = {
         "URL": st.column_config.LinkColumn("링크", display_text="보기", width="small"),
         
-        # [추가] 새로 추가된 컬럼 설정 (보기 전용, 작은 너비)
         "5일조회수합계": st.column_config.TextColumn("5일합계", disabled=True, width="small"),
         "10일조회수합계": st.column_config.TextColumn("10일합계", disabled=True, width="small"),
         "15일조회수합계": st.column_config.TextColumn("15일합계", disabled=True, width="small"),
@@ -565,7 +722,7 @@ def show_category_detail(df, cat_df, 분류1):
         "운영기간": st.column_config.TextColumn("운영기간", width="small"),
     }
     
-    # [수정] 데이터 타입 강제 변환
+    # 데이터 타입 강제 변환
     text_cols_safe = ['채널명', '분류1', '분류2', '키워드', '템플릿', '메모', '운영기간',
                  '조회수', 'URL', '국가', '5일조회수합계', '10일조회수합계', '15일조회수합계']
     
@@ -573,7 +730,6 @@ def show_category_detail(df, cat_df, 분류1):
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].fillna("").astype(str)
 
-    # 숫자 컬럼: 숫자로 변환 (NaN은 0으로)
     if '동영상' in df_to_edit.columns:
         df_to_edit['동영상'] = pd.to_numeric(df_to_edit['동영상'], errors='coerce').fillna(0)
     
@@ -653,6 +809,8 @@ def main():
     
     if st.session_state.page == "dashboard":
         show_dashboard()
+    elif st.session_state.page == "gallery":
+        show_gallery()
     elif st.session_state.page == "category_mgmt":
         show_category_management()
     elif st.session_state.page == "settings":
