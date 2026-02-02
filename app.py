@@ -1683,7 +1683,6 @@ def render_hotdata_sidebar_filters():
 
 
 # ======================== 🔴 실시간 탭 페이지 ========================
-# 🔴 [수정된 함수] show_hotdata() - 페이지네이션을 display_count 이전에 적용
 def show_hotdata():
     """🔴 실시간 - 글로벌 핫데이터 (FULL-WIDTH 카드형 + 썸네일)"""
     st.markdown("## 🔴 실시간 인기 영상")
@@ -1705,53 +1704,47 @@ def show_hotdata():
     if sidebar_category != "전체":
         df_filtered_sidebar = df_filtered_sidebar[df_filtered_sidebar['카테고리'] == sidebar_category]
     
-    # 필터 UI
+    # 필터 UI (영상제목 검색 제거)
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+    col1, col2, col3 = st.columns([2, 1, 1])
     
     with col1:
-        search_query = st.text_input("🔍 영상제목 검색", key="hotdata_search", placeholder="영상제목을 입력하세요")
+        st.write("")  # 공간 유지
     
     with col2:
-        countries = ["전체"] + sorted([c for c in df_filtered_sidebar['국가'].unique() if c and str(c).strip()])
-        country_filter = st.selectbox("국가", countries, key="hotdata_country_main", label_visibility="collapsed")
+        sort_option = st.selectbox("정렬", ["조회수 ↓", "순위 ↑", "구독자 ↓"], key="hotdata_sort", label_visibility="collapsed")
     
     with col3:
-        sort_option = st.selectbox("정렬", ["순위 ↑", "조회수 ↓", "구독자 ↓"], key="hotdata_sort", label_visibility="collapsed")
-    
-    with col4:
-        display_count = st.selectbox("표시", [20, 30, 50], key="hotdata_count", label_visibility="collapsed", index=0)
+        display_count = st.selectbox("표시", [20, 30, 50], key="hotdata_count", label_visibility="collapsed", index=2)
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # ======================== 🔴 [수정] 필터링 로직 변경 ========================
+    # ======================== 필터링 로직 ========================
+    # 1. 먼저 모든 필터를 적용하여 전체 개수를 계산
     df_filtered = df_filtered_sidebar.copy()
     
-    # 메인 영역 국가 필터 (추가 필터링)
-    if country_filter != "전체":
-        df_filtered = df_filtered[df_filtered['국가'] == country_filter]
-    
-    if search_query:
-        df_filtered = df_filtered[df_filtered['영상제목'].astype(str).str.contains(search_query, case=False, na=False)]
-    
     # 정렬
-    if "순위" in sort_option:
-        df_filtered = df_filtered.sort_values('순위', ascending=True)
-    elif "조회수" in sort_option:
+    if "조회수" in sort_option:
         df_filtered = df_filtered.sort_values('조회수', ascending=False)
+    elif "순위" in sort_option:
+        df_filtered = df_filtered.sort_values('순위', ascending=True)
     elif "구독자" in sort_option:
         df_filtered = df_filtered.sort_values('구독자수', ascending=False)
     
-    # ======================== 🔴 [수정] 전체 필터된 데이터 개수 (표시 제한 전) ========================
+    # ======================== 전체 개수 계산 (display_count 적용 전) ========================
     total_items_all = len(df_filtered)  # 필터 적용 후 전체 개수
+    
+    # display_count로 제한 (상위 N개만 표시)
+    df_filtered = df_filtered.head(display_count)
     
     # 페이지네이션 상태 초기화
     if 'hotdata_current_page' not in st.session_state:
         st.session_state.hotdata_current_page = 1
     
-    # ======================== 🔴 [수정] 페이지네이션 계산 (display_count 적용 전) ========================
-    items_per_page = display_count  # 페이지당 아이템 수 = 선택한 display_count
-    total_pages = max(1, math.ceil(total_items_all / items_per_page))
+    # ======================== 페이지네이션 계산 ========================
+    items_per_page = 20  # 한 페이지당 20개 고정
+    total_items = len(df_filtered)  # display_count 적용 후 데이터 개수
+    total_pages = max(1, math.ceil(total_items / items_per_page))
     
     # 현재 페이지 검증
     current_page = st.session_state.hotdata_current_page
@@ -1759,13 +1752,13 @@ def show_hotdata():
         current_page = total_pages
         st.session_state.hotdata_current_page = current_page
     
-    # ======================== 🔴 [수정] 현재 페이지의 데이터만 추출 ========================
+    # 현재 페이지의 데이터만 추출
     start_idx = (current_page - 1) * items_per_page
     end_idx = start_idx + items_per_page
     df_page = df_filtered.iloc[start_idx:end_idx]
     
-    # ======================== 🔴 [수정] 통계 정보 표시 (정확한 개수) ========================
-    stat_html = f"""<div class="pagination-stats">📊 총 {total_items_all:,}개 | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items_all)}</div>"""
+    # ======================== 통계 정보 표시 ========================
+    stat_html = f"""<div class="pagination-stats">📊 필터된 개수: {total_items_all:,}개 (표시 상위: {display_count:,}개) | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items)}</div>"""
     st.markdown(stat_html, unsafe_allow_html=True)
     
     # 카드 렌더링
@@ -1774,12 +1767,12 @@ def show_hotdata():
     else:
         st.info("검색 결과가 없습니다.")
     
-    # ======================== 🔴 [수정] 페이지네이션 컨트롤 표시 ========================
+    # ======================== 페이지네이션 컨트롤 표시 ========================
     st.markdown("---")
     if total_pages > 1:  # 페이지가 2개 이상일 때만 표시
         render_pagination_controls(current_page, total_pages, "hotdata")
     else:
-        st.markdown("<p style='text-align:center; color:#a0aec0;'>단일 페이지 (모든 데이터 표시)</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#a0aec0;'>한 페이지 내 모든 데이터 표시</p>", unsafe_allow_html=True)
 
 
 def render_hotdata_cards(df):
