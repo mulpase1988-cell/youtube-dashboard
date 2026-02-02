@@ -39,7 +39,7 @@ st.markdown("""
     
     /* ======================== 갤러리 테이블 스타일 (개선됨) ======================== */
     
-    .gallery-table-wrapper {
+  .gallery-table-wrapper {
         background-color: #1a2647 !important;
         border-radius: 12px !important;
         overflow: hidden !important;
@@ -49,7 +49,7 @@ st.markdown("""
         margin-bottom: 16px !important;
     }
     
-   /* 테이블 헤더 */
+    /* 테이블 헤더 */
     .gallery-table-header {
         display: grid !important;
         grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;  # ← 변경됨
@@ -74,7 +74,7 @@ st.markdown("""
         align-items: center !important;
     }
     
-   /* 테이블 행 (높이 증가) */
+    /* 테이블 행 (높이 증가) */
     .gallery-table-row {
         display: grid !important;
         grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;  # ← 변경됨
@@ -100,6 +100,7 @@ st.markdown("""
         display: flex !important;
         align-items: center !important;
     }
+    
     
     /* ======================== 채널 정보 셀 v2 ======================== */
     
