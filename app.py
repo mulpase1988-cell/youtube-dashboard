@@ -176,11 +176,14 @@ def load_data():
             '마지막 업로드': '최근업로드'
         }
         df = df.rename(columns=rename_map)
-        # -------------------------------------------------------------------------
-
-        numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
-                          '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', '10일기준',
-                          '5일조회수', '10일조회수', '15일조회수']  # [추가됨] 새 컬럼 추가
+        
+        # [변경] 숫자형 변환 대상 컬럼에 새 컬럼 3개 추가 (Y, Z, AA)
+        numeric_columns = [
+            '구독자', '동영상', '조회수', 
+            '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', '10일기준',
+            '5일조회수합계', '10일조회수합계', '15일조회수합계' # <-- 추가됨
+        ]
+        
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
@@ -494,7 +497,7 @@ def show_category_detail(df, cat_df, 분류1):
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
-    # [변경 요청 반영] 컬럼 재배치 - 새 컬럼(5일, 10일, 15일 조회수) 추가
+    # [변경 요청 반영] 2번째 사진의 순서대로 컬럼 재배치 + 추가 요청된 3개 컬럼 삽입
     display_columns = [
         '국가', 
         '동영상', 
@@ -511,11 +514,11 @@ def show_category_detail(df, cat_df, 분류1):
         '최근 10개 토탈', 
         '최근 20개 토탈', 
         '최근 30개 토탈', 
-        '10일기준',
-        '5일조회수',      # [추가됨] Y열
-        '10일조회수',     # [추가됨] Z열
-        '15일조회수',     # [추가됨] AA열
+        '10일기준',  # W열 (숨김 처리됨)
         'URL', 
+        '5일조회수합계',  # [추가] Y열
+        '10일조회수합계', # [추가] Z열
+        '15일조회수합계', # [추가] AA열
         'gs_row_index'
     ]
     
@@ -539,15 +542,15 @@ def show_category_detail(df, cat_df, 분류1):
     if '조회수' in df_to_edit.columns:
         df_to_edit['조회수'] = df_to_edit['조회수'].apply(format_korean_number)
 
-    # 3. '최근 X개 토탈' 컬럼 포맷팅 (기존 컬럼들)
+    # [추가] 새로 추가된 3개 컬럼에도 한글 숫자 포맷팅 적용
+    new_cols = ['5일조회수합계', '10일조회수합계', '15일조회수합계']
+    for col in new_cols:
+        if col in df_to_edit.columns:
+             df_to_edit[col] = df_to_edit[col].apply(format_korean_number)
+
+    # 3. '최근 X개 토탈' 컬럼 포맷팅
     icon_cols = ['최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
     for col in icon_cols:
-        if col in df_to_edit.columns:
-            df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
-
-    # 4. [추가됨] 새 컬럼들(5일, 10일, 15일 조회수) 포맷팅 - 이모지 포함
-    new_icon_cols = ['5일조회수', '10일조회수', '15일조회수']
-    for col in new_icon_cols:
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
 
@@ -561,9 +564,16 @@ def show_category_detail(df, cat_df, 분류1):
     if 분류1 != "전체":
         st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
-    # 5. Data Editor 설정
+    # 4. Data Editor 설정
+    # [변경] 컬럼 너비 최적화를 위해 width="small"을 적극 활용
     column_config = {
         "URL": st.column_config.LinkColumn("링크", display_text="보기", width="small"),
+        
+        # [추가] 새로 추가된 컬럼 설정 (보기 전용, 작은 너비)
+        "5일조회수합계": st.column_config.TextColumn("5일합계", disabled=True, width="small"),
+        "10일조회수합계": st.column_config.TextColumn("10일합계", disabled=True, width="small"),
+        "15일조회수합계": st.column_config.TextColumn("15일합계", disabled=True, width="small"),
+        
         "gs_row_index": None,
         "10일기준": None,  # 10일기준 컬럼 숨김
         "국가": st.column_config.TextColumn("국가", width="small"),
@@ -585,17 +595,14 @@ def show_category_detail(df, cat_df, 분류1):
         "최근 10개 토탈": st.column_config.TextColumn("최근 10개", disabled=True, width="small"),
         "최근 20개 토탈": st.column_config.TextColumn("최근 20개", disabled=True, width="small"),
         "최근 30개 토탈": st.column_config.TextColumn("최근 30개", disabled=True, width="small"),
-        
-        # [추가됨] 새 컬럼 설정
-        "5일조회수": st.column_config.TextColumn("5일조회수", disabled=True, width="small"),
-        "10일조회수": st.column_config.TextColumn("10일조회수", disabled=True, width="small"),
-        "15일조회수": st.column_config.TextColumn("15일조회수", disabled=True, width="small"),
     }
     
     # [수정] 데이터 타입 강제 변환 (Type Compatibility Error 방지)
+    # 1. 텍스트/링크 컬럼: 문자열로 변환하고 NaN은 빈 문자열로 처리하여 LinkColumn/TextColumn 오류 방지
     text_cols_safe = ['채널명', '분류1', '분류2', '키워드', '템플릿', '메모', '운영기간', '최근업로드', 
-                 '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈',
-                 '5일조회수', '10일조회수', '15일조회수', 'URL', '국가']  # [추가됨] 새 컬럼들
+                 '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', 'URL', '국가',
+                 '5일조회수합계', '10일조회수합계', '15일조회수합계'] # <-- 여기에도 추가
+    
     for col in text_cols_safe:
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].fillna("").astype(str)
