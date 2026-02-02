@@ -1747,7 +1747,7 @@ def show_hotdata():
     if sidebar_category != "전체":
         df_filtered_sidebar = df_filtered_sidebar[df_filtered_sidebar['카테고리'] == sidebar_category]
     
-    # 필터 UI
+    # 필터 UI (메인 영역)
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     
@@ -1820,6 +1820,7 @@ def show_hotdata():
     # 페이지네이션 컨트롤
     st.markdown("---")
     render_pagination_controls(current_page, total_pages, "hotdata")
+
 
 
 def render_hotdata_cards(df):
