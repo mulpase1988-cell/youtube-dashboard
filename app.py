@@ -16,6 +16,7 @@ st.set_page_config(
 )
 
 # 커스텀 CSS (다크 모드 + 테이블 스타일 + 페이지네이션)
+# ===== 수정: 채널 정보 셀 CSS 업데이트 (프로필 이미지 + 태그) =====
 st.markdown("""
 <style>
     /* 기본 색상 변수 */
@@ -113,7 +114,7 @@ st.markdown("""
     /* 테이블 헤더 */
     .gallery-table-header {
         display: grid !important;
-        grid-template-columns: 2.5fr 1fr 1.8fr 0.8fr 1.2fr 0.6fr !important;
+        grid-template-columns: 3fr 1fr 1.8fr 0.8fr 1.2fr 0.6fr !important;
         gap: 0 !important;
         background: linear-gradient(135deg, #0f172a 0%, #1a2647 100%) !important;
         border-bottom: 2px solid rgba(255,255,255,0.12) !important;
@@ -137,7 +138,7 @@ st.markdown("""
     /* 테이블 행 */
     .gallery-table-row {
         display: grid !important;
-        grid-template-columns: 2.5fr 1fr 1.8fr 0.8fr 1.2fr 0.6fr !important;
+        grid-template-columns: 3fr 1fr 1.8fr 0.8fr 1.2fr 0.6fr !important;
         gap: 0 !important;
         border-bottom: 1px solid rgba(255,255,255,0.05) !important;
         padding: 14px 16px !important;
@@ -160,64 +161,97 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* ======================== 채널 정보 셀 ======================== */
+    /* ======================== 채널 정보 셀 개선 (v2: 프로필 이미지 + 태그) ======================== */
     
-    .channel-info-cell {
+    /* 채널 정보 컨테이너 */
+    .channel-info-cell-v2 {
         display: flex !important;
-        align-items: center !important;
+        align-items: flex-start !important;
         gap: 12px !important;
+        width: 100% !important;
     }
     
-    .channel-avatar {
-        width: 48px !important;
-        height: 48px !important;
+    /* 프로필 이미지: 둥근 사각형 (border-radius 8px) */
+    .channel-profile-img {
+        width: 56px !important;
+        height: 56px !important;
         border-radius: 8px !important;
+        object-fit: cover !important;
+        flex-shrink: 0 !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        box-shadow: 0 2px 8px rgba(102,126,234,0.2) !important;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 22px !important;
-        flex-shrink: 0 !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        box-shadow: 0 2px 8px rgba(102,126,234,0.15) !important;
+        font-size: 28px !important;
+        color: white !important;
     }
     
-    .channel-text {
+    /* 채널 텍스트 & 태그 래퍼 */
+    .channel-content-wrapper {
         display: flex !important;
         flex-direction: column !important;
-        gap: 2px !important;
+        gap: 6px !important;
+        flex: 1 !important;
         min-width: 0 !important;
     }
     
-    .channel-name-text {
+    /* 채널명 & 핸들 텍스트 영역 */
+    .channel-text-info {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+    }
+    
+    /* 채널명: 굵은 글씨 */
+    .channel-name-bold {
         font-size: 14px !important;
         font-weight: 700 !important;
         color: #ffffff !important;
+        line-height: 1.2 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
     }
     
-    .channel-handle-text {
-        font-size: 11px !important;
+    /* 핸들명: 연한 글씨 */
+    .channel-handle-light {
+        font-size: 12px !important;
         color: #a0aec0 !important;
+        font-weight: 400 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     
-    .channel-tags {
+    /* 카테고리 태그 영역: 파란색 계열 버튼 */
+    .channel-tags-container {
         display: flex !important;
-        gap: 4px !important;
+        gap: 6px !important;
         flex-wrap: wrap !important;
         margin-top: 4px !important;
     }
     
-    .channel-tag {
-        background-color: rgba(102,126,234,0.2) !important;
-        border: 1px solid rgba(102,126,234,0.4) !important;
-        border-radius: 4px !important;
-        padding: 2px 6px !important;
-        font-size: 9px !important;
+    /* 개별 태그: 파란색 계열 버튼 스타일 */
+    .channel-tag-button {
+        background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(102,126,234,0.15) 100%) !important;
+        border: 1px solid rgba(102,126,234,0.5) !important;
+        border-radius: 6px !important;
+        padding: 4px 10px !important;
+        font-size: 11px !important;
         color: #a8b8ff !important;
+        font-weight: 600 !important;
         white-space: nowrap !important;
+        box-shadow: 0 1px 4px rgba(102,126,234,0.15) !important;
+        transition: all 0.2s ease !important;
+        display: inline-block !important;
+    }
+    
+    .channel-tag-button:hover {
+        background: linear-gradient(135deg, rgba(102,126,234,0.35) 0%, rgba(102,126,234,0.25) 100%) !important;
+        border-color: rgba(102,126,234,0.7) !important;
+        box-shadow: 0 2px 6px rgba(102,126,234,0.25) !important;
     }
     
     /* ======================== 구독자 셀 ======================== */
@@ -1002,18 +1036,28 @@ def render_gallery_table(df):
     
     st.markdown("</div>", unsafe_allow_html=True)
 
+# ===== 수정: 채널 정보 컬럼 개선 (프로필 이미지 + 태그) =====
 def render_gallery_row(row, idx):
-    """갤러리 테이블 행 렌더링 (성능 최적화)"""
+    """
+    갤러리 테이블 행 렌더링 (개선된 채널 정보: 프로필 이미지 + 채널명/핸들 + 카테고리/장르/템플릿 태그)
+    
+    구조:
+    [프로필 이미지(둥근 사각형)] 
+    [채널명(굵음)]
+    [@핸들(연함)]
+    [카테고리/장르/템플릿 태그]
+    """
     channel_name = row.get('채널명', 'N/A')
     category = row.get('분류1', '')
     genre = row.get('분류2', '')
+    template = row.get('템플릿', '')
     url = row.get('URL', '')
     subscribers = int(row.get('구독자', 0))
     videos = int(row.get('동영상', 0))
     change_val = int(row.get('15일조회수합계', 0))
     
-    # 아이콘 선택
-    icon = get_placeholder_icon(category)
+    # 프로필 아이콘 선택
+    profile_icon = get_placeholder_icon(category)
     
     # 변화량 색상
     change_color = "change-positive" if change_val >= 0 else "change-negative"
@@ -1030,20 +1074,46 @@ def render_gallery_row(row, idx):
     </div>
     """
     
+    # ===== 채널 정보 셀: 프로필 이미지 + 텍스트 + 태그 =====
+    channel_info_html = f"""
+    <div class="channel-info-cell-v2">
+        <!-- 프로필 이미지: 둥근 사각형 -->
+        <div class="channel-profile-img">{profile_icon}</div>
+        
+        <!-- 채널 텍스트 & 태그 래퍼 -->
+        <div class="channel-content-wrapper">
+            <!-- 채널명 & 핸들 -->
+            <div class="channel-text-info">
+                <div class="channel-name-bold">{channel_name}</div>
+                <div class="channel-handle-light">@{channel_name.lower()}</div>
+            </div>
+            
+            <!-- 카테고리/장르/템플릿 태그 -->
+            <div class="channel-tags-container">
+    """
+    
+    # 카테고리 태그 추가
+    if category:
+        channel_info_html += f'<span class="channel-tag-button">{category}</span>'
+    
+    # 장르 태그 추가
+    if genre:
+        channel_info_html += f'<span class="channel-tag-button">{genre}</span>'
+    
+    # 템플릿 태그 추가 (있는 경우)
+    if template:
+        channel_info_html += f'<span class="channel-tag-button">{template}</span>'
+    
+    channel_info_html += """
+            </div>
+        </div>
+    </div>
+    """
+    
     # 행 HTML (최소한의 HTML로 최적화)
     row_html = f"""
     <div class="gallery-table-row">
-        <div class="gallery-table-cell channel-info-cell">
-            <div class="channel-avatar">{icon}</div>
-            <div class="channel-text">
-                <div class="channel-name-text">{channel_name}</div>
-                <div class="channel-handle-text">@{channel_name.lower()}</div>
-                <div class="channel-tags">
-                    <span class="channel-tag">{category}</span>
-                    <span class="channel-tag">{genre}</span>
-                </div>
-            </div>
-        </div>
+        <div class="gallery-table-cell">{channel_info_html}</div>
         <div class="gallery-table-cell subscriber-cell">
             <div class="subscriber-number">{format_korean_number(subscribers)}</div>
             <div class="subscriber-label">구독자</div>
