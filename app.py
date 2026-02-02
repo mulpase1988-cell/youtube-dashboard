@@ -14,25 +14,29 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 커스텀 CSS (다크 모드 + 향상된 갤러리 테이블)
+# 커스텀 CSS (다크 모드 + 테이블 스타일)
 st.markdown("""
 <style>
-    /* 기본 테마 */
+    /* 기본 색상 변수 */
     :root {
         --dark-bg: #0f172a;
         --card-bg: #1a2647;
-        --border-color: rgba(255,255,255,0.1);
+        --row-hover: #2a3a5a;
+        --border-color: rgba(255,255,255,0.08);
         --text-primary: #ffffff;
         --text-secondary: #a0aec0;
+        --accent-blue: #667eea;
         --accent-red: #ef4444;
         --accent-green: #10b981;
     }
     
-    body, .stApp {
+    /* 전체 앱 배경 */
+    .stApp {
         background-color: #0f172a !important;
         color: #ffffff !important;
     }
     
+    /* 로고 버튼 */
     button[key="logo_home"] {
         border: none !important;
         background: transparent !important;
@@ -42,18 +46,14 @@ st.markdown("""
         color: #31333F !important;
         text-align: left !important;
         box-shadow: none !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-    button[key="logo_home"]:hover { 
-        color: #FF0000 !important; 
-        background: transparent !important; 
     }
     
-    .stApp { counter-reset: item-rank; }
-    div[data-testid="stTabContent"] { counter-reset: item-rank; }
+    button[key="logo_home"]:hover {
+        color: #FF0000 !important;
+        background: transparent !important;
+    }
     
-    /* 순서 설정용 스타일 */
+    /* 순서 설정 스타일 */
     .sortable-item {
         background-color: #1a2647 !important;
         color: #fff !important;
@@ -90,172 +90,251 @@ st.markdown("""
     .sortable-item:hover {
         border-color: #667eea !important;
         background-color: #2a3a5a !important;
-        transform: translateY(-1px);
         box-shadow: 0 4px 6px rgba(102,126,234,0.2) !important;
     }
     
-    .sortable-container-header { display: none !important; }
+    .sortable-container-header {
+        display: none !important;
+    }
     
-    /* ===== 갤러리 테이블 스타일 ===== */
-    .gallery-table-container {
+    /* ======================== 갤러리 테이블 스타일 ======================== */
+    
+    .gallery-table-wrapper {
         background-color: #1a2647 !important;
         border-radius: 12px !important;
         overflow: hidden !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
         box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+        margin-top: 16px !important;
+        margin-bottom: 16px !important;
     }
     
+    /* 테이블 헤더 */
     .gallery-table-header {
         display: grid !important;
-        grid-template-columns: 2fr 1fr 1.5fr 0.8fr 1fr 0.5fr !important;
+        grid-template-columns: 2.5fr 1fr 1.8fr 0.8fr 1.2fr 0.6fr !important;
+        gap: 0 !important;
         background: linear-gradient(135deg, #0f172a 0%, #1a2647 100%) !important;
-        border-bottom: 2px solid rgba(255,255,255,0.1) !important;
-        padding: 16px !important;
+        border-bottom: 2px solid rgba(255,255,255,0.12) !important;
+        padding: 16px 16px !important;
         color: #a0aec0 !important;
         font-size: 12px !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
+        letter-spacing: 0.8px !important;
     }
     
     .gallery-table-header > div {
-        padding: 0 12px !important;
+        padding: 0 8px !important;
+        display: flex !important;
+        align-items: center !important;
     }
     
+    /* 테이블 행 */
     .gallery-table-row {
         display: grid !important;
-        grid-template-columns: 2fr 1fr 1.5fr 0.8fr 1fr 0.5fr !important;
+        grid-template-columns: 2.5fr 1fr 1.8fr 0.8fr 1.2fr 0.6fr !important;
+        gap: 0 !important;
         border-bottom: 1px solid rgba(255,255,255,0.05) !important;
-        padding: 16px !important;
+        padding: 14px 16px !important;
         align-items: center !important;
-        transition: background-color 0.3s ease !important;
+        transition: background-color 0.2s ease, border-color 0.2s ease !important;
     }
     
     .gallery-table-row:hover {
-        background-color: rgba(102,126,234,0.1) !important;
+        background-color: rgba(102,126,234,0.08) !important;
+        border-bottom-color: rgba(102,126,234,0.2) !important;
     }
     
-    /* 채널 정보 셀 */
+    .gallery-table-row:last-child {
+        border-bottom: none !important;
+    }
+    
+    .gallery-table-cell {
+        padding: 0 8px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    /* ======================== 채널 정보 셀 ======================== */
+    
     .channel-info-cell {
         display: flex !important;
         align-items: center !important;
         gap: 12px !important;
-        padding: 0 12px !important;
     }
     
     .channel-avatar {
         width: 48px !important;
         height: 48px !important;
-        border-radius: 50% !important;
+        border-radius: 8px !important;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 24px !important;
+        font-size: 22px !important;
         flex-shrink: 0 !important;
-        border: 2px solid rgba(255,255,255,0.1) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        box-shadow: 0 2px 8px rgba(102,126,234,0.15) !important;
     }
     
-    .channel-details {
+    .channel-text {
         display: flex !important;
         flex-direction: column !important;
-        gap: 4px !important;
+        gap: 2px !important;
+        min-width: 0 !important;
     }
     
-    .channel-name-cell {
+    .channel-name-text {
         font-size: 14px !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         color: #ffffff !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     
-    .channel-handle-cell {
-        font-size: 12px !important;
+    .channel-handle-text {
+        font-size: 11px !important;
         color: #a0aec0 !important;
     }
     
-    .channel-category-tags {
+    .channel-tags {
         display: flex !important;
         gap: 4px !important;
         flex-wrap: wrap !important;
         margin-top: 4px !important;
     }
     
-    .category-tag {
+    .channel-tag {
         background-color: rgba(102,126,234,0.2) !important;
         border: 1px solid rgba(102,126,234,0.4) !important;
-        border-radius: 12px !important;
+        border-radius: 4px !important;
         padding: 2px 6px !important;
-        font-size: 10px !important;
+        font-size: 9px !important;
         color: #a8b8ff !important;
         white-space: nowrap !important;
     }
     
-    /* 구독자 셀 */
+    /* ======================== 구독자 셀 ======================== */
+    
     .subscriber-cell {
-        padding: 0 12px !important;
-        text-align: left !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
     }
     
     .subscriber-number {
-        font-size: 18px !important;
-        font-weight: 700 !important;
+        font-size: 16px !important;
+        font-weight: 800 !important;
         color: #ffffff !important;
+        letter-spacing: -0.5px !important;
     }
     
     .subscriber-label {
         font-size: 10px !important;
         color: #a0aec0 !important;
+        font-weight: 500 !important;
     }
     
-    /* 최근 업로드 썸네일 */
+    /* ======================== 최근 업로드 썸네일 ======================== */
+    
     .thumbnails-cell {
         display: flex !important;
         gap: 6px !important;
-        padding: 0 12px !important;
         overflow-x: auto !important;
+        scroll-behavior: smooth !important;
+        padding: 0 4px !important;
+    }
+    
+    .thumbnails-cell::-webkit-scrollbar {
+        height: 4px !important;
+    }
+    
+    .thumbnails-cell::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05) !important;
+        border-radius: 2px !important;
+    }
+    
+    .thumbnails-cell::-webkit-scrollbar-thumb {
+        background: rgba(102,126,234,0.4) !important;
+        border-radius: 2px !important;
+    }
+    
+    .thumbnails-cell::-webkit-scrollbar-thumb:hover {
+        background: rgba(102,126,234,0.6) !important;
     }
     
     .thumbnail-item {
-        width: 60px !important;
-        height: 60px !important;
+        width: 56px !important;
+        height: 56px !important;
         border-radius: 6px !important;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         flex-shrink: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 12px !important;
+        font-size: 20px !important;
         border: 1px solid rgba(255,255,255,0.1) !important;
         cursor: pointer !important;
-        transition: transform 0.2s !important;
+        transition: all 0.2s ease !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    .thumbnail-item::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: rgba(0,0,0,0) !important;
+        transition: background 0.2s ease !important;
     }
     
     .thumbnail-item:hover {
-        transform: scale(1.05) !important;
-        border-color: rgba(255,255,255,0.3) !important;
+        transform: scale(1.08) !important;
+        border-color: rgba(102,126,234,0.6) !important;
+        box-shadow: 0 4px 12px rgba(102,126,234,0.3) !important;
     }
     
-    /* 영상 수 셀 */
+    .thumbnail-item:hover::before {
+        background: rgba(0,0,0,0.1) !important;
+    }
+    
+    /* ======================== 영상 수 셀 ======================== */
+    
     .video-count-cell {
-        padding: 0 12px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
         text-align: center !important;
     }
     
     .video-count-number {
-        font-size: 16px !important;
-        font-weight: 700 !important;
+        font-size: 18px !important;
+        font-weight: 800 !important;
         color: #ffffff !important;
     }
     
-    /* 일일 증감 셀 */
+    .video-count-label {
+        font-size: 10px !important;
+        color: #a0aec0 !important;
+    }
+    
+    /* ======================== 일일 증감 셀 ======================== */
+    
     .daily-change-cell {
-        padding: 0 12px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
     }
     
     .change-value {
         font-size: 14px !important;
-        font-weight: 600 !important;
-        margin-bottom: 4px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.5px !important;
     }
     
     .change-positive {
@@ -269,40 +348,53 @@ st.markdown("""
     .change-label {
         font-size: 10px !important;
         color: #a0aec0 !important;
+        font-weight: 500 !important;
     }
     
-    /* 액션 버튼 셀 */
+    /* ======================== 액션 버튼 셀 ======================== */
+    
     .action-cell {
         display: flex !important;
         gap: 6px !important;
         justify-content: center !important;
-        padding: 0 12px !important;
     }
     
     .action-btn {
         width: 32px !important;
         height: 32px !important;
-        border-radius: 50% !important;
-        background-color: rgba(102,126,234,0.2) !important;
-        border: 1px solid rgba(102,126,234,0.4) !important;
+        border-radius: 6px !important;
+        background-color: rgba(102,126,234,0.15) !important;
+        border: 1px solid rgba(102,126,234,0.3) !important;
         color: #a8b8ff !important;
         font-size: 14px !important;
         cursor: pointer !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        transition: all 0.2s !important;
+        transition: all 0.2s ease !important;
+        padding: 0 !important;
     }
     
     .action-btn:hover {
-        background-color: rgba(102,126,234,0.4) !important;
+        background-color: rgba(102,126,234,0.3) !important;
         border-color: rgba(102,126,234,0.6) !important;
-        transform: scale(1.1) !important;
+        transform: scale(1.1) translateY(-1px) !important;
+        box-shadow: 0 4px 8px rgba(102,126,234,0.2) !important;
+    }
+    
+    /* ======================== 필터 UI ======================== */
+    
+    .filter-container {
+        background-color: rgba(26,38,71,0.5) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 8px !important;
+        padding: 12px !important;
+        margin-bottom: 16px !important;
     }
     
     /* 데이터 에디터 */
     div[data-testid="stDataFrame"] {
-        width: 100%;
+        width: 100% !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -601,7 +693,7 @@ def show_category_management():
 
 # [개선된] 갤러리 페이지 - 테이블 형식
 def show_gallery():
-    """테이블 형식의 다크 모드 갤러리 뷰"""
+    """다크 모드 테이블 형식의 갤러리 뷰"""
     st.markdown("## 🎨 채널 갤러리")
     df, cat_df = load_data()
     if df.empty: 
@@ -618,6 +710,7 @@ def show_gallery():
     분류1_list = st.session_state.page_order['분류1_순서']
     
     # 필터 UI
+    st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
         search_query = st.text_input("🔍 채널명 검색", key="gallery_search", placeholder="채널명을 입력하세요")
@@ -627,6 +720,7 @@ def show_gallery():
         sort_option = st.selectbox("정렬", ["15일합계 ↓", "구독자 ↓", "조회수 ↓", "동영상 ↓"], key="gallery_sort", label_visibility="collapsed")
     with col4:
         limit = st.selectbox("표시", ["전체", "상위 10개", "상위 20개"], key="gallery_limit", label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # 데이터 필터링
     df_filtered = df.copy()
@@ -654,24 +748,28 @@ def show_gallery():
         df_filtered = df_filtered.head(20)
     
     st.markdown(f"**총 {len(df_filtered)}개 채널 표시**")
-    st.markdown("---")
     
+    # 테이블 렌더링
+    render_gallery_table(df_filtered)
+
+def render_gallery_table(df):
+    """갤러리 테이블 렌더링"""
     # 테이블 헤더
     header_html = """
-    <div class="gallery-table-container">
+    <div class="gallery-table-wrapper">
         <div class="gallery-table-header">
-            <div style="text-align: left;">채널 정보</div>
-            <div style="text-align: left;">구독자</div>
-            <div style="text-align: left;">최근 업로드</div>
-            <div style="text-align: center;">영상 수</div>
-            <div style="text-align: left;">일일 증감</div>
-            <div style="text-align: center;">액션</div>
+            <div>채널 정보</div>
+            <div>구독자 수</div>
+            <div>최근 콘텐츠</div>
+            <div>영상 수</div>
+            <div>일일 증감</div>
+            <div>액션</div>
         </div>
     """
     st.markdown(header_html, unsafe_allow_html=True)
     
-    # 테이블 행
-    for idx, (_, row) in enumerate(df_filtered.iterrows()):
+    # 테이블 행 렌더링
+    for idx, (_, row) in enumerate(df.iterrows()):
         render_gallery_row(row, idx)
     
     st.markdown("</div>", unsafe_allow_html=True)
@@ -685,24 +783,15 @@ def render_gallery_row(row, idx):
     subscribers = int(row.get('구독자', 0))
     videos = int(row.get('동영상', 0))
     change_val = int(row.get('15일조회수합계', 0))
-    views_15day = format_korean_number_with_icon(change_val)
     
     # 아이콘 선택
     icon = get_placeholder_icon(category)
     
-    # 변화량 색상 (양수=빨강, 음수=초록)
+    # 변화량 색상
     change_color = "change-positive" if change_val >= 0 else "change-negative"
     change_symbol = "+" if change_val >= 0 else ""
     
-    # 카테고리 태그
-    tags_html = f"""
-    <div class="channel-category-tags">
-        <span class="category-tag">{category}</span>
-        <span class="category-tag">{genre}</span>
-    </div>
-    """
-    
-    # 썸네일 (샘플 - 실제로는 URL에서 가져올 수 있음)
+    # 썸네일 HTML 생성
     thumbnails_html = """
     <div class="thumbnails-cell">
         <div class="thumbnail-item">📹</div>
@@ -717,32 +806,37 @@ def render_gallery_row(row, idx):
     row_html = f"""
     <div class="gallery-table-row">
         <!-- 채널 정보 -->
-        <div class="channel-info-cell">
+        <div class="gallery-table-cell channel-info-cell">
             <div class="channel-avatar">{icon}</div>
-            <div class="channel-details">
-                <div class="channel-name-cell">{channel_name}</div>
-                <div class="channel-handle-cell">@{channel_name.lower()}</div>
-                {tags_html}
+            <div class="channel-text">
+                <div class="channel-name-text">{channel_name}</div>
+                <div class="channel-handle-text">@{channel_name.lower()}</div>
+                <div class="channel-tags">
+                    <span class="channel-tag">{category}</span>
+                    <span class="channel-tag">{genre}</span>
+                </div>
             </div>
         </div>
         
         <!-- 구독자 -->
-        <div class="subscriber-cell">
+        <div class="gallery-table-cell subscriber-cell">
             <div class="subscriber-number">{format_korean_number(subscribers)}</div>
             <div class="subscriber-label">구독자</div>
         </div>
         
-        <!-- 최근 업로드 -->
-        {thumbnails_html}
+        <!-- 최근 콘텐츠 -->
+        <div class="gallery-table-cell">
+            {thumbnails_html}
+        </div>
         
         <!-- 영상 수 -->
-        <div class="video-count-cell">
+        <div class="gallery-table-cell video-count-cell">
             <div class="video-count-number">{videos}</div>
-            <div style="font-size: 10px; color: #a0aec0;">개</div>
+            <div class="video-count-label">개</div>
         </div>
         
         <!-- 일일 증감 -->
-        <div class="daily-change-cell">
+        <div class="gallery-table-cell daily-change-cell">
             <div class="change-value {change_color}">
                 {change_symbol}{format_korean_number(change_val)}
             </div>
@@ -750,7 +844,7 @@ def render_gallery_row(row, idx):
         </div>
         
         <!-- 액션 -->
-        <div class="action-cell">
+        <div class="gallery-table-cell action-cell">
             <div class="action-btn" title="상세보기">📊</div>
             <div class="action-btn" title="즐겨찾기">❤️</div>
         </div>
