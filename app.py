@@ -81,7 +81,7 @@ st.markdown("""
     /* 테이블 행 (높이 증가) */
     .gallery-table-row {
         display: grid !important;
-        grid-template-columns: 2.5fr 1fr 2.5fr 0.8fr 1fr 0.6fr !important;
+        grid-template-columns: 1.8fr 0.7fr 3.5fr 0.6fr 0.8fr 0.5fr !important;  # ← 변경됨
         gap: 12px !important;
         border-bottom: 1px solid rgba(255,255,255,0.05) !important;
         padding: 20px !important;
