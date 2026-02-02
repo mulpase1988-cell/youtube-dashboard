@@ -113,7 +113,7 @@ st.markdown("""
     /* 테이블 헤더 */
     .gallery-table-header {
         display: grid !important;
-        grid-template-columns: 2.5fr 1fr 1.8fr 0.8fr 1.2fr 0.6fr !important;
+        grid-template-columns: 3.5fr 1fr 1.5fr 0.8fr 1.2fr 0.6fr !important;
         gap: 0 !important;
         background: linear-gradient(135deg, #0f172a 0%, #1a2647 100%) !important;
         border-bottom: 2px solid rgba(255,255,255,0.12) !important;
@@ -137,7 +137,7 @@ st.markdown("""
     /* 테이블 행 */
     .gallery-table-row {
         display: grid !important;
-        grid-template-columns: 2.5fr 1fr 1.8fr 0.8fr 1.2fr 0.6fr !important;
+        grid-template-columns: 3.5fr 1fr 1.5fr 0.8fr 1.2fr 0.6fr !important;
         gap: 0 !important;
         border-bottom: 1px solid rgba(255,255,255,0.05) !important;
         padding: 14px 16px !important;
@@ -160,33 +160,35 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* ======================== 채널 정보 셀 ======================== */
+    /* ======================== 채널 정보 셀 (확장형) ======================== */
     
-    .channel-info-cell {
+    .channel-info-cell-expanded {
         display: flex !important;
-        align-items: center !important;
+        align-items: flex-start !important;
         gap: 12px !important;
+        flex-direction: row !important;
     }
     
     .channel-avatar {
-        width: 48px !important;
-        height: 48px !important;
+        width: 56px !important;
+        height: 56px !important;
         border-radius: 8px !important;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 22px !important;
+        font-size: 24px !important;
         flex-shrink: 0 !important;
         border: 1px solid rgba(255,255,255,0.1) !important;
         box-shadow: 0 2px 8px rgba(102,126,234,0.15) !important;
     }
     
-    .channel-text {
+    .channel-info-main {
         display: flex !important;
         flex-direction: column !important;
-        gap: 2px !important;
+        gap: 4px !important;
         min-width: 0 !important;
+        flex: 1 !important;
     }
     
     .channel-name-text {
@@ -196,28 +198,39 @@ st.markdown("""
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
+        line-height: 1.2 !important;
     }
     
     .channel-handle-text {
-        font-size: 11px !important;
-        color: #a0aec0 !important;
+        font-size: 12px !important;
+        color: #667eea !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     
-    .channel-tags {
+    .channel-meta-info {
         display: flex !important;
-        gap: 4px !important;
+        gap: 8px !important;
         flex-wrap: wrap !important;
         margin-top: 4px !important;
     }
     
-    .channel-tag {
-        background-color: rgba(102,126,234,0.2) !important;
-        border: 1px solid rgba(102,126,234,0.4) !important;
+    .channel-meta-item {
+        background-color: rgba(102,126,234,0.15) !important;
+        border: 1px solid rgba(102,126,234,0.3) !important;
         border-radius: 4px !important;
         padding: 2px 6px !important;
-        font-size: 9px !important;
+        font-size: 10px !important;
         color: #a8b8ff !important;
         white-space: nowrap !important;
+        line-height: 1.2 !important;
+    }
+    
+    .channel-meta-label {
+        font-weight: 600 !important;
+        color: #667eea !important;
     }
     
     /* ======================== 구독자 셀 ======================== */
@@ -981,7 +994,7 @@ def render_pagination_controls(current_page, total_pages):
             st.rerun()
 
 def render_gallery_table(df):
-    """갤러리 테이블 렌더링 (최적화: 필요한 데이터만 처리)"""
+    """갤러리 테이블 렌더링 (확장형 채널 정보 셀)"""
     # 테이블 헤더
     header_html = """
     <div class="gallery-table-wrapper">
@@ -1003,10 +1016,12 @@ def render_gallery_table(df):
     st.markdown("</div>", unsafe_allow_html=True)
 
 def render_gallery_row(row, idx):
-    """갤러리 테이블 행 렌더링 (성능 최적화)"""
+    """갤러리 테이블 행 렌더링 (확장형 채널 정보 포함)"""
     channel_name = row.get('채널명', 'N/A')
     category = row.get('분류1', '')
     genre = row.get('분류2', '')
+    template = row.get('템플릿', '')
+    memo = row.get('메모', '')
     url = row.get('URL', '')
     subscribers = int(row.get('구독자', 0))
     videos = int(row.get('동영상', 0))
@@ -1030,18 +1045,28 @@ def render_gallery_row(row, idx):
     </div>
     """
     
-    # 행 HTML (최소한의 HTML로 최적화)
+    # 채널 정보 메타데이터 HTML
+    meta_items = []
+    if category:
+        meta_items.append(f'<span class="channel-meta-item"><span class="channel-meta-label">카테고리:</span> {category}</span>')
+    if genre:
+        meta_items.append(f'<span class="channel-meta-item"><span class="channel-meta-label">장르:</span> {genre}</span>')
+    if template:
+        meta_items.append(f'<span class="channel-meta-item"><span class="channel-meta-label">템플릿:</span> {template}</span>')
+    if memo:
+        meta_items.append(f'<span class="channel-meta-item"><span class="channel-meta-label">메모:</span> {memo}</span>')
+    
+    meta_html = '<div class="channel-meta-info">' + ''.join(meta_items) + '</div>' if meta_items else ''
+    
+    # 행 HTML (확장형 채널 정보)
     row_html = f"""
     <div class="gallery-table-row">
-        <div class="gallery-table-cell channel-info-cell">
+        <div class="gallery-table-cell channel-info-cell-expanded">
             <div class="channel-avatar">{icon}</div>
-            <div class="channel-text">
+            <div class="channel-info-main">
                 <div class="channel-name-text">{channel_name}</div>
                 <div class="channel-handle-text">@{channel_name.lower()}</div>
-                <div class="channel-tags">
-                    <span class="channel-tag">{category}</span>
-                    <span class="channel-tag">{genre}</span>
-                </div>
+                {meta_html}
             </div>
         </div>
         <div class="gallery-table-cell subscriber-cell">
