@@ -479,7 +479,9 @@ def show_category_detail(df, cat_df, 분류1):
     with ctrl_col1:
         search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
     with ctrl_col2:
-        sort_by = st.selectbox("정렬 기준", ['최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정'], key=f"sort_{분류1}")
+        # [수정] 정렬 기준에 "15일합계" 추가 및 기본값 설정
+        sort_options = ['15일합계', '최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정']
+        sort_by = st.selectbox("정렬 기준", sort_options, index=0, key=f"sort_{분류1}")
     
     if search_query: 
         df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
@@ -493,7 +495,11 @@ def show_category_detail(df, cat_df, 분류1):
             ordered += [n for n in current_names if n not in ordered]
             df_display = df_display.set_index('채널명').loc[ordered].reset_index()
     else:
-        df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
+        # [수정] 정렬 로직에 15일합계 추가
+        if sort_by == '15일합계':
+            df_display = df_display.sort_values(by=['15일조회수합계', '채널명'], ascending=[False, True])
+        else:
+            df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
