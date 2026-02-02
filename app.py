@@ -32,7 +32,6 @@ st.markdown("""
     button[key="logo_home"]:hover { color: #FF0000 !important; background: transparent !important; }
     .stApp { counter-reset: item-rank; }
     div[data-testid="stTabContent"] { counter-reset: item-rank; }
-    /* 순서 설정용 스타일 */
     .sortable-item {
         background-color: white !important;
         color: #333 !important;
@@ -71,18 +70,13 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
     }
     .sortable-container-header { display: none !important; }
-    
-    /* 데이터 에디터 너비 최적화 */
-    div[data-testid="stDataFrame"] {
-        width: 100%;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 # --- 유틸리티 함수 ---
 
 def format_korean_number(num):
-    """숫자를 '1.5억', '5300만' 등의 한글 포맷 문자열로 변환 (이모지 없음)"""
+    """숫자를 한글 포맷으로 변환"""
     if pd.isna(num) or num == 0: return "0"
     try:
         num = int(float(str(num).replace(',', '')))
@@ -92,61 +86,35 @@ def format_korean_number(num):
     except: return str(num)
 
 def format_korean_number_with_icon(num):
-    """
-    최근 토탈 전용 포맷팅: 숫자 크기에 따라 이모지 추가
-    - 1000만 이상: 💎 (다이아몬드)
-    - 100만 이상: 🔥 (불꽃)
-    - 30만 이상: 🔺 (상승)
-    """
+    """최근 토탈 전용 포맷팅"""
     if pd.isna(num) or num == 0: return "0"
     try:
         val = int(float(str(num).replace(',', '')))
-        
-        # 기본 한글 포맷팅
         if val >= 100000000: text = f"{val // 100000000}억"
         elif val >= 10000: text = f"{val // 10000}만"
         else: text = f"{val:,}"
         
-        # 이모지 로직
-        if val >= 10000000:   # 1,000만 이상
-            return f"💎 {text}"
-        elif val >= 1000000:  # 100만 이상
-            return f"🔥 {text}"
-        elif val >= 300000:   # 30만 이상
-            return f"🔺 {text}"
-        else:
-            return text
+        if val >= 10000000: return f"💎 {text}"
+        elif val >= 1000000: return f"🔥 {text}"
+        elif val >= 300000: return f"🔺 {text}"
+        else: return text
     except: return str(num)
 
 def add_status_dot(date_str, ten_day_count):
-    """
-    10일 기준 값에 따라 상태 점(Dot)을 추가
-    - 5개 이상: 🟢 (초록)
-    - 2개 이상 5개 미만: 🔵 (파랑)
-    - 2개 미만: ❌ (X)
-    """
+    """10일 기준 값에 따라 상태 점 추가"""
     if not date_str or pd.isna(date_str) or str(date_str).strip() == "": 
         return ""
-    
     try:
-        # 날짜 포맷팅
         clean_date = str(date_str).split(' ')[0].replace('.', '-').replace('/', '-')
-        
-        # 10일 기준 값을 숫자로 변환
         try:
             count = int(float(str(ten_day_count).replace(',', ''))) if not pd.isna(ten_day_count) else 0
         except:
             count = 0
         
-        # 10일 기준 값에 따라 이모티콘 결정
-        if count >= 5:
-            return f"{clean_date} 🟢"
-        elif count >= 2:
-            return f"{clean_date} 🔵"
-        else:
-            return f"{clean_date} ❌"
+        if count >= 5: return f"{clean_date} 🟢"
+        elif count >= 2: return f"{clean_date} 🔵"
+        else: return f"{clean_date} ❌"
     except:
-        # 날짜 파싱 실패 시 원본 문자열 반환
         return str(date_str)
 
 # --- 구글 시트 연결 ---
@@ -166,7 +134,6 @@ def load_data():
         df = pd.DataFrame(data)
         df['gs_row_index'] = range(2, len(df) + 2)
         
-        # --- [추가됨] 컬럼명 자동 보정 ---
         rename_map = {
             '최근 업로드': '최근업로드',
             '최근 업로드일': '최근업로드',
@@ -176,7 +143,6 @@ def load_data():
             '마지막 업로드': '최근업로드'
         }
         df = df.rename(columns=rename_map)
-        # -------------------------------------------------------------------------
 
         numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
                           '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', '10일기준']
@@ -237,13 +203,10 @@ def update_gs_rows(edited_df, original_df):
                 continue
                 
             orig_row = orig_row.iloc[0]
-            # [변경] 저장 대상 필드에 '키워드', '템플릿' 추가
             fields_to_check = ['분류1', '분류2', '키워드', '템플릿', '메모']
             
             for field in fields_to_check:
-                # 데이터프레임에 해당 컬럼이 있고 값이 변경된 경우에만 업데이트
                 if field in row.index and str(row[field]) != str(orig_row[field]):
-                    # 구글 시트에 해당 헤더가 실제로 존재하는지 확인
                     if field in col_map:
                         sheet.update_cell(int(row['gs_row_index']), col_map[field], str(row[field]))
                         count += 1
@@ -396,13 +359,10 @@ def show_dashboard():
             selected_country = st.selectbox("조회할 국가를 선택하세요", country_options, key="global_country_filter")
             if selected_country != "전체":
                 df = df[df['국가'] == selected_country]
-        else:
-            st.warning("시트에 '국가' 컬럼이 없습니다.")
 
         st.markdown("---")
         st.markdown("## 📂 카테고리")
         
-        # --- 전체 보기 버튼 ---
         total_count = len(df)
         if 'selected_분류1' not in st.session_state:
             st.session_state.selected_분류1 = "전체"
@@ -427,7 +387,6 @@ def show_dashboard():
         show_category_detail(df, cat_df, st.session_state.selected_분류1)
 
 def show_category_detail(df, cat_df, 분류1):
-    # '전체' 선택 시 로직
     if 분류1 == "전체":
         df_filtered = df.copy()
         st.markdown(f"## 📊 전체 ({len(df_filtered)}개)")
@@ -450,8 +409,6 @@ def show_category_detail(df, cat_df, 분류1):
                                 st.success(f"장르 '{new_sub_cat}' 추가 완료!")
                                 st.cache_data.clear()
                                 st.rerun()
-                        else:
-                            st.warning("이미 존재하는 장르입니다.")
 
     if 분류1 != "전체":
         분류2_list = st.session_state.page_order['분류2_순서'].get(분류1, ['전체'])
@@ -473,7 +430,6 @@ def show_category_detail(df, cat_df, 분류1):
         selected_분류2 = st.session_state[f'selected_분류2_{분류1}']
     else:
         selected_분류2 = '전체'
-        st.session_state[f'selected_분류2_전체'] = '전체'
 
     df_display = df_filtered[df_filtered['분류2'] == selected_분류2].copy() if selected_분류2 != '전체' else df_filtered.copy()
     
@@ -487,8 +443,8 @@ def show_category_detail(df, cat_df, 분류1):
     if search_query: 
         df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
     
-    channel_order_key = f"{분류1}_{selected_분류2}"
     if sort_by == '사용자 지정':
+        channel_order_key = f"{분류1}_{selected_분류2}"
         if '채널_순서' in st.session_state.page_order and channel_order_key in st.session_state.page_order['채널_순서']:
             saved_order = st.session_state.page_order['채널_순서'][channel_order_key]
             current_names = df_display['채널명'].tolist()
@@ -498,120 +454,64 @@ def show_category_detail(df, cat_df, 분류1):
     else:
         df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # ------------------[디자인 및 데이터 포맷팅 로직]------------------
+    # ==================== [핵심 수정: URL 제외하고 필요한 컬럼만 선택] ====================
+    edit_columns = ['채널명', '국가', '동영상', '조회수', '분류1', '분류2', 
+                    '키워드', '템플릿', '메모', '운영기간', '최근업로드',
+                    '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
     
-    # [변경 요청 반영] 2번째 사진의 순서대로 컬럼 재배치 - 필요한 컬럼만 선택
-    display_columns = []
+    # 시트에 있는 컬럼만 필터링
+    edit_columns = [col for col in edit_columns if col in df_display.columns]
     
-    # 실제 시트에 있는 컬럼만 추가
-    editable_columns = ['분류1', '분류2', '키워드', '템플릿', '메모']
-    readonly_columns = ['국가', '동영상', '조회수', '채널명', '운영기간', '최근업로드', 
-                        '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', 'URL']
-    internal_columns = ['gs_row_index', '10일기준']
+    df_to_edit = df_display[edit_columns].copy()
+    df_original = df_display[edit_columns].copy()
     
-    # 데이터프레임에 있는 컬럼만 필터링
-    for col in readonly_columns + editable_columns:
-        if col in df_display.columns:
-            display_columns.append(col)
-    
-    df_to_edit = df_display[display_columns].copy()
-    
-    # 원본 데이터 보존 (포맷팅 전)
-    df_original = df_display[display_columns].copy()
-    
-    # 1. 날짜에 상태 점(Dot) 추가 - 10일기준 값을 함께 전달
+    # 포맷팅
     if '최근업로드' in df_to_edit.columns and '10일기준' in df_display.columns:
         df_to_edit['최근업로드'] = df_to_edit.apply(
             lambda row: add_status_dot(row['최근업로드'], df_display.loc[row.name, '10일기준']), 
             axis=1
         )
     elif '최근업로드' in df_to_edit.columns:
-        df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(
-            lambda x: add_status_dot(x, 0)
-        )
+        df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(lambda x: add_status_dot(x, 0))
 
-    # 2. '조회수' 컬럼 포맷팅 (문자열로 변환)
     if '조회수' in df_to_edit.columns:
         df_to_edit['조회수'] = df_to_edit['조회수'].astype(str)
-        df_to_edit['조회수'] = df_to_edit['조회수'].apply(format_korean_number)
 
-    # 3. '최근 X개 토탈' 컬럼 포맷팅 (문자열로 변환)
-    icon_cols = ['최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
-    for col in icon_cols:
+    for col in ['최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']:
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].astype(str)
             df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
 
-    # 4. 동영상 컬럼도 문자열로 변환
     if '동영상' in df_to_edit.columns:
         df_to_edit['동영상'] = df_to_edit['동영상'].astype(str)
 
     all_cat1_options = sorted(list(cat_df['분류1'].unique())) if not cat_df.empty else sorted(list(df['분류1'].unique()))
     
     if 분류1 == "전체":
-         allowed_cat2_options = sorted(list(cat_df['분류2'].unique())) if not cat_df.empty else sorted(list(df['분류2'].unique()))
+        allowed_cat2_options = sorted(list(cat_df['분류2'].unique())) if not cat_df.empty else sorted(list(df['분류2'].unique()))
     else:
-         allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
+        allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
 
     if 분류1 != "전체":
         st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
-    # 5. Data Editor 설정 - 동적으로 column_config 생성
+    # 동적 column_config 생성
     column_config = {}
     
-    # 읽기 전용 컬럼 설정
-    if '조회수' in df_to_edit.columns:
-        column_config['조회수'] = st.column_config.TextColumn("조회수", disabled=True, width="small")
-    
-    if 'URL' in df_to_edit.columns:
-        column_config['URL'] = st.column_config.LinkColumn("링크", display_text="보기", width="small")
-    
-    if '최근업로드' in df_to_edit.columns:
-        column_config['최근업로드'] = st.column_config.TextColumn("최근업로드", disabled=True, width="small")
-    
-    if '동영상' in df_to_edit.columns:
-        column_config['동영상'] = st.column_config.TextColumn("동영상", disabled=True, width="small")
-    
-    if '국가' in df_to_edit.columns:
-        column_config['국가'] = st.column_config.TextColumn("국가", width="small")
-    
-    if '채널명' in df_to_edit.columns:
-        column_config['채널명'] = st.column_config.TextColumn("채널명", disabled=True, width="medium")
-    
-    if '운영기간' in df_to_edit.columns:
-        column_config['운영기간'] = st.column_config.TextColumn("운영기간", width="small")
-    
-    # 최근 X개 토탈 (읽기 전용)
-    for col in icon_cols:
-        if col in df_to_edit.columns:
+    for col in df_to_edit.columns:
+        if col == '분류1':
+            column_config[col] = st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True, width="small")
+        elif col == '분류2':
+            column_config[col] = st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True, width="small")
+        elif col in ['조회수', '최근업로드', '동영상']:
+            column_config[col] = st.column_config.TextColumn(col, disabled=True, width="small")
+        elif col in ['최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']:
             short_name = col.replace('최근 ', '').replace('개 토탈', '개')
             column_config[col] = st.column_config.TextColumn(short_name, disabled=True, width="small")
-    
-    # 편집 가능 컬럼 설정
-    if '분류1' in df_to_edit.columns:
-        column_config['분류1'] = st.column_config.SelectboxColumn(
-            "카테고리", 
-            options=all_cat1_options, 
-            required=True, 
-            width="small"
-        )
-    
-    if '분류2' in df_to_edit.columns:
-        column_config['분류2'] = st.column_config.SelectboxColumn(
-            "장르", 
-            options=allowed_cat2_options, 
-            required=True, 
-            width="small"
-        )
-    
-    if '키워드' in df_to_edit.columns:
-        column_config['키워드'] = st.column_config.TextColumn("키워드", width="medium")
-    
-    if '템플릿' in df_to_edit.columns:
-        column_config['템플릿'] = st.column_config.TextColumn("템플릿", width="small")
-    
-    if '메모' in df_to_edit.columns:
-        column_config['메모'] = st.column_config.TextColumn("메모", width="medium")
+        elif col in ['채널명', '국가', '운영기간', '키워드', '메모']:
+            column_config[col] = st.column_config.TextColumn(col, width="medium" if col in ['채널명', '키워드', '메모'] else "small")
+        elif col == '템플릿':
+            column_config[col] = st.column_config.TextColumn(col, width="small")
     
     edited_df = st.data_editor(
         df_to_edit,
@@ -625,11 +525,20 @@ def show_category_detail(df, cat_df, 분류1):
     # gs_row_index 복원
     edited_df['gs_row_index'] = df_display['gs_row_index'].values
 
+    # URL 링크 표시 (data_editor 밖에서)
+    if 'URL' in df_display.columns:
+        st.markdown("---")
+        st.markdown("**채널 링크:**")
+        url_cols = st.columns(5)
+        for idx, (channel_name, url) in enumerate(zip(df_display['채널명'], df_display['URL'])):
+            with url_cols[idx % 5]:
+                if url and url.strip():
+                    st.markdown(f"[{channel_name}]({url})", unsafe_allow_html=True)
+
     with ctrl_col3:
         st.write("") 
         if st.button("💾 변경사항 시트에 저장", type="primary", use_container_width=True):
             with st.spinner("구글 시트 업데이트 중..."):
-                # 원본 데이터와 비교
                 df_original['gs_row_index'] = df_display['gs_row_index'].values
                 update_count = update_gs_rows(edited_df, df_original)
                 if update_count >= 0:
