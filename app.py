@@ -1715,12 +1715,12 @@ def show_hotdata():
         sort_option = st.selectbox("정렬", ["조회수 ↓", "순위 ↑", "구독자 ↓"], key="hotdata_sort", label_visibility="collapsed")
     
     with col3:
-        display_count = st.selectbox("표시", [20, 30, 50], key="hotdata_count", label_visibility="collapsed", index=2)
+        items_per_page = st.selectbox("표시", [20, 30, 50], key="hotdata_count", label_visibility="collapsed", index=2)
     
     st.markdown('</div>', unsafe_allow_html=True)
     
     # ======================== 필터링 로직 ========================
-    # 1. 먼저 모든 필터를 적용하여 전체 개수를 계산
+    # 1. 먼저 모든 필터를 적용
     df_filtered = df_filtered_sidebar.copy()
     
     # 정렬
@@ -1731,20 +1731,15 @@ def show_hotdata():
     elif "구독자" in sort_option:
         df_filtered = df_filtered.sort_values('구독자수', ascending=False)
     
-    # ======================== 전체 개수 계산 (display_count 적용 전) ========================
+    # ======================== 전체 개수 계산 ========================
     total_items_all = len(df_filtered)  # 필터 적용 후 전체 개수
-    
-    # display_count로 제한 (상위 N개만 표시)
-    df_filtered = df_filtered.head(display_count)
     
     # 페이지네이션 상태 초기화
     if 'hotdata_current_page' not in st.session_state:
         st.session_state.hotdata_current_page = 1
     
     # ======================== 페이지네이션 계산 ========================
-    items_per_page = 20  # 한 페이지당 20개 고정
-    total_items = len(df_filtered)  # display_count 적용 후 데이터 개수
-    total_pages = max(1, math.ceil(total_items / items_per_page))
+    total_pages = max(1, math.ceil(total_items_all / items_per_page))
     
     # 현재 페이지 검증
     current_page = st.session_state.hotdata_current_page
@@ -1758,12 +1753,12 @@ def show_hotdata():
     df_page = df_filtered.iloc[start_idx:end_idx]
     
     # ======================== 통계 정보 표시 ========================
-    stat_html = f"""<div class="pagination-stats">📊 필터된 개수: {total_items_all:,}개 (표시 상위: {display_count:,}개) | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items)}</div>"""
+    stat_html = f"""<div class="pagination-stats">📊 필터된 개수: {total_items_all:,}개 | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items_all)}</div>"""
     st.markdown(stat_html, unsafe_allow_html=True)
     
     # 카드 렌더링
     if len(df_page) > 0:
-        render_hotdata_cards(df_page)
+        render_hotdata_cards(df_page, current_page, items_per_page)
     else:
         st.info("검색 결과가 없습니다.")
     
@@ -1775,23 +1770,20 @@ def show_hotdata():
         st.markdown("<p style='text-align:center; color:#a0aec0;'>한 페이지 내 모든 데이터 표시</p>", unsafe_allow_html=True)
 
 
-def render_hotdata_cards(df):
+def render_hotdata_cards(df, current_page, items_per_page):
     """실시간 카드 렌더링 (FULL-WIDTH + 썸네일)"""
     st.markdown('<div class="hotdata-table-wrapper">', unsafe_allow_html=True)
     
     for idx, (_, row) in enumerate(df.iterrows()):
         # 페이지네이션 기반 순위 계산
-        current_page = st.session_state.hotdata_current_page
-        items_per_page = 20
         display_rank = (current_page - 1) * items_per_page + idx + 1
-        
         render_hotdata_card_row(row, display_rank)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
 def render_hotdata_card_row(row, display_rank):
-    """개별 카드 행 렌더링 (순위를 display_rank로 사용)"""
-    rank = display_rank  # ← 이제 페이지네이션 기반 순위 사용
+    """개별 카드 행 렌더링 (페이지네이션 기반 순위)"""
+    rank = display_rank  # 페이지네이션 기반 순위
     title = str(row.get('영상제목', 'N/A'))[:100]
     channel_name = str(row.get('채널명', 'N/A'))[:30]
     views = int(row.get('조회수', 0))
@@ -1816,11 +1808,11 @@ def render_hotdata_card_row(row, display_rank):
     category_tag = f'<span class="hotdata-channel-tag">{category}</span>' if category else ''
     
     # 랭크 배지 색상 (페이지네이션 기반)
-    if rank % 20 == 1:  # 각 페이지의 첫 번째
+    if rank % 50 == 1:  # 각 페이지의 첫 번째
         rank_color = "#ffd700"
-    elif rank % 20 == 2:  # 각 페이지의 두 번째
+    elif rank % 50 == 2:  # 각 페이지의 두 번째
         rank_color = "#c0c0c0"
-    elif rank % 20 == 3:  # 각 페이지의 세 번째
+    elif rank % 50 == 3:  # 각 페이지의 세 번째
         rank_color = "#cd7f32"
     else:
         rank_color = "#667eea"
@@ -1879,6 +1871,7 @@ def render_hotdata_card_row(row, display_rank):
     '''
     
     st.markdown(card_html, unsafe_allow_html=True)
+
 
 
 # --- 순서 설정 페이지 ---
