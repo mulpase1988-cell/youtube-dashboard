@@ -1588,15 +1588,130 @@ def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
                     st.cache_data.clear()
                     st.rerun()
 
+# ======================== 실시간 탭 사이드바 필터 ========================
+def render_hotdata_sidebar_filters():
+    """
+    실시간 탭 전용 사이드바 필터 (국가, 카테고리)
+    """
+    df = load_hotdata()
+    
+    with st.sidebar:
+        st.markdown("## 🔴 실시간 필터")
+        
+        # 국가 필터
+        st.markdown("### 🌍 국가")
+        if '국가' in df.columns:
+            country_options = ["전체"] + sorted([c for c in df['국가'].unique() if c and str(c).strip()])
+            selected_country = st.selectbox(
+                "국가 선택",
+                country_options,
+                key="hotdata_sidebar_country",
+                label_visibility="collapsed"
+            )
+        else:
+            selected_country = "전체"
+            st.warning("시트에 '국가' 컬럼이 없습니다.")
+        
+        st.markdown("---")
+        
+        # 카테고리 필터
+        st.markdown("### 📂 카테고리")
+        
+        # 국가별로 필터링된 카테고리 표시
+        if selected_country != "전체":
+            df_for_cat = df[df['국가'] == selected_country]
+        else:
+            df_for_cat = df
+        
+        if '카테고리' in df_for_cat.columns:
+            category_options = ["전체"] + sorted([c for c in df_for_cat['카테고리'].unique() if c and str(c).strip()])
+            selected_category = st.selectbox(
+                "카테고리 선택",
+                category_options,
+                key="hotdata_sidebar_category",
+                label_visibility="collapsed"
+            )
+        else:
+            selected_category = "전체"
+            st.warning("시트에 '카테고리' 컬럼이 없습니다.")
+        
+        st.markdown("---")
+    
+    return selected_country, selected_category
+
+# ======================== 실시간 탭 사이드바 필터 ========================
+def render_hotdata_sidebar_filters():
+    """
+    실시간 탭 전용 사이드바 필터 (국가, 카테고리)
+    """
+    df = load_hotdata()
+    
+    with st.sidebar:
+        st.markdown("## 🔴 실시간 필터")
+        
+        # 국가 필터
+        st.markdown("### 🌍 국가")
+        if '국가' in df.columns:
+            country_options = ["전체"] + sorted([c for c in df['국가'].unique() if c and str(c).strip()])
+            selected_country = st.selectbox(
+                "국가 선택",
+                country_options,
+                key="hotdata_sidebar_country",
+                label_visibility="collapsed"
+            )
+        else:
+            selected_country = "전체"
+            st.warning("시트에 '국가' 컬럼이 없습니다.")
+        
+        st.markdown("---")
+        
+        # 카테고리 필터
+        st.markdown("### 📂 카테고리")
+        
+        # 국가별로 필터링된 카테고리 표시
+        if selected_country != "전체":
+            df_for_cat = df[df['국가'] == selected_country]
+        else:
+            df_for_cat = df
+        
+        if '카테고리' in df_for_cat.columns:
+            category_options = ["전체"] + sorted([c for c in df_for_cat['카테고리'].unique() if c and str(c).strip()])
+            selected_category = st.selectbox(
+                "카테고리 선택",
+                category_options,
+                key="hotdata_sidebar_category",
+                label_visibility="collapsed"
+            )
+        else:
+            selected_category = "전체"
+            st.warning("시트에 '카테고리' 컬럼이 없습니다.")
+        
+        st.markdown("---")
+    
+    return selected_country, selected_category
+
+
 # ======================== 🔴 실시간 탭 페이지 (수정: 썸네일 추가) ========================
 def show_hotdata():
     """🔴 실시간 - 글로벌 핫데이터 (FULL-WIDTH 카드형 + 썸네일)"""
     st.markdown("## 🔴 실시간 인기 영상")
     
+    # 사이드바 필터 적용
+    sidebar_country, sidebar_category = render_hotdata_sidebar_filters()
+    
     df = load_hotdata()
     if df.empty:
         st.warning("⚠️ 실시간 데이터를 불러올 수 없습니다.")
         return
+    
+    # 사이드바 필터 적용
+    df_filtered_sidebar = df.copy()
+    
+    if sidebar_country != "전체":
+        df_filtered_sidebar = df_filtered_sidebar[df_filtered_sidebar['국가'] == sidebar_country]
+    
+    if sidebar_category != "전체":
+        df_filtered_sidebar = df_filtered_sidebar[df_filtered_sidebar['카테고리'] == sidebar_category]
     
     # 필터 UI
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
@@ -1606,7 +1721,7 @@ def show_hotdata():
         search_query = st.text_input("🔍 영상제목 검색", key="hotdata_search", placeholder="영상제목을 입력하세요")
     
     with col2:
-        countries = ["전체"] + sorted([c for c in df['국가'].unique() if c and str(c).strip()])
+        countries = ["전체"] + sorted([c for c in df_filtered_sidebar['국가'].unique() if c and str(c).strip()])
         country_filter = st.selectbox("국가", countries, key="hotdata_country", label_visibility="collapsed")
     
     with col3:
@@ -1618,13 +1733,14 @@ def show_hotdata():
     st.markdown('</div>', unsafe_allow_html=True)
     
     # 필터링
-    df_filtered = df.copy()
+    df_filtered = df_filtered_sidebar.copy()
+    
+    # 메인 영역 국가 필터 (추가 필터링)
+    if country_filter != "전체":
+        df_filtered = df_filtered[df_filtered['국가'] == country_filter]
     
     if search_query:
         df_filtered = df_filtered[df_filtered['영상제목'].astype(str).str.contains(search_query, case=False, na=False)]
-    
-    if country_filter != "전체":
-        df_filtered = df_filtered[df_filtered['국가'] == country_filter]
     
     # 정렬
     if "순위" in sort_option:
@@ -1670,6 +1786,7 @@ def show_hotdata():
     # 페이지네이션 컨트롤
     st.markdown("---")
     render_pagination_controls(current_page, total_pages, "hotdata")
+
 
 def render_hotdata_cards(df):
     """실시간 카드 렌더링 (FULL-WIDTH + 썸네일)"""
