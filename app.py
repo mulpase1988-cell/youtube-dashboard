@@ -689,6 +689,125 @@ def show_navigation():
             st.cache_data.clear()
             st.rerun()
 
+# --- 재사용 가능한 사이드바 필터 함수 ---
+def render_sidebar_filters(df, cat_df, page_key=""):
+    """
+    다시 사용 가능한 사이드바 필터 UI
+    page_key: 'dashboard' 또는 'gallery' (세션 상태 구분용)
+    Returns: (selected_country, selected_cat1, selected_cat2)
+    """
+    with st.sidebar:
+        st.markdown("## 🌍 국가 필터")
+        if '국가' in df.columns:
+            country_options = ["전체"] + sorted([c for c in df['국가'].unique() if c])
+            country_key = f"country_filter_{page_key}"
+            selected_country = st.selectbox(
+                "조회할 국가를 선택하세요", 
+                country_options, 
+                key=country_key,
+                label_visibility="visible"
+            )
+        else:
+            selected_country = "전체"
+            st.warning("시트에 '국가' 컬럼이 없습니다.")
+
+        st.markdown("---")
+        st.markdown("## 📂 카테고리")
+        
+        # 페이지별 order 설정 로드
+        if f'page_order_{page_key}' not in st.session_state:
+            saved_order = load_config_from_sheet()
+            st.session_state[f'page_order_{page_key}'] = sync_order_with_data(
+                saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, 
+                df, cat_df
+            )
+        
+        page_order = st.session_state[f'page_order_{page_key}']
+        분류1_list = page_order['분류1_순서']
+        
+        # 선택된 카테고리 상태 초기화
+        cat1_key = f"selected_cat1_{page_key}"
+        cat2_key = f"selected_cat2_{page_key}"
+        
+        if cat1_key not in st.session_state:
+            st.session_state[cat1_key] = "전체"
+        if cat2_key not in st.session_state:
+            st.session_state[cat2_key] = "전체"
+
+        # 필터된 데이터의 총 개수 계산
+        if selected_country != "전체":
+            df_for_count = df[df['국가'] == selected_country]
+        else:
+            df_for_count = df
+        
+        total_count = len(df_for_count)
+        
+        # "전체" 버튼
+        is_all_active = (st.session_state[cat1_key] == "전체")
+        if st.button(
+            f"전체 ({total_count})", 
+            key=f"side_all_{page_key}", 
+            use_container_width=True, 
+            type="primary" if is_all_active else "secondary"
+        ):
+            st.session_state[cat1_key] = "전체"
+            st.session_state[cat2_key] = "전체"
+            st.rerun()
+        
+        # 각 카테고리 버튼
+        for cat in 분류1_list:
+            if selected_country != "전체":
+                count = len(df_for_count[df_for_count['분류1'] == cat])
+            else:
+                count = len(df[df['분류1'] == cat])
+            
+            display_text = f"{cat} ({count})"
+            is_active = (st.session_state[cat1_key] == cat)
+            
+            if st.button(
+                display_text, 
+                key=f"side_{cat}_{page_key}", 
+                use_container_width=True, 
+                type="primary" if is_active else "secondary"
+            ):
+                st.session_state[cat1_key] = cat
+                st.session_state[cat2_key] = "전체"
+                st.rerun()
+        
+        st.markdown("---")
+        
+        # 장르 필터 (카테고리 선택 후에만 표시)
+        if st.session_state[cat1_key] != "전체":
+            st.markdown(f"### 📁 {st.session_state[cat1_key]} - 장르")
+            
+            분류2_list = page_order['분류2_순서'].get(st.session_state[cat1_key], ['전체'])
+            
+            for cat2 in 분류2_list:
+                if selected_country != "전체":
+                    count = len(df_for_count[
+                        (df_for_count['분류1'] == st.session_state[cat1_key]) & 
+                        (df_for_count['분류2'] == cat2)
+                    ])
+                else:
+                    count = len(df[
+                        (df['분류1'] == st.session_state[cat1_key]) & 
+                        (df['분류2'] == cat2)
+                    ])
+                
+                display_text = f"{cat2} ({count})"
+                is_active = (st.session_state[cat2_key] == cat2)
+                
+                if st.button(
+                    display_text,
+                    key=f"side_cat2_{st.session_state[cat1_key]}_{cat2}_{page_key}",
+                    use_container_width=True,
+                    type="primary" if is_active else "secondary"
+                ):
+                    st.session_state[cat2_key] = cat2
+                    st.rerun()
+    
+    return selected_country, st.session_state[cat1_key], st.session_state[cat2_key]
+
 # --- 카테고리설정 페이지 ---
 def show_category_management():
     st.markdown("## 📁 카테고리설정")
@@ -727,23 +846,18 @@ def show_category_management():
     )
     st.session_state.temp_cat_df = edited_cat
 
-# [최적화된] 갤러리 페이지 - 페이지네이션 + 성능 개선
+# --- 갤러리 페이지 (사이드바 필터 포함) ---
 def show_gallery():
-    """다크 모드 테이블 형식의 갤러리 뷰 (한 페이지에 20개씩, 최적화됨)"""
+    """다크 모드 테이블 형식의 갤러리 뷰 (사이드바 필터 포함)"""
     st.markdown("## 🎨 채널 갤러리")
+    
     df, cat_df = load_data()
     if df.empty: 
         st.warning("데이터를 불러올 수 없습니다.")
         return
     
-    if 'page_order' not in st.session_state:
-        saved_order = load_config_from_sheet()
-        st.session_state.page_order = sync_order_with_data(
-            saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, 
-            df, cat_df
-        )
-
-    분류1_list = st.session_state.page_order['분류1_순서']
+    # 사이드바 필터 사용 (page_key="gallery")
+    selected_country, selected_cat1, selected_cat2 = render_sidebar_filters(df, cat_df, page_key="gallery")
     
     # 페이지네이션 상태 초기화
     if 'gallery_current_page' not in st.session_state:
@@ -751,25 +865,32 @@ def show_gallery():
     if 'gallery_items_per_page' not in st.session_state:
         st.session_state.gallery_items_per_page = 20
     
-    # 필터 UI
+    # 필터 적용
+    df_filtered = df.copy()
+    
+    if selected_country != "전체":
+        df_filtered = df_filtered[df_filtered['국가'] == selected_country]
+    
+    if selected_cat1 != "전체":
+        df_filtered = df_filtered[df_filtered['분류1'] == selected_cat1]
+        
+        if selected_cat2 != "전체":
+            df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
+    
+    # 필터 UI (메인 영역)
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
         search_query = st.text_input("🔍 채널명 검색", key="gallery_search", placeholder="채널명을 입력하세요")
     with col2:
-        selected_cat1 = st.selectbox("카테고리", ["전체"] + 분류1_list, key="gallery_cat", label_visibility="collapsed")
-    with col3:
         sort_option = st.selectbox("정렬", ["15일합계 ↓", "구독자 ↓", "조회수 ↓", "동영상 ↓"], key="gallery_sort", label_visibility="collapsed")
+    with col3:
+        st.write("")  # 레이아웃 간격
     with col4:
         items_per_page = st.selectbox("한 페이지", [10, 20, 30, 50], key="gallery_items", label_visibility="collapsed", index=1)
     st.markdown('</div>', unsafe_allow_html=True)
     
     # 데이터 필터링 및 정렬 (최적화)
-    df_filtered = df.copy()
-    
-    if selected_cat1 != "전체":
-        df_filtered = df_filtered[df_filtered['분류1'] == selected_cat1]
-    
     if search_query:
         df_filtered = df_filtered[df_filtered['채널명'].str.contains(search_query, case=False, na=False)]
     
@@ -812,7 +933,7 @@ def show_gallery():
     else:
         st.info("표시할 데이터가 없습니다.")
     
-    # 페이지네이션 컨트롤 (상단)
+    # 페이지네이션 컨트롤
     st.markdown("---")
     render_pagination_controls(current_page, total_pages)
 
@@ -945,130 +1066,65 @@ def render_gallery_row(row, idx):
     
     st.markdown(row_html, unsafe_allow_html=True)
 
-# --- 대시보드 페이지 ---
+# --- 대시보드 페이지 (사이드바 필터 적용) ---
 def show_dashboard():
     df, cat_df = load_data()
     if df.empty: return
     
-    if 'page_order' not in st.session_state:
-        saved_order = load_config_from_sheet()
-        st.session_state.page_order = sync_order_with_data(
-            saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, 
-            df, cat_df
-        )
-
-    분류1_list = st.session_state.page_order['분류1_순서']
+    # 사이드바 필터 사용 (page_key="dashboard")
+    selected_country, selected_cat1, selected_cat2 = render_sidebar_filters(df, cat_df, page_key="dashboard")
     
-    with st.sidebar:
-        st.markdown("## 🌍 국가 필터")
-        if '국가' in df.columns:
-            country_options = ["전체"] + sorted([c for c in df['국가'].unique() if c])
-            selected_country = st.selectbox("조회할 국가를 선택하세요", country_options, key="global_country_filter")
-            if selected_country != "전체":
-                df = df[df['국가'] == selected_country]
-        else:
-            st.warning("시트에 '국가' 컬럼이 없습니다.")
-
-        st.markdown("---")
-        st.markdown("## 📂 카테고리")
-        
-        total_count = len(df)
-        if 'selected_분류1' not in st.session_state:
-            st.session_state.selected_분류1 = "전체"
-
-        is_all_active = (st.session_state.selected_분류1 == "전체")
-        if st.button(f"전체 ({total_count})", key="side_all", use_container_width=True, type="primary" if is_all_active else "secondary"):
-            st.session_state.selected_분류1 = "전체"
-            st.rerun()
-        
-        if not st.session_state.selected_분류1:
-             st.session_state.selected_분류1 = 분류1_list[0] if 분류1_list else "전체"
-
-        for cat in 분류1_list:
-            count = len(df[df['분류1'] == cat])
-            display_text = f"{cat} ({count})"
-            is_active = (st.session_state.selected_분류1 == cat)
-            if st.button(display_text, key=f"side_{cat}", use_container_width=True, type="primary" if is_active else "secondary"):
-                st.session_state.selected_분류1 = cat
-                st.rerun()
+    # 필터 적용
+    df_filtered = df.copy()
     
-    if st.session_state.selected_분류1:
-        show_category_detail(df, cat_df, st.session_state.selected_분류1)
+    if selected_country != "전체":
+        df_filtered = df_filtered[df_filtered['국가'] == selected_country]
+    
+    if selected_cat1 != "전체":
+        df_filtered = df_filtered[df_filtered['분류1'] == selected_cat1]
+        
+        if selected_cat2 != "전체":
+            df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
+    
+    st.markdown("---")
+    show_category_detail(df_filtered, cat_df, selected_cat1, selected_cat2)
 
-def show_category_detail(df, cat_df, 분류1):
+def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
+    """카테고리별 상세 데이터 표시"""
     if 분류1 == "전체":
-        df_filtered = df.copy()
-        st.markdown(f"## 📊 전체 ({len(df_filtered)}개)")
+        st.markdown(f"## 📊 전체 ({len(df)}개)")
     else:
-        df_filtered = df[df['분류1'] == 분류1].copy()
-        st.markdown(f"## 📊 {분류1}")
-        
-        with st.expander("➕ 새 장르 추가"):
-            col_input, col_btn = st.columns([3, 1])
-            with col_input:
-                new_sub_cat = st.text_input(f"'{분류1}' 카테고리에 추가할 장르명 입력", key=f"input_new_{분류1}")
-            with col_btn:
-                st.write("") 
-                if st.button("장르 추가 저장", use_container_width=True, type="primary"):
-                    if new_sub_cat:
-                        if not ((cat_df['분류1'] == 분류1) & (cat_df['분류2'] == new_sub_cat)).any():
-                            new_row = pd.DataFrame({'분류1': [분류1], '분류2': [new_sub_cat]})
-                            updated_cat_df = pd.concat([cat_df, new_row], ignore_index=True)
-                            if save_categories_to_sheet(updated_cat_df):
-                                st.success(f"장르 '{new_sub_cat}' 추가 완료!")
-                                st.cache_data.clear()
-                                st.rerun()
-                        else:
-                            st.warning("이미 존재하는 장르입니다.")
-
-    if 분류1 != "전체":
-        분류2_list = st.session_state.page_order['분류2_순서'].get(분류1, ['전체'])
-        if f'selected_분류2_{분류1}' not in st.session_state:
-            st.session_state[f'selected_분류2_{분류1}'] = '전체'
-        
-        buttons_per_row = 8
-        num_rows = (len(분류2_list) + buttons_per_row - 1) // buttons_per_row
-        for row in range(num_rows):
-            cols = st.columns(buttons_per_row)
-            for idx, col in enumerate(cols):
-                item_idx = row * buttons_per_row + idx
-                if item_idx < len(분류2_list):
-                    cat2 = 분류2_list[item_idx]
-                    is_active = (st.session_state[f'selected_분류2_{분류1}'] == cat2)
-                    if col.button(cat2, key=f"cat2_{분류1}_{cat2}", use_container_width=True, type="primary" if is_active else "secondary"):
-                        st.session_state[f'selected_분류2_{분류1}'] = cat2
-                        st.rerun()
-        selected_분류2 = st.session_state[f'selected_분류2_{분류1}']
-    else:
-        selected_분류2 = '전체'
-        st.session_state[f'selected_분류2_전체'] = '전체'
-
-    df_display = df_filtered[df_filtered['분류2'] == selected_분류2].copy() if selected_분류2 != '전체' else df_filtered.copy()
+        st.markdown(f"## 📊 {분류1} > {분류2}")
     
     st.markdown("---")
     ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 1, 1])
     with ctrl_col1:
-        search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
+        search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}_{분류2}")
     with ctrl_col2:
         sort_options = ['15일합계', '최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정']
-        sort_by = st.selectbox("정렬 기준", sort_options, index=0, key=f"sort_{분류1}")
+        sort_by = st.selectbox("정렬 기준", sort_options, index=0, key=f"sort_{분류1}_{분류2}")
     
     if search_query: 
-        df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
+        df = df[df['채널명'].str.contains(search_query, case=False, na=False)]
     
-    channel_order_key = f"{분류1}_{selected_분류2}"
+    channel_order_key = f"{분류1}_{분류2}"
     if sort_by == '사용자 지정':
-        if '채널_순서' in st.session_state.page_order and channel_order_key in st.session_state.page_order['채널_순서']:
-            saved_order = st.session_state.page_order['채널_순서'][channel_order_key]
-            current_names = df_display['채널명'].tolist()
+        if f'page_order_dashboard' in st.session_state:
+            page_order = st.session_state['page_order_dashboard']
+        else:
+            page_order = load_config_from_sheet()
+        
+        if page_order and '채널_순서' in page_order and channel_order_key in page_order['채널_순서']:
+            saved_order = page_order['채널_순서'][channel_order_key]
+            current_names = df['채널명'].tolist()
             ordered = [n for n in saved_order if n in current_names]
             ordered += [n for n in current_names if n not in ordered]
-            df_display = df_display.set_index('채널명').loc[ordered].reset_index()
+            df = df.set_index('채널명').loc[ordered].reset_index()
     else:
         if sort_by == '15일합계':
-            df_display = df_display.sort_values(by=['15일조회수합계', '채널명'], ascending=[False, True])
+            df = df.sort_values(by=['15일조회수합계', '채널명'], ascending=[False, True])
         else:
-            df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
+            df = df.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
     display_columns = [
         '국가', '동영상', '조회수', '채널명', '분류1', '분류2',
@@ -1076,7 +1132,7 @@ def show_category_detail(df, cat_df, 분류1):
         '5일조회수합계', '10일조회수합계', '15일조회수합계', 'gs_row_index'
     ]
     
-    df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
+    df_to_edit = df[[c for c in display_columns if c in df.columns]].copy()
 
     new_cols = ['5일조회수합계', '10일조회수합계', '15일조회수합계']
     for col in new_cols:
@@ -1084,14 +1140,9 @@ def show_category_detail(df, cat_df, 분류1):
             df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
 
     all_cat1_options = sorted(list(cat_df['분류1'].unique())) if not cat_df.empty else sorted(list(df['분류1'].unique()))
-    
-    if 분류1 == "전체":
-         allowed_cat2_options = sorted(list(cat_df['분류2'].unique())) if not cat_df.empty else sorted(list(df['분류2'].unique()))
-    else:
-         allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique()))
+    allowed_cat2_options = sorted(list(cat_df[cat_df['분류1'] == 분류1]['분류2'].unique())) if not cat_df.empty and 분류1 != "전체" else sorted(list(df['분류2'].unique()))
 
-    if 분류1 != "전체":
-        st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
+    st.markdown(f"### 📋 채널 리스트 (총 {len(df)}개)")
     
     column_config = {
         "URL": st.column_config.LinkColumn("링크", display_text="보기", width="small"),
@@ -1127,14 +1178,14 @@ def show_category_detail(df, cat_df, 분류1):
         height=600,
         column_config=column_config,
         hide_index=True,
-        key=f"editor_{분류1}_{selected_분류2}"
+        key=f"editor_{분류1}_{분류2}"
     )
 
     with ctrl_col3:
         st.write("") 
         if st.button("💾 변경사항 시트에 저장", type="primary", use_container_width=True):
             with st.spinner("구글 시트 업데이트 중..."):
-                update_count = update_gs_rows(edited_df, df_display)
+                update_count = update_gs_rows(edited_df, df)
                 if update_count >= 0:
                     st.success(f"✅ {update_count}개의 항목이 수정되었습니다.")
                     st.cache_data.clear()
@@ -1146,9 +1197,9 @@ def show_settings():
     df, cat_df = load_data()
     if df.empty: return
     
-    if 'page_order' not in st.session_state:
+    if 'page_order_settings' not in st.session_state:
         saved_order = load_config_from_sheet()
-        st.session_state.page_order = sync_order_with_data(
+        st.session_state.page_order_settings = sync_order_with_data(
             saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, 
             df, cat_df
         )
@@ -1157,32 +1208,32 @@ def show_settings():
 
     with tab1:
         st.info("💡 카드를 드래그하여 순서를 변경하세요.")
-        current_list = st.session_state.page_order['분류1_순서']
+        current_list = st.session_state.page_order_settings['분류1_순서']
         chunked = chunk_list(current_list, 5) 
         sortable_data = [{'header': '', 'items': chunk} for chunk in chunked]
         sorted_data = sort_items(sortable_data, multi_containers=True, direction='vertical', key='sort_cat1_v5')
         new_order = [item for container in sorted_data for item in container['items']]
         if new_order != current_list:
-            st.session_state.page_order['분류1_순서'] = new_order
+            st.session_state.page_order_settings['분류1_순서'] = new_order
             st.rerun()
 
     with tab2:
         col_sel, col_sort = st.columns([1, 3])
         with col_sel:
-            selected_cat1 = st.radio("카테고리", st.session_state.page_order['분류1_순서'], key="set_cat2_sel")
+            selected_cat1 = st.radio("카테고리", st.session_state.page_order_settings['분류1_순서'], key="set_cat2_sel")
         with col_sort:
-            current_sub = st.session_state.page_order['분류2_순서'].get(selected_cat1, ['전체'])
+            current_sub = st.session_state.page_order_settings['분류2_순서'].get(selected_cat1, ['전체'])
             chunked_sub = chunk_list(current_sub, 4) 
             sortable_sub = [{'header': '', 'items': chunk} for chunk in chunked_sub]
             sorted_sub = sort_items(sortable_sub, multi_containers=True, direction='vertical', key=f'sort_cat2_{selected_cat1}_v5')
             new_sub = [item for container in sorted_sub for item in container['items']]
             if new_sub != current_sub:
-                st.session_state.page_order['분류2_순서'][selected_cat1] = new_sub
+                st.session_state.page_order_settings['분류2_순서'][selected_cat1] = new_sub
                 st.rerun()
 
     with tab3:
         if st.button("💾 구글 시트에 순서 설정 저장", type="primary", use_container_width=True):
-            if save_config_to_sheet(st.session_state.page_order):
+            if save_config_to_sheet(st.session_state.page_order_settings):
                 st.success("✅ 순서 설정 저장 완료!")
                 st.cache_data.clear()
 
