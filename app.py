@@ -551,13 +551,19 @@ def show_category_detail(df, cat_df, 분류1):
     if 분류1 != "전체":
         st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
+    # [수정] 10일기준, gs_row_index 컬럼 미리 제거
+    if '10일기준' in df_to_edit.columns:
+        df_to_edit = df_to_edit.drop(columns=['10일기준'])
+    
+    if 'gs_row_index' in df_to_edit.columns:
+        # gs_row_index는 edited_df에서 필요하므로, 임시로 저장해두기
+        gs_row_indices = df_display['gs_row_index'].copy()
+        df_to_edit = df_to_edit.drop(columns=['gs_row_index'])
+    
     # 4. Data Editor 설정
     # [변경] 컬럼 너비 최적화를 위해 width="small"을 적극 활용
-    # 10일기준 컬럼은 숨김 처리
     column_config = {
         "URL": st.column_config.LinkColumn("링크", display_text="보기", width="small"),
-        "gs_row_index": None,
-        "10일기준": None,  # 10일기준 컬럼 숨김
         "국가": st.column_config.TextColumn("국가", width="small"),
         "동영상": st.column_config.NumberColumn("동영상", width="small"),
         "조회수": st.column_config.TextColumn("조회수", disabled=True, width="small"),
@@ -588,10 +594,15 @@ def show_category_detail(df, cat_df, 분류1):
         key=f"editor_{분류1}_{selected_분류2}"
     )
 
+    # gs_row_index를 다시 추가하여 update 함수에서 사용 가능하도록
+    if 'gs_row_index' in locals():
+        edited_df['gs_row_index'] = gs_row_indices.values
+
     with ctrl_col3:
         st.write("") 
         if st.button("💾 변경사항 시트에 저장", type="primary", use_container_width=True):
             with st.spinner("구글 시트 업데이트 중..."):
+                # df_display (포맷팅되지 않은 원본)를 비교 대상으로 사용
                 update_count = update_gs_rows(edited_df, df_display)
                 if update_count >= 0:
                     st.success(f"✅ {update_count}개의 항목이 수정되었습니다.")
