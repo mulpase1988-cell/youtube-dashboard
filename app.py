@@ -93,7 +93,7 @@ def format_korean_number(num):
 
 def format_korean_number_with_icon(num):
     """
-    숫자 크기에 따라 이모지 추가
+    최근 토탈 전용 포맷팅: 숫자 크기에 따라 이모지 추가
     - 1000만 이상: 💎 (다이아몬드)
     - 100만 이상: 🔥 (불꽃)
     - 30만 이상: 🔺 (상승)
@@ -166,7 +166,7 @@ def load_data():
         df = pd.DataFrame(data)
         df['gs_row_index'] = range(2, len(df) + 2)
         
-        # --- 컬럼명 자동 보정 ---
+        # --- [추가됨] 컬럼명 자동 보정 ---
         rename_map = {
             '최근 업로드': '최근업로드',
             '최근 업로드일': '최근업로드',
@@ -176,14 +176,10 @@ def load_data():
             '마지막 업로드': '최근업로드'
         }
         df = df.rename(columns=rename_map)
-        
-        # [변경] '최근 X개 토탈' 제거, '5일/10일/15일 조회수 합계' 추가
-        numeric_columns = [
-            '구독자', '동영상', '조회수', 
-            '5일 조회수 합계', '10일 조회수 합계', '15일 조회수 합계',
-            '10일기준'
-        ]
-        
+        # -------------------------------------------------------------------------
+
+        numeric_columns = ['구독자', '동영상', '조회수', '최근 5개 토탈', 
+                          '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', '10일기준']
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
@@ -234,10 +230,13 @@ def update_gs_rows(edited_df, original_df):
         count = 0
         for idx, row in edited_df.iterrows():
             orig_row = original_df[original_df['gs_row_index'] == row['gs_row_index']].iloc[0]
+            # [변경] 저장 대상 필드에 '키워드', '템플릿' 추가
             fields_to_check = ['분류1', '분류2', '키워드', '템플릿', '메모']
             
             for field in fields_to_check:
+                # 데이터프레임에 해당 컬럼이 있고 값이 변경된 경우에만 업데이트
                 if field in row and str(row[field]) != str(orig_row[field]):
+                    # 구글 시트에 해당 헤더가 실제로 존재하는지 확인
                     if field in col_map:
                         sheet.update_cell(int(row['gs_row_index']), col_map[field], str(row[field]))
                         count += 1
@@ -476,8 +475,7 @@ def show_category_detail(df, cat_df, 분류1):
     with ctrl_col1:
         search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
     with ctrl_col2:
-        # [변경] 정렬 기준 변경: 5일/10일/15일 조회수 합계
-        sort_by = st.selectbox("정렬 기준", ['5일 조회수 합계', '10일 조회수 합계', '15일 조회수 합계', '조회수', '사용자 지정'], key=f"sort_{분류1}")
+        sort_by = st.selectbox("정렬 기준", ['최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정'], key=f"sort_{분류1}")
     
     if search_query: 
         df_display = df_display[df_display['채널명'].str.contains(search_query, case=False, na=False)]
@@ -495,23 +493,24 @@ def show_category_detail(df, cat_df, 분류1):
     
     # ------------------[디자인 및 데이터 포맷팅 로직]------------------
     
-    # [변경] 컬럼 구성 변경: '최근 X개 토탈' 제거 -> '5일/10일/15일 조회수 합계' 추가
+    # [변경 요청 반영] 2번째 사진의 순서대로 컬럼 재배치
     display_columns = [
         '국가', 
         '동영상', 
         '조회수', 
         '채널명', 
-        '분류1',   
-        '분류2',   
+        '분류1',   # 카테고리
+        '분류2',   # 장르
         '템플릿',  
         '메모', 
         '키워드',
         '운영기간', 
         '최근업로드',
-        '5일 조회수 합계', 
-        '10일 조회수 합계', 
-        '15일 조회수 합계',
-        '10일기준',
+        '최근 5개 토탈', 
+        '최근 10개 토탈', 
+        '최근 20개 토탈', 
+        '최근 30개 토탈', 
+        '10일기준',  # 추가: W열 데이터
         'URL', 
         'gs_row_index'
     ]
@@ -519,7 +518,7 @@ def show_category_detail(df, cat_df, 분류1):
     # 시트에 없는 컬럼은 제외하고 선택
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # 1. 날짜에 상태 점(Dot) 추가
+    # 1. 날짜에 상태 점(Dot) 추가 - 10일기준 값을 함께 전달
     if '최근업로드' in df_to_edit.columns:
         if '10일기준' in df_to_edit.columns:
             df_to_edit['최근업로드'] = df_to_edit.apply(
@@ -527,6 +526,7 @@ def show_category_detail(df, cat_df, 분류1):
                 axis=1
             )
         else:
+            # 10일기준 컬럼이 없을 경우 기본값 0으로 처리
             df_to_edit['최근업로드'] = df_to_edit['최근업로드'].apply(
                 lambda x: add_status_dot(x, 0)
             )
@@ -535,8 +535,8 @@ def show_category_detail(df, cat_df, 분류1):
     if '조회수' in df_to_edit.columns:
         df_to_edit['조회수'] = df_to_edit['조회수'].apply(format_korean_number)
 
-    # 3. [변경] 'X일 조회수 합계' 컬럼 포맷팅 (이모지 적용)
-    icon_cols = ['5일 조회수 합계', '10일 조회수 합계', '15일 조회수 합계']
+    # 3. '최근 X개 토탈' 컬럼 포맷팅
+    icon_cols = ['최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
     for col in icon_cols:
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
@@ -552,10 +552,12 @@ def show_category_detail(df, cat_df, 분류1):
         st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
     # 4. Data Editor 설정
+    # [변경] 컬럼 너비 최적화를 위해 width="small"을 적극 활용
+    # 10일기준 컬럼은 숨김 처리
     column_config = {
         "URL": st.column_config.LinkColumn("링크", display_text="보기", width="small"),
         "gs_row_index": None,
-        "10일기준": None,  
+        "10일기준": None,  # 10일기준 컬럼 숨김
         "국가": st.column_config.TextColumn("국가", width="small"),
         "동영상": st.column_config.NumberColumn("동영상", width="small"),
         "조회수": st.column_config.TextColumn("조회수", disabled=True, width="small"),
@@ -571,19 +573,21 @@ def show_category_detail(df, cat_df, 분류1):
 
         "최근업로드": st.column_config.TextColumn("최근업로드", disabled=True, width="small"),
         
-        # [변경] 컬럼 설정 업데이트
-        "5일 조회수 합계": st.column_config.TextColumn("5일 조회수", disabled=True, width="small"),
-        "10일 조회수 합계": st.column_config.TextColumn("10일 조회수", disabled=True, width="small"),
-        "15일 조회수 합계": st.column_config.TextColumn("15일 조회수", disabled=True, width="small"),
+        "최근 5개 토탈": st.column_config.TextColumn("최근 5개", disabled=True, width="small"),
+        "최근 10개 토탈": st.column_config.TextColumn("최근 10개", disabled=True, width="small"),
+        "최근 20개 토탈": st.column_config.TextColumn("최근 20개", disabled=True, width="small"),
+        "최근 30개 토탈": st.column_config.TextColumn("최근 30개", disabled=True, width="small"),
     }
     
-    # [수정] 데이터 타입 강제 변환
+    # [수정] 데이터 타입 강제 변환 (Type Compatibility Error 방지)
+    # 1. 텍스트/링크 컬럼: 문자열로 변환하고 NaN은 빈 문자열로 처리하여 LinkColumn/TextColumn 오류 방지
     text_cols_safe = ['채널명', '분류1', '분류2', '키워드', '템플릿', '메모', '운영기간', '최근업로드', 
-                 '조회수', '5일 조회수 합계', '10일 조회수 합계', '15일 조회수 합계', 'URL', '국가']
+                 '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', 'URL', '국가']
     for col in text_cols_safe:
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].fillna("").astype(str)
 
+    # 2. 숫자 컬럼: 숫자로 변환 (NaN은 0으로)
     if '동영상' in df_to_edit.columns:
         df_to_edit['동영상'] = pd.to_numeric(df_to_edit['동영상'], errors='coerce').fillna(0)
     
