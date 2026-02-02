@@ -342,11 +342,26 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    .change-separator {
-        width: 30px !important;
-        height: 1px !important;
-        background: rgba(255,255,255,0.1) !important;
-        margin: 2px 0 !important;
+     .change-total-30 {
+        background: linear-gradient(135deg, rgba(251,191,36,0.2) 0%, rgba(251,191,36,0.1) 100%) !important;
+        border: 1px solid rgba(251,191,36,0.4) !important;
+        border-radius: 6px !important;
+        padding: 6px 8px !important;
+        margin-top: 2px !important;
+    }
+    
+    .change-total-30-value {
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        color: #fbbf24 !important;
+        letter-spacing: -0.5px !important;
+    }
+    
+    .change-total-30-label {
+        font-size: 8px !important;
+        color: #d97706 !important;
+        font-weight: 600 !important;
+        margin-top: 2px !important;
     }
     
        /* ======================== 액션 버튼 셀 (개선됨: 링크 버튼 추가) ======================== */
@@ -1011,7 +1026,7 @@ def render_gallery_row(row, idx):
     """
     갤러리 테이블 행 렌더링 (개선된 레이아웃)
     
-    - 일일 증감: 5일, 10일, 15일 변화량 모두 표시
+    - 일일 증감: 5일, 10일, 15일, 최근 30개 토탈 표시
     - 액션: "보러가기" 링크 버튼 추가 (새창에서 열기)
     """
     
@@ -1078,7 +1093,7 @@ def render_gallery_row(row, idx):
     if template:
         tags_html += f'<span class="channel-tag-button">{template}</span>'
     
-    # ===== 일일 증감 정보 (5일, 10일, 15일) =====
+    # ===== 일일 증감 정보 (5일, 10일, 15일, 최근 30개 토탈) =====
     def get_change_color_and_symbol(val):
         """변화값에 따른 색상과 기호 반환"""
         color = "change-positive" if val >= 0 else "change-negative"
@@ -1088,6 +1103,9 @@ def render_gallery_row(row, idx):
     color_5, symbol_5 = get_change_color_and_symbol(change_5day)
     color_10, symbol_10 = get_change_color_and_symbol(change_10day)
     color_15, symbol_15 = get_change_color_and_symbol(change_15day)
+    
+    # 최근 30개 토탈 데이터 (Q행에서 가져옴)
+    total_30day = int(row.get('최근 30개 토탈', 0))
     
     change_html = f'''<div class="daily-change-cell">
         <div class="change-group">
@@ -1103,6 +1121,10 @@ def render_gallery_row(row, idx):
         <div class="change-group">
             <div class="change-value {color_15}">{symbol_15}{format_korean_number(change_15day)}</div>
             <div class="change-label">15일</div>
+        </div>
+        <div class="change-total-30">
+            <div class="change-total-30-value">📊 {format_korean_number(total_30day)}</div>
+            <div class="change-total-30-label">최근 30개</div>
         </div>
     </div>'''
     
@@ -1149,6 +1171,7 @@ def render_gallery_row(row, idx):
     </div>'''
     
     st.markdown(row_html, unsafe_allow_html=True)
+
 
 
 
