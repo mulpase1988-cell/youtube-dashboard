@@ -458,7 +458,7 @@ st.markdown("""
         font-size: 12px !important;
         font-weight: 600 !important;
     }
-    
+
     /* ======================== 🔴 실시간 탭 카드 스타일 ======================== */
     
     .hotdata-grid-container {
@@ -508,7 +508,6 @@ st.markdown("""
         position: absolute !important;
         top: 10px !important;
         left: 10px !important;
-        background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%) !important;
         border-radius: 50% !important;
         width: 40px !important;
         height: 40px !important;
@@ -543,7 +542,7 @@ st.markdown("""
     .hotdata-channel-info {
         display: flex !important;
         gap: 10px !important;
-        align-items: center !important;
+        align-items: flex-start !important;
     }
     
     .hotdata-channel-thumb {
@@ -631,42 +630,6 @@ st.markdown("""
     .hotdata-link-btn:hover {
         background: rgba(102,126,234,0.4) !important;
         border-color: rgba(102,126,234,0.7) !important;
-    }
-    
-    .hotdata-header {
-        background: rgba(26,38,71,0.5) !important;
-        border: 1px solid rgba(255,255,255,0.05) !important;
-        border-radius: 8px !important;
-        padding: 16px !important;
-        margin-bottom: 20px !important;
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        flex-wrap: wrap !important;
-        gap: 16px !important;
-    }
-    
-    .hotdata-header-stats {
-        display: flex !important;
-        gap: 20px !important;
-        flex-wrap: wrap !important;
-    }
-    
-    .hotdata-header-stat {
-        text-align: center !important;
-    }
-    
-    .hotdata-header-stat-value {
-        font-size: 24px !important;
-        font-weight: 800 !important;
-        color: #667eea !important;
-    }
-    
-    .hotdata-header-stat-label {
-        font-size: 12px !important;
-        color: #a0aec0 !important;
-        margin-top: 4px !important;
-        font-weight: 600 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -790,7 +753,7 @@ def load_data():
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
 
-# ======================== 🔴 실시간 탭 데이터 로드 (신규) ========================
+# ======================== 🔴 실시간 탭 데이터 로드 ========================
 @st.cache_data(ttl=300)
 def load_hotdata():
     """글로벌_핫데이터 시트에서 실시간 데이터 로드"""
@@ -950,201 +913,6 @@ def show_navigation():
         if st.button("🔄 새로고침", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
-
-# ======================== 🔴 실시간 탭 페이지 (수정됨) ========================
-def show_hotdata():
-    """🔴 실시간 - 글로벌 핫데이터"""
-    st.markdown("## 🔴 실시간 인기 영상")
-    
-    df = load_hotdata()
-    if df.empty:
-        st.warning("데이터를 불러올 수 없습니다.")
-        return
-    
-    # 필터 UI
-    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns([2, 1, 1, 1])
-    
-    with filter_col1:
-        search_query = st.text_input("🔍 영상제목 검색", key="hotdata_search", placeholder="영상제목을 입력하세요")
-    
-    with filter_col2:
-        country_filter = st.selectbox(
-            "국가",
-            ["전체"] + sorted(df['국가'].unique().tolist()),
-            key="hotdata_country",
-            label_visibility="collapsed"
-        )
-    
-    with filter_col3:
-        sort_option = st.selectbox(
-            "정렬",
-            ["순위 ↑", "조회수 ↓", "구독자 ↓"],
-            key="hotdata_sort",
-            label_visibility="collapsed"
-        )
-    
-    with filter_col4:
-        display_count = st.selectbox(
-            "표시 개수",
-            [20, 30, 50],
-            key="hotdata_count",
-            label_visibility="collapsed"
-        )
-    
-    # 필터링
-    df_filtered = df.copy()
-    
-    if search_query:
-        df_filtered = df_filtered[df_filtered['영상제목'].str.contains(search_query, case=False, na=False)]
-    
-    if country_filter != "전체":
-        df_filtered = df_filtered[df_filtered['국가'] == country_filter]
-    
-    # 정렬
-    if "순위" in sort_option:
-        df_filtered = df_filtered.sort_values('순위', ascending=True)
-    elif "조회수" in sort_option:
-        df_filtered = df_filtered.sort_values('조회수', ascending=False)
-    elif "구독자" in sort_option:
-        df_filtered = df_filtered.sort_values('구독자수', ascending=False)
-    
-    # 상위 N개 선택
-    df_filtered = df_filtered.head(display_count)
-    
-    # 헤더 통계
-    show_hotdata_header(df_filtered)
-    
-    # 그리드 렌더링
-    render_hotdata_grid(df_filtered)
-
-def show_hotdata_header(df):
-    """실시간 탭 헤더 통계 (수정됨)"""
-    total_views = df['조회수'].sum()
-    total_subs = df['구독자수'].sum()
-    avg_views = df['조회수'].mean()
-    
-    # 통계 박스 (Streamlit 컨테이너 사용)
-    st_col1, st_col2, st_col3, st_col4 = st.columns(4)
-    
-    with st_col1:
-        st.metric("📊 영상 수", f"{len(df):,}")
-    
-    with st_col2:
-        st.metric("👁️ 총 조회수", format_korean_number(total_views))
-    
-    with st_col3:
-        st.metric("👥 총 구독자", format_korean_number(total_subs))
-    
-    with st_col4:
-        st.metric("🔥 평균 조회수", format_korean_number(int(avg_views)))
-    
-    st.markdown("---")
-
-def render_hotdata_grid(df):
-    """실시간 그리드 렌더링 (수정됨)"""
-    # CSS 클래스와 함께 HTML 컨테이너 시작
-    grid_html_start = '<div class="hotdata-grid-container">'
-    
-    # 모든 카드 HTML 수집
-    cards_html = ""
-    for idx, (_, row) in enumerate(df.iterrows()):
-        cards_html += render_hotdata_card(row, idx)
-    
-    # HTML 컨테이너 닫기
-    grid_html_end = '</div>'
-    
-    # 완전한 HTML을 한 번에 렌더링
-    st.markdown(grid_html_start + cards_html + grid_html_end, unsafe_allow_html=True)
-
-def render_hotdata_card(row, idx):
-    """개별 카드 렌더링 (수정됨)"""
-    rank = int(row.get('순위', 0))
-    title = row.get('영상제목', 'N/A')
-    channel_name = row.get('채널명', 'N/A')
-    views = int(row.get('조회수', 0))
-    subs = int(row.get('구독자수', 0))
-    category = row.get('카테고리', '')
-    tags = row.get('태그', '')
-    link = row.get('링크', '')
-    thumbnail_url = row.get('썸네일URL', '').strip() if pd.notna(row.get('썸네일URL', '')) else ''
-    
-    # 랭크 배지 배경색 (순위에 따라 다름)
-    if rank == 1:
-        rank_color = "#ffd700"  # 금색
-    elif rank == 2:
-        rank_color = "#c0c0c0"  # 은색
-    elif rank == 3:
-        rank_color = "#cd7f32"  # 동색
-    else:
-        rank_color = "#667eea"  # 기본 파란색
-    
-    # 이미지 처리 (오류 시 폴백)
-    if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 10 and thumbnail_url.startswith(('http://', 'https://')):
-        image_html = f'<img src="{thumbnail_url}" alt="{title}" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.innerHTML=\'<div style=\\\"font-size:64px;display:flex;align-items:center;justify-content:center;\\\">🎬</div>\'">'
-    else:
-        image_html = '<div style="font-size: 64px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">🎬</div>'
-    
-    # 태그 처리
-    tags_html = ""
-    if category and str(category).strip():
-        tags_html += f'<span class="hotdata-tag">{category}</span>'
-    
-    if tags and str(tags).strip():
-        tag_list = str(tags).split(',')[:2]  # 최대 2개 추가 태그
-        for tag in tag_list:
-            tags_html += f'<span class="hotdata-tag">{tag.strip()}</span>'
-    
-    # 링크 버튼
-    if link and str(link).startswith(('http://', 'https://')):
-        link_btn = f'<a href="{link}" target="_blank" rel="noopener noreferrer" class="hotdata-link-btn">🔗 보기</a>'
-    else:
-        link_btn = '<div class="hotdata-link-btn" style="opacity: 0.5; cursor: not-allowed;">🔗 없음</div>'
-    
-    # 핸들 정보 (있으면 표시)
-    handle = row.get('핸들명(@)', '').strip() if pd.notna(row.get('핸들명(@)', '')) else ''
-    handle_display = f"@{handle}" if handle else f"@{channel_name.lower()}"
-    
-    card_html = f"""
-    <div class="hotdata-card">
-        <div class="hotdata-card-image">
-            {image_html}
-            <div class="hotdata-rank-badge" style="background: linear-gradient(135deg, {rank_color} 0%, {rank_color}dd 100%);">#{rank}</div>
-        </div>
-        <div class="hotdata-card-content">
-            <div class="hotdata-video-title" title="{title}">
-                {title}
-            </div>
-            <div class="hotdata-channel-info">
-                <div class="hotdata-channel-thumb">🎬</div>
-                <div>
-                    <div class="hotdata-channel-name" title="{channel_name}">
-                        {channel_name}
-                    </div>
-                    <div style="font-size: 10px; color: #8a94a6; margin-top: 2px;">{handle_display}</div>
-                </div>
-            </div>
-            <div class="hotdata-stats">
-                <div class="hotdata-stat-item">
-                    <div class="hotdata-stat-value">👁️ {format_korean_number(views)}</div>
-                    <div>조회수</div>
-                </div>
-                <div class="hotdata-stat-item">
-                    <div class="hotdata-stat-value">👥 {format_korean_number(subs)}</div>
-                    <div>구독자</div>
-                </div>
-            </div>
-            <div class="hotdata-tags">
-                {tags_html if tags_html else '<span class="hotdata-tag">핫트렌드</span>'}
-            </div>
-            <div class="hotdata-footer">
-                {link_btn}
-            </div>
-        </div>
-    </div>
-    """
-    
-    return card_html
-
 
 # ======================== 수정된 사이드바 필터 함수 ========================
 def render_sidebar_filters(df, cat_df, page_key=""):
@@ -1356,7 +1124,7 @@ def show_gallery():
     with col2:
         sort_option = st.selectbox("정렬", ["15일합계 ↓", "구독자 ↓", "조회수 ↓", "동영상 ↓"], key="gallery_sort", label_visibility="collapsed")
     with col3:
-        st.write("")
+        st.write("")  # 레이아웃 간격
     with col4:
         items_per_page = st.selectbox("한 페이지", [10, 20, 30, 50], key="gallery_items", label_visibility="collapsed", index=1)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1758,6 +1526,191 @@ def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
                     st.success(f"✅ {update_count}개의 항목이 수정되었습니다.")
                     st.cache_data.clear()
                     st.rerun()
+
+# ======================== 🔴 실시간 탭 페이지 ========================
+def show_hotdata():
+    """🔴 실시간 - 글로벌 핫데이터"""
+    st.markdown("## 🔴 실시간 인기 영상")
+    
+    df = load_hotdata()
+    if df.empty:
+        st.warning("데이터를 불러올 수 없습니다.")
+        return
+    
+    # 필터 UI
+    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns([2, 1, 1, 1])
+    
+    with filter_col1:
+        search_query = st.text_input("🔍 영상제목 검색", key="hotdata_search", placeholder="영상제목을 입력하세요")
+    
+    with filter_col2:
+        countries = ["전체"] + sorted([c for c in df['국가'].unique() if c and str(c).strip()])
+        country_filter = st.selectbox("국가", countries, key="hotdata_country", label_visibility="collapsed")
+    
+    with filter_col3:
+        sort_option = st.selectbox("정렬", ["순위 ↑", "조회수 ↓", "구독자 ↓"], key="hotdata_sort", label_visibility="collapsed")
+    
+    with filter_col4:
+        display_count = st.selectbox("표시", [20, 30, 50], key="hotdata_count", label_visibility="collapsed", index=0)
+    
+    # 필터링
+    df_filtered = df.copy()
+    
+    if search_query:
+        df_filtered = df_filtered[df_filtered['영상제목'].astype(str).str.contains(search_query, case=False, na=False)]
+    
+    if country_filter != "전체":
+        df_filtered = df_filtered[df_filtered['국가'] == country_filter]
+    
+    # 정렬
+    if "순위" in sort_option:
+        df_filtered = df_filtered.sort_values('순위', ascending=True)
+    elif "조회수" in sort_option:
+        df_filtered = df_filtered.sort_values('조회수', ascending=False)
+    elif "구독자" in sort_option:
+        df_filtered = df_filtered.sort_values('구독자수', ascending=False)
+    
+    # 상위 N개 선택
+    df_filtered = df_filtered.head(display_count)
+    
+    # 헤더 통계
+    if len(df_filtered) > 0:
+        show_hotdata_header(df_filtered)
+        
+        # 그리드 렌더링
+        render_hotdata_grid(df_filtered)
+    else:
+        st.info("검색 결과가 없습니다.")
+
+def show_hotdata_header(df):
+    """실시간 탭 헤더 통계"""
+    total_views = int(df['조회수'].sum())
+    total_subs = int(df['구독자수'].sum())
+    avg_views = int(df['조회수'].mean())
+    
+    # Streamlit 메트릭 사용 (HTML 렌더링 안 함)
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("📊 영상 수", f"{len(df):,}")
+    
+    with col2:
+        st.metric("👁️ 총 조회수", format_korean_number(total_views))
+    
+    with col3:
+        st.metric("👥 총 구독자", format_korean_number(total_subs))
+    
+    with col4:
+        st.metric("🔥 평균 조회수", format_korean_number(avg_views))
+    
+    st.markdown("---")
+
+def render_hotdata_grid(df):
+    """실시간 그리드 렌더링 - 수정된 버전"""
+    # 컨테이너 시작
+    html_content = '<div class="hotdata-grid-container">'
+    
+    # 각 행에 대한 카드 HTML 생성
+    for idx, (_, row) in enumerate(df.iterrows()):
+        html_content += render_hotdata_card(row, idx)
+    
+    # 컨테이너 종료
+    html_content += '</div>'
+    
+    # 한 번에 렌더링
+    st.markdown(html_content, unsafe_allow_html=True)
+
+def render_hotdata_card(row, idx):
+    """개별 카드 HTML 생성"""
+    rank = int(row.get('순위', 0))
+    title = str(row.get('영상제목', 'N/A'))[:80]  # 길이 제한
+    channel_name = str(row.get('채널명', 'N/A'))[:30]
+    views = int(row.get('조회수', 0))
+    subs = int(row.get('구독자수', 0))
+    category = str(row.get('카테고리', '')).strip()
+    tags = str(row.get('태그', '')).strip()
+    link = str(row.get('링크', '')).strip()
+    thumbnail_url = str(row.get('썸네일URL', '')).strip() if pd.notna(row.get('썸네일URL', '')) else ''
+    handle = str(row.get('핸들명(@)', '')).strip() if pd.notna(row.get('핸들명(@)', '')) else ''
+    
+    # 랭크 배지 색상
+    if rank == 1:
+        rank_color = "#ffd700"
+    elif rank == 2:
+        rank_color = "#c0c0c0"
+    elif rank == 3:
+        rank_color = "#cd7f32"
+    else:
+        rank_color = "#667eea"
+    
+    # 이미지 처리
+    if thumbnail_url and len(thumbnail_url) > 10 and thumbnail_url.startswith(('http://', 'https://')):
+        image_content = f'<img src="{thumbnail_url}" alt="{title}" style="width:100%; height:100%; object-fit:cover;">'
+    else:
+        image_content = '<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:64px;">🎬</div>'
+    
+    # 태그 처리
+    tags_html = ''
+    if category:
+        tags_html += f'<span class="hotdata-tag">{category}</span>'
+    
+    if tags:
+        tag_list = tags.split(',')[:2]
+        for tag in tag_list:
+            tags_html += f'<span class="hotdata-tag">{tag.strip()}</span>'
+    
+    if not tags_html:
+        tags_html = '<span class="hotdata-tag">핫트렌드</span>'
+    
+    # 링크 버튼
+    if link and link.startswith(('http://', 'https://')):
+        link_btn = f'<a href="{link}" target="_blank" rel="noopener noreferrer" class="hotdata-link-btn">🔗 보기</a>'
+    else:
+        link_btn = '<div class="hotdata-link-btn" style="opacity: 0.5; cursor: not-allowed;">🔗 없음</div>'
+    
+    # 핸들 표시
+    handle_display = f"@{handle}" if handle else f"@{channel_name.lower()}"
+    
+    card_html = f'''
+    <div class="hotdata-card">
+        <div class="hotdata-card-image">
+            {image_content}
+            <div class="hotdata-rank-badge" style="background: linear-gradient(135deg, {rank_color} 0%, {rank_color}dd 100%);">#{rank}</div>
+        </div>
+        <div class="hotdata-card-content">
+            <div class="hotdata-video-title" title="{title}">
+                {title}
+            </div>
+            <div class="hotdata-channel-info">
+                <div class="hotdata-channel-thumb">🎬</div>
+                <div>
+                    <div class="hotdata-channel-name" title="{channel_name}">
+                        {channel_name}
+                    </div>
+                    <div style="font-size: 10px; color: #8a94a6; margin-top: 2px;">{handle_display}</div>
+                </div>
+            </div>
+            <div class="hotdata-stats">
+                <div class="hotdata-stat-item">
+                    <div class="hotdata-stat-value">👁️ {format_korean_number(views)}</div>
+                    <div>조회수</div>
+                </div>
+                <div class="hotdata-stat-item">
+                    <div class="hotdata-stat-value">👥 {format_korean_number(subs)}</div>
+                    <div>구독자</div>
+                </div>
+            </div>
+            <div class="hotdata-tags">
+                {tags_html}
+            </div>
+            <div class="hotdata-footer">
+                {link_btn}
+            </div>
+        </div>
+    </div>
+    '''
+    
+    return card_html
 
 # --- 순서 설정 페이지 ---
 def show_settings():
