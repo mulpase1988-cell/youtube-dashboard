@@ -882,16 +882,22 @@ def show_gallery():
         if selected_cat2 != "전체":
             df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
     
-    # ===== 장르 필터 (메인 영역 상단에 표시) =====
-    if selected_cat1 != "전체":
-        page_order = st.session_state.get(f'page_order_gallery', {})
-        분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
+# ===== 장르 필터 (메인 영역 상단에 표시) =====
+if selected_cat1 != "전체":
+    page_order = st.session_state.get(f'page_order_dashboard', {})
+    분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
+    
+    st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
+    
+    # 최대 5개씩 행으로 나누기
+    max_cols = 5
+    for row_start in range(0, len(분류2_list), max_cols):
+        row_end = min(row_start + max_cols, len(분류2_list))
+        row_genres = 분류2_list[row_start:row_end]
         
-        st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
+        genre_cols = st.columns(len(row_genres))
         
-        genre_cols = st.columns(len(분류2_list))
-        
-        for idx, cat2 in enumerate(분류2_list):
+        for idx, cat2 in enumerate(row_genres):
             if selected_country != "전체":
                 count = len(df_filtered[
                     (df_filtered['분류1'] == selected_cat1) & 
@@ -909,14 +915,16 @@ def show_gallery():
             with genre_cols[idx]:
                 if st.button(
                     display_text,
-                    key=f"gallery_cat2_{selected_cat1}_{cat2}",
+                    key=f"dashboard_cat2_{selected_cat1}_{cat2}",
                     use_container_width=True,
                     type="primary" if is_active else "secondary"
                 ):
-                    st.session_state[f"selected_cat2_gallery"] = cat2
+                    st.session_state[f"selected_cat2_dashboard"] = cat2
                     st.rerun()
-        
-        st.markdown("---")
+    
+    st.markdown("---")
+
+
     
     # ===== 필터 UI (메인 영역) =====
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
