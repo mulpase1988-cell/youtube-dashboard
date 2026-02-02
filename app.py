@@ -1591,53 +1591,87 @@ def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
 # ======================== 실시간 탭 사이드바 필터 ========================
 def render_hotdata_sidebar_filters():
     """
-    실시간 탭 전용 사이드바 필터 (국가, 카테고리)
+    실시간 탭 전용 사이드바 필터 (국가, 카테고리) - 버튼 형식
     """
     df = load_hotdata()
     
     with st.sidebar:
         st.markdown("## 🔴 실시간 필터")
         
+        # 선택 상태 초기화
+        if "hotdata_selected_country" not in st.session_state:
+            st.session_state.hotdata_selected_country = "전체"
+        if "hotdata_selected_category" not in st.session_state:
+            st.session_state.hotdata_selected_category = "전체"
+        
         # 국가 필터
         st.markdown("### 🌍 국가")
         if '국가' in df.columns:
             country_options = ["전체"] + sorted([c for c in df['국가'].unique() if c and str(c).strip()])
-            selected_country = st.selectbox(
-                "국가 선택",
-                country_options,
-                key="hotdata_sidebar_country",
-                label_visibility="collapsed"
-            )
-        else:
-            selected_country = "전체"
-            st.warning("시트에 '국가' 컬럼이 없습니다.")
+            
+            # 국가별 카운트
+            country_counts = {}
+            for country in country_options:
+                if country == "전체":
+                    country_counts[country] = len(df)
+                else:
+                    country_counts[country] = len(df[df['국가'] == country])
+            
+            # 국가 버튼들
+            for country in country_options:
+                is_selected = st.session_state.hotdata_selected_country == country
+                button_type = "primary" if is_selected else "secondary"
+                
+                if st.button(
+                    f"{country} ({country_counts[country]})",
+                    key=f"hotdata_country_btn_{country}",
+                    use_container_width=True,
+                    type=button_type
+                ):
+                    st.session_state.hotdata_selected_country = country
+                    st.session_state.hotdata_selected_category = "전체"  # 카테고리 초기화
+                    st.rerun()
         
         st.markdown("---")
         
         # 카테고리 필터
         st.markdown("### 📂 카테고리")
         
-        # 국가별로 필터링된 카테고리 표시
-        if selected_country != "전체":
-            df_for_cat = df[df['국가'] == selected_country]
+        # 선택된 국가에 따른 카테고리 필터링
+        if st.session_state.hotdata_selected_country != "전체":
+            df_for_cat = df[df['국가'] == st.session_state.hotdata_selected_country]
         else:
             df_for_cat = df
         
         if '카테고리' in df_for_cat.columns:
             category_options = ["전체"] + sorted([c for c in df_for_cat['카테고리'].unique() if c and str(c).strip()])
-            selected_category = st.selectbox(
-                "카테고리 선택",
-                category_options,
-                key="hotdata_sidebar_category",
-                label_visibility="collapsed"
-            )
-        else:
-            selected_category = "전체"
-            st.warning("시트에 '카테고리' 컬럼이 없습니다.")
+            
+            # 카테고리별 카운트
+            category_counts = {}
+            for category in category_options:
+                if category == "전체":
+                    category_counts[category] = len(df_for_cat)
+                else:
+                    category_counts[category] = len(df_for_cat[df_for_cat['카테고리'] == category])
+            
+            # 카테고리 버튼들
+            for category in category_options:
+                is_selected = st.session_state.hotdata_selected_category == category
+                button_type = "primary" if is_selected else "secondary"
+                
+                if st.button(
+                    f"{category} ({category_counts[category]})",
+                    key=f"hotdata_category_btn_{category}_{st.session_state.hotdata_selected_country}",
+                    use_container_width=True,
+                    type=button_type
+                ):
+                    st.session_state.hotdata_selected_category = category
+                    st.rerun()
         
         st.markdown("---")
     
-    return selected_country, selected_category
+    return st.session_state.hotdata_selected_country, st.session_state.hotdata_selected_category
+
 
 # ======================== 실시간 탭 사이드바 필터 ========================
 def render_hotdata_sidebar_filters():
