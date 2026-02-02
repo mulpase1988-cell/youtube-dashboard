@@ -14,9 +14,25 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 커스텀 CSS (기존 + 새로운 카드 스타일)
+# 커스텀 CSS (다크 모드 + 향상된 갤러리 테이블)
 st.markdown("""
 <style>
+    /* 기본 테마 */
+    :root {
+        --dark-bg: #0f172a;
+        --card-bg: #1a2647;
+        --border-color: rgba(255,255,255,0.1);
+        --text-primary: #ffffff;
+        --text-secondary: #a0aec0;
+        --accent-red: #ef4444;
+        --accent-green: #10b981;
+    }
+    
+    body, .stApp {
+        background-color: #0f172a !important;
+        color: #ffffff !important;
+    }
+    
     button[key="logo_home"] {
         border: none !important;
         background: transparent !important;
@@ -29,19 +45,23 @@ st.markdown("""
         display: flex !important;
         align-items: center !important;
     }
-    button[key="logo_home"]:hover { color: #FF0000 !important; background: transparent !important; }
+    button[key="logo_home"]:hover { 
+        color: #FF0000 !important; 
+        background: transparent !important; 
+    }
+    
     .stApp { counter-reset: item-rank; }
     div[data-testid="stTabContent"] { counter-reset: item-rank; }
     
     /* 순서 설정용 스타일 */
     .sortable-item {
-        background-color: white !important;
-        color: #333 !important;
-        border: 1px solid #ccc !important;
+        background-color: #1a2647 !important;
+        color: #fff !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
         border-radius: 4px !important;
         padding: 0 !important;
         margin-bottom: 8px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
         font-size: 15px !important;
         font-weight: 500 !important;
         cursor: grab !important;
@@ -51,103 +71,238 @@ st.markdown("""
         overflow: hidden !important;
         counter-increment: item-rank;
     }
+    
     .sortable-item::before {
         content: counter(item-rank);
-        background-color: #eee !important;
-        color: #555 !important;
+        background-color: #0f172a !important;
+        color: #a0aec0 !important;
         font-weight: bold !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         width: 45px !important;
         height: 100% !important;
-        border-right: 1px solid #ccc !important;
+        border-right: 1px solid rgba(255,255,255,0.1) !important;
         margin-right: 12px !important;
         flex-shrink: 0 !important;
     }
+    
     .sortable-item:hover {
         border-color: #667eea !important;
-        background-color: #f8f9fa !important;
+        background-color: #2a3a5a !important;
         transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 4px 6px rgba(102,126,234,0.2) !important;
     }
+    
     .sortable-container-header { display: none !important; }
     
-    /* 데이터 에디터 너비 최적화 */
-    div[data-testid="stDataFrame"] {
-        width: 100%;
-    }
-    
-    /* [추가] 채널 카드 스타일 */
-    .channel-card {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
+    /* ===== 갤러리 테이블 스타일 ===== */
+    .gallery-table-container {
+        background-color: #1a2647 !important;
         border-radius: 12px !important;
-        padding: 16px !important;
-        margin-bottom: 16px !important;
+        overflow: hidden !important;
         border: 1px solid rgba(255,255,255,0.1) !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
-        color: #fff !important;
-        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
     }
     
-    .channel-card:hover {
-        transform: translateY(-4px) !important;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.3) !important;
+    .gallery-table-header {
+        display: grid !important;
+        grid-template-columns: 2fr 1fr 1.5fr 0.8fr 1fr 0.5fr !important;
+        background: linear-gradient(135deg, #0f172a 0%, #1a2647 100%) !important;
+        border-bottom: 2px solid rgba(255,255,255,0.1) !important;
+        padding: 16px !important;
+        color: #a0aec0 !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
     }
     
-    .channel-card-header {
+    .gallery-table-header > div {
+        padding: 0 12px !important;
+    }
+    
+    .gallery-table-row {
+        display: grid !important;
+        grid-template-columns: 2fr 1fr 1.5fr 0.8fr 1fr 0.5fr !important;
+        border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+        padding: 16px !important;
+        align-items: center !important;
+        transition: background-color 0.3s ease !important;
+    }
+    
+    .gallery-table-row:hover {
+        background-color: rgba(102,126,234,0.1) !important;
+    }
+    
+    /* 채널 정보 셀 */
+    .channel-info-cell {
         display: flex !important;
-        justify-content: space-between !important;
-        align-items: flex-start !important;
-        margin-bottom: 12px !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 0 12px !important;
     }
     
-    .channel-name {
+    .channel-avatar {
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 24px !important;
+        flex-shrink: 0 !important;
+        border: 2px solid rgba(255,255,255,0.1) !important;
+    }
+    
+    .channel-details {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+    }
+    
+    .channel-name-cell {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        color: #ffffff !important;
+    }
+    
+    .channel-handle-cell {
+        font-size: 12px !important;
+        color: #a0aec0 !important;
+    }
+    
+    .channel-category-tags {
+        display: flex !important;
+        gap: 4px !important;
+        flex-wrap: wrap !important;
+        margin-top: 4px !important;
+    }
+    
+    .category-tag {
+        background-color: rgba(102,126,234,0.2) !important;
+        border: 1px solid rgba(102,126,234,0.4) !important;
+        border-radius: 12px !important;
+        padding: 2px 6px !important;
+        font-size: 10px !important;
+        color: #a8b8ff !important;
+        white-space: nowrap !important;
+    }
+    
+    /* 구독자 셀 */
+    .subscriber-cell {
+        padding: 0 12px !important;
+        text-align: left !important;
+    }
+    
+    .subscriber-number {
         font-size: 18px !important;
         font-weight: 700 !important;
-        color: #fff !important;
-        margin: 0 !important;
+        color: #ffffff !important;
     }
     
-    .channel-handle {
-        font-size: 12px !important;
-        color: rgba(255,255,255,0.7) !important;
-        margin: 4px 0 0 0 !important;
+    .subscriber-label {
+        font-size: 10px !important;
+        color: #a0aec0 !important;
     }
     
-    .channel-stats {
+    /* 최근 업로드 썸네일 */
+    .thumbnails-cell {
         display: flex !important;
-        gap: 8px !important;
-        margin-bottom: 12px !important;
-        flex-wrap: wrap !important;
+        gap: 6px !important;
+        padding: 0 12px !important;
+        overflow-x: auto !important;
     }
     
-    .stat-badge {
-        background: rgba(255,255,255,0.15) !important;
-        border-radius: 4px !important;
-        padding: 4px 8px !important;
-        font-size: 11px !important;
-        color: rgba(255,255,255,0.9) !important;
+    .thumbnail-item {
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 6px !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        flex-shrink: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 12px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        cursor: pointer !important;
+        transition: transform 0.2s !important;
     }
     
-    .channel-subscribers {
-        font-size: 24px !important;
+    .thumbnail-item:hover {
+        transform: scale(1.05) !important;
+        border-color: rgba(255,255,255,0.3) !important;
+    }
+    
+    /* 영상 수 셀 */
+    .video-count-cell {
+        padding: 0 12px !important;
+        text-align: center !important;
+    }
+    
+    .video-count-number {
+        font-size: 16px !important;
         font-weight: 700 !important;
-        color: #fff !important;
-        margin: 12px 0 0 0 !important;
+        color: #ffffff !important;
     }
     
-    .channel-change {
+    /* 일일 증감 셀 */
+    .daily-change-cell {
+        padding: 0 12px !important;
+    }
+    
+    .change-value {
         font-size: 14px !important;
-        margin-top: 8px !important;
+        font-weight: 600 !important;
+        margin-bottom: 4px !important;
     }
     
-    .positive {
-        color: #4ade80 !important;
-    }
-    
-    .negative {
+    .change-positive {
         color: #ef4444 !important;
+    }
+    
+    .change-negative {
+        color: #10b981 !important;
+    }
+    
+    .change-label {
+        font-size: 10px !important;
+        color: #a0aec0 !important;
+    }
+    
+    /* 액션 버튼 셀 */
+    .action-cell {
+        display: flex !important;
+        gap: 6px !important;
+        justify-content: center !important;
+        padding: 0 12px !important;
+    }
+    
+    .action-btn {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 50% !important;
+        background-color: rgba(102,126,234,0.2) !important;
+        border: 1px solid rgba(102,126,234,0.4) !important;
+        color: #a8b8ff !important;
+        font-size: 14px !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s !important;
+    }
+    
+    .action-btn:hover {
+        background-color: rgba(102,126,234,0.4) !important;
+        border-color: rgba(102,126,234,0.6) !important;
+        transform: scale(1.1) !important;
+    }
+    
+    /* 데이터 에디터 */
+    div[data-testid="stDataFrame"] {
+        width: 100%;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -155,7 +310,7 @@ st.markdown("""
 # --- 유틸리티 함수 ---
 
 def format_korean_number(num):
-    """숫자를 '1.5억', '5300만' 등의 한글 포맷 문자열로 변환 (이모지 없음)"""
+    """숫자를 '1.5억', '5300만' 등의 한글 포맷 문자열로 변환"""
     if pd.isna(num) or num == 0: return "0"
     try:
         num = int(float(str(num).replace(',', '')))
@@ -165,53 +320,38 @@ def format_korean_number(num):
     except: return str(num)
 
 def format_korean_number_with_icon(num):
-    """
-    최근 토탈 전용 포맷팅: 숫자 크기에 따라 이모지 추가
-    - 1000만 이상: 💎 (다이아몬드)
-    - 100만 이상: 🔥 (불꽃)
-    - 30만 이상: 🔺 (상승)
-    """
+    """최근 토탈 전용 포맷팅: 숫자 크기에 따라 이모지 추가"""
     if pd.isna(num) or num == 0: return "0"
     try:
         val = int(float(str(num).replace(',', '')))
         
-        # 기본 한글 포맷팅
         if val >= 100000000: text = f"{val // 100000000}억"
         elif val >= 10000: text = f"{val // 10000}만"
         else: text = f"{val:,}"
         
-        # 이모지 로직
-        if val >= 10000000:   # 1,000만 이상
+        if val >= 10000000:
             return f"💎 {text}"
-        elif val >= 1000000:  # 100만 이상
+        elif val >= 1000000:
             return f"🔥 {text}"
-        elif val >= 300000:   # 30만 이상
+        elif val >= 300000:
             return f"🔺 {text}"
         else:
             return text
     except: return str(num)
 
 def add_status_dot(date_str, ten_day_count):
-    """
-    10일 기준 값에 따라 상태 점(Dot)을 추가
-    - 5개 이상: 🟢 (초록)
-    - 2개 이상 5개 미만: 🔵 (파랑)
-    - 2개 미만: ❌ (X)
-    """
+    """10일 기준 값에 따라 상태 점(Dot)을 추가"""
     if not date_str or pd.isna(date_str) or str(date_str).strip() == "": 
         return ""
     
     try:
-        # 날짜 포맷팅
         clean_date = str(date_str).split(' ')[0].replace('.', '-').replace('/', '-')
         
-        # 10일 기준 값을 숫자로 변환
         try:
             count = int(float(str(ten_day_count).replace(',', ''))) if not pd.isna(ten_day_count) else 0
         except:
             count = 0
         
-        # 10일 기준 값에 따라 이모티콘 결정
         if count >= 5:
             return f"{clean_date} 🟢"
         elif count >= 2:
@@ -219,8 +359,23 @@ def add_status_dot(date_str, ten_day_count):
         else:
             return f"{clean_date} ❌"
     except:
-        # 날짜 파싱 실패 시 원본 문자열 반환
         return str(date_str)
+
+def get_placeholder_icon(category):
+    """카테고리별 플레이스홀더 아이콘"""
+    icons = {
+        '음악': '🎵',
+        '게임': '🎮',
+        '요리': '👨‍🍳',
+        '교육': '📚',
+        '뷰티': '💄',
+        '여행': '✈️',
+        '테크': '💻',
+        '스포츠': '⚽',
+        '엔터': '🎬',
+        '먹방': '🍜',
+    }
+    return icons.get(category, '📺')
 
 # --- 구글 시트 연결 ---
 def get_gspread_client():
@@ -239,7 +394,6 @@ def load_data():
         df = pd.DataFrame(data)
         df['gs_row_index'] = range(2, len(df) + 2)
         
-        # --- [추가됨] 컬럼명 자동 보정 ---
         rename_map = {
             '최근 업로드': '최근업로드',
             '최근 업로드일': '최근업로드',
@@ -250,11 +404,10 @@ def load_data():
         }
         df = df.rename(columns=rename_map)
         
-        # [변경] 숫자형 변환 대상 컬럼에 새 컬럼 3개 추가 (Y, Z, AA)
         numeric_columns = [
             '구독자', '동영상', '조회수', 
             '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', '10일기준',
-            '5일조회수합계', '10일조회수합계', '15일조회수합계' # <-- 추가됨
+            '5일조회수합계', '10일조회수합계', '15일조회수합계'
         ]
         
         for col in numeric_columns:
@@ -307,13 +460,10 @@ def update_gs_rows(edited_df, original_df):
         count = 0
         for idx, row in edited_df.iterrows():
             orig_row = original_df[original_df['gs_row_index'] == row['gs_row_index']].iloc[0]
-            # [변경] 저장 대상 필드에 '키워드', '템플릿' 추가
             fields_to_check = ['분류1', '분류2', '키워드', '템플릿', '메모']
             
             for field in fields_to_check:
-                # 데이터프레임에 해당 컬럼이 있고 값이 변경된 경우에만 업데이트
                 if field in row and str(row[field]) != str(orig_row[field]):
-                    # 구글 시트에 해당 헤더가 실제로 존재하는지 확인
                     if field in col_map:
                         sheet.update_cell(int(row['gs_row_index']), col_map[field], str(row[field]))
                         count += 1
@@ -449,11 +599,14 @@ def show_category_management():
     )
     st.session_state.temp_cat_df = edited_cat
 
-# [추가] 갤러리 페이지
+# [개선된] 갤러리 페이지 - 테이블 형식
 def show_gallery():
+    """테이블 형식의 다크 모드 갤러리 뷰"""
     st.markdown("## 🎨 채널 갤러리")
     df, cat_df = load_data()
-    if df.empty: return
+    if df.empty: 
+        st.warning("데이터를 불러올 수 없습니다.")
+        return
     
     if 'page_order' not in st.session_state:
         saved_order = load_config_from_sheet()
@@ -464,14 +617,16 @@ def show_gallery():
 
     분류1_list = st.session_state.page_order['분류1_순서']
     
-    # 필터 설정
-    col1, col2, col3 = st.columns([2, 1, 1])
+    # 필터 UI
+    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
-        search_query = st.text_input("🔍 채널명 검색", key="gallery_search")
+        search_query = st.text_input("🔍 채널명 검색", key="gallery_search", placeholder="채널명을 입력하세요")
     with col2:
-        selected_cat1 = st.selectbox("카테고리", ["전체"] + 분류1_list, key="gallery_cat")
+        selected_cat1 = st.selectbox("카테고리", ["전체"] + 분류1_list, key="gallery_cat", label_visibility="collapsed")
     with col3:
-        sort_option = st.selectbox("정렬", ["15일합계", "구독자", "조회수"], key="gallery_sort")
+        sort_option = st.selectbox("정렬", ["15일합계 ↓", "구독자 ↓", "조회수 ↓", "동영상 ↓"], key="gallery_sort", label_visibility="collapsed")
+    with col4:
+        limit = st.selectbox("표시", ["전체", "상위 10개", "상위 20개"], key="gallery_limit", label_visibility="collapsed")
     
     # 데이터 필터링
     df_filtered = df.copy()
@@ -483,56 +638,128 @@ def show_gallery():
         df_filtered = df_filtered[df_filtered['채널명'].str.contains(search_query, case=False, na=False)]
     
     # 정렬
-    if sort_option == "15일합계":
+    if "15일합계" in sort_option:
         df_filtered = df_filtered.sort_values('15일조회수합계', ascending=False)
-    elif sort_option == "구독자":
+    elif "구독자" in sort_option:
         df_filtered = df_filtered.sort_values('구독자', ascending=False)
-    elif sort_option == "조회수":
+    elif "조회수" in sort_option:
         df_filtered = df_filtered.sort_values('조회수', ascending=False)
+    elif "동영상" in sort_option:
+        df_filtered = df_filtered.sort_values('동영상', ascending=False)
     
-    st.markdown(f"**총 {len(df_filtered)}개 채널**")
+    # 제한
+    if limit == "상위 10개":
+        df_filtered = df_filtered.head(10)
+    elif limit == "상위 20개":
+        df_filtered = df_filtered.head(20)
     
-    # 카드 그리드 레이아웃 (5개 컬럼)
-    cols = st.columns(5)
+    st.markdown(f"**총 {len(df_filtered)}개 채널 표시**")
+    st.markdown("---")
     
+    # 테이블 헤더
+    header_html = """
+    <div class="gallery-table-container">
+        <div class="gallery-table-header">
+            <div style="text-align: left;">채널 정보</div>
+            <div style="text-align: left;">구독자</div>
+            <div style="text-align: left;">최근 업로드</div>
+            <div style="text-align: center;">영상 수</div>
+            <div style="text-align: left;">일일 증감</div>
+            <div style="text-align: center;">액션</div>
+        </div>
+    """
+    st.markdown(header_html, unsafe_allow_html=True)
+    
+    # 테이블 행
     for idx, (_, row) in enumerate(df_filtered.iterrows()):
-        with cols[idx % 5]:
-            # 카드 HTML 생성
-            subscribers = int(row.get('구독자', 0))
-            change_val = int(row.get('15일조회수합계', 0))
-            change_color = "positive" if change_val >= 0 else "negative"
-            change_symbol = "+" if change_val >= 0 else ""
-            
-            categories = f"{row.get('분류1', '')} / {row.get('분류2', '')}"
-            url = row.get('URL', '#')
-            
-            card_html = f"""
-            <div class="channel-card">
-                <div class="channel-card-header">
-                    <div>
-                        <p class="channel-name">{row.get('채널명', 'N/A')}</p>
-                        <p class="channel-handle">@{row.get('채널명', 'N/A').lower()}</p>
-                    </div>
-                </div>
-                
-                <div class="channel-stats">
-                    <span class="stat-badge">{categories}</span>
-                </div>
-                
-                <div>
-                    <p class="channel-subscribers">{format_korean_number(subscribers)}</p>
-                    <p class="channel-change {change_color}">{change_symbol}{format_korean_number(change_val)} 최근 15일</p>
-                </div>
-            </div>
-            """
-            
-            st.markdown(card_html, unsafe_allow_html=True)
-            
-            # 상세보기 링크
-            if url and url != '#':
-                st.markdown(f"[🔗 채널 보기]({url})", unsafe_allow_html=True)
+        render_gallery_row(row, idx)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 대시보드 및 상세 페이지 ---
+def render_gallery_row(row, idx):
+    """갤러리 테이블 행 렌더링"""
+    channel_name = row.get('채널명', 'N/A')
+    category = row.get('분류1', '')
+    genre = row.get('분류2', '')
+    url = row.get('URL', '')
+    subscribers = int(row.get('구독자', 0))
+    videos = int(row.get('동영상', 0))
+    change_val = int(row.get('15일조회수합계', 0))
+    views_15day = format_korean_number_with_icon(change_val)
+    
+    # 아이콘 선택
+    icon = get_placeholder_icon(category)
+    
+    # 변화량 색상 (양수=빨강, 음수=초록)
+    change_color = "change-positive" if change_val >= 0 else "change-negative"
+    change_symbol = "+" if change_val >= 0 else ""
+    
+    # 카테고리 태그
+    tags_html = f"""
+    <div class="channel-category-tags">
+        <span class="category-tag">{category}</span>
+        <span class="category-tag">{genre}</span>
+    </div>
+    """
+    
+    # 썸네일 (샘플 - 실제로는 URL에서 가져올 수 있음)
+    thumbnails_html = """
+    <div class="thumbnails-cell">
+        <div class="thumbnail-item">📹</div>
+        <div class="thumbnail-item">📹</div>
+        <div class="thumbnail-item">📹</div>
+        <div class="thumbnail-item">📹</div>
+        <div class="thumbnail-item">📹</div>
+    </div>
+    """
+    
+    # 행 HTML
+    row_html = f"""
+    <div class="gallery-table-row">
+        <!-- 채널 정보 -->
+        <div class="channel-info-cell">
+            <div class="channel-avatar">{icon}</div>
+            <div class="channel-details">
+                <div class="channel-name-cell">{channel_name}</div>
+                <div class="channel-handle-cell">@{channel_name.lower()}</div>
+                {tags_html}
+            </div>
+        </div>
+        
+        <!-- 구독자 -->
+        <div class="subscriber-cell">
+            <div class="subscriber-number">{format_korean_number(subscribers)}</div>
+            <div class="subscriber-label">구독자</div>
+        </div>
+        
+        <!-- 최근 업로드 -->
+        {thumbnails_html}
+        
+        <!-- 영상 수 -->
+        <div class="video-count-cell">
+            <div class="video-count-number">{videos}</div>
+            <div style="font-size: 10px; color: #a0aec0;">개</div>
+        </div>
+        
+        <!-- 일일 증감 -->
+        <div class="daily-change-cell">
+            <div class="change-value {change_color}">
+                {change_symbol}{format_korean_number(change_val)}
+            </div>
+            <div class="change-label">최근 15일</div>
+        </div>
+        
+        <!-- 액션 -->
+        <div class="action-cell">
+            <div class="action-btn" title="상세보기">📊</div>
+            <div class="action-btn" title="즐겨찾기">❤️</div>
+        </div>
+    </div>
+    """
+    
+    st.markdown(row_html, unsafe_allow_html=True)
+
+# --- 대시보드 페이지 ---
 def show_dashboard():
     df, cat_df = load_data()
     if df.empty: return
@@ -559,7 +786,6 @@ def show_dashboard():
         st.markdown("---")
         st.markdown("## 📂 카테고리")
         
-        # --- 전체 보기 버튼 ---
         total_count = len(df)
         if 'selected_분류1' not in st.session_state:
             st.session_state.selected_분류1 = "전체"
@@ -584,7 +810,6 @@ def show_dashboard():
         show_category_detail(df, cat_df, st.session_state.selected_분류1)
 
 def show_category_detail(df, cat_df, 분류1):
-    # '전체' 선택 시 로직
     if 분류1 == "전체":
         df_filtered = df.copy()
         st.markdown(f"## 📊 전체 ({len(df_filtered)}개)")
@@ -639,7 +864,6 @@ def show_category_detail(df, cat_df, 분류1):
     with ctrl_col1:
         search_query = st.text_input("🔍 채널명 검색", key=f"search_{분류1}")
     with ctrl_col2:
-        # [수정] 정렬 기준에 "15일합계" 추가 및 기본값 설정
         sort_options = ['15일합계', '최근 30개 토탈', '최근 20개 토탈', '최근 10개 토탈', '최근 5개 토탈', '조회수', '사용자 지정']
         sort_by = st.selectbox("정렬 기준", sort_options, index=0, key=f"sort_{분류1}")
     
@@ -655,35 +879,19 @@ def show_category_detail(df, cat_df, 분류1):
             ordered += [n for n in current_names if n not in ordered]
             df_display = df_display.set_index('채널명').loc[ordered].reset_index()
     else:
-        # [수정] 정렬 로직에 15일합계 추가
         if sort_by == '15일합계':
             df_display = df_display.sort_values(by=['15일조회수합계', '채널명'], ascending=[False, True])
         else:
             df_display = df_display.sort_values(by=[sort_by, '채널명'], ascending=[False, True])
     
-    # ------------------[디자인 및 데이터 포맷팅 로직]------------------
-    
     display_columns = [
-        '국가', 
-        '동영상', 
-        '조회수', 
-        '채널명', 
-        '분류1',
-        '분류2',
-        '템플릿',  
-        '메모', 
-        '키워드',
-        '운영기간', 
-        'URL', 
-        '5일조회수합계',
-        '10일조회수합계',
-        '15일조회수합계',
-        'gs_row_index'
+        '국가', '동영상', '조회수', '채널명', '분류1', '분류2',
+        '템플릿', '메모', '키워드', '운영기간', 'URL', 
+        '5일조회수합계', '10일조회수합계', '15일조회수합계', 'gs_row_index'
     ]
     
     df_to_edit = df_display[[c for c in display_columns if c in df_display.columns]].copy()
 
-    # 포맷팅
     new_cols = ['5일조회수합계', '10일조회수합계', '15일조회수합계']
     for col in new_cols:
         if col in df_to_edit.columns:
@@ -699,30 +907,24 @@ def show_category_detail(df, cat_df, 분류1):
     if 분류1 != "전체":
         st.markdown(f"### 📋 채널 리스트 (총 {len(df_display)}개)")
     
-    # 4. Data Editor 설정
     column_config = {
         "URL": st.column_config.LinkColumn("링크", display_text="보기", width="small"),
-        
         "5일조회수합계": st.column_config.TextColumn("5일합계", disabled=True, width="small"),
         "10일조회수합계": st.column_config.TextColumn("10일합계", disabled=True, width="small"),
         "15일조회수합계": st.column_config.TextColumn("15일합계", disabled=True, width="small"),
-        
         "gs_row_index": None,
         "국가": st.column_config.TextColumn("국가", width="small"),
         "동영상": st.column_config.NumberColumn("동영상", width="small"),
         "조회수": st.column_config.TextColumn("조회수", disabled=True, width="small"),
         "채널명": st.column_config.TextColumn("채널명", width="medium"),
-        
         "분류1": st.column_config.SelectboxColumn("카테고리", options=all_cat1_options, required=True, width="small"),
         "분류2": st.column_config.SelectboxColumn("장르", options=allowed_cat2_options, required=True, width="small"),
-        
         "키워드": st.column_config.TextColumn("키워드", width="medium"),
         "템플릿": st.column_config.TextColumn("템플릿", width="small"),
         "메모": st.column_config.TextColumn("메모", width="medium"),
         "운영기간": st.column_config.TextColumn("운영기간", width="small"),
     }
     
-    # 데이터 타입 강제 변환
     text_cols_safe = ['채널명', '분류1', '분류2', '키워드', '템플릿', '메모', '운영기간',
                  '조회수', 'URL', '국가', '5일조회수합계', '10일조회수합계', '15일조회수합계']
     
@@ -757,6 +959,13 @@ def show_settings():
     st.markdown("## ⚙️ 순서 설정")
     df, cat_df = load_data()
     if df.empty: return
+    
+    if 'page_order' not in st.session_state:
+        saved_order = load_config_from_sheet()
+        st.session_state.page_order = sync_order_with_data(
+            saved_order if saved_order else {'분류1_순서': [], '분류2_순서': {}, '채널_순서': {}}, 
+            df, cat_df
+        )
     
     tab1, tab2, tab3 = st.tabs(["📂 카테고리 순서", "📁 장르 순서", "💾 저장"])
 
@@ -803,7 +1012,9 @@ def chunk_list(data, num_chunks):
     return chunks
 
 def main():
-    if 'page' not in st.session_state: st.session_state.page = "dashboard"
+    if 'page' not in st.session_state: 
+        st.session_state.page = "dashboard"
+    
     show_navigation()
     st.markdown("---")
     
