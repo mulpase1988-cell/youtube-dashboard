@@ -591,19 +591,6 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(102,126,234,0.4) !important;
     }
     
-    .hotdata-thumbnail-placeholder {
-        width: 160px !important;
-        height: 90px !important;
-        border-radius: 6px !important;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        border: 2px solid rgba(102,126,234,0.3) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 24px !important;
-        flex-shrink: 0 !important;
-    }
-    
     .hotdata-meta-info {
         display: flex !important;
         gap: 16px !important;
@@ -697,6 +684,21 @@ st.markdown("""
         border-color: rgba(102,126,234,0.8) !important;
         box-shadow: 0 6px 16px rgba(102,126,234,0.3) !important;
         transform: translateY(-2px) !important;
+    }
+
+    /* ======================== 실시간 탭 버튼 필터 스타일 ======================== */
+    .hotdata-filter-btn-active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border: 2px solid #667eea !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+    
+    .hotdata-filter-btn-inactive {
+        background: rgba(102,126,234,0.1) !important;
+        border: 1px solid rgba(102,126,234,0.3) !important;
+        color: #a0aec0 !important;
+        font-weight: 600 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -820,7 +822,6 @@ def load_data():
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
 
-# ======================== 🔴 실시간 데이터 로드 (수정: 열 이름 정확히 매핑) ========================
 @st.cache_data(ttl=300)
 def load_hotdata():
     """글로벌_핫데이터 시트에서 실시간 데이터 로드"""
@@ -1588,110 +1589,110 @@ def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
                     st.cache_data.clear()
                     st.rerun()
 
-# ======================== 실시간 탭 사이드바 필터 ========================
+# ======================== 🔴 실시간 탭 - 버튼 기반 필터 (수정) ========================
+def get_hotdata_countries():
+    """글로벌_핫데이터에서 국가 목록 조회"""
+    try:
+        df = load_hotdata()
+        if df is not None and '국가' in df.columns:
+            countries = sorted([c for c in df['국가'].dropna().unique() if c and str(c).strip()])
+            return countries
+        return []
+    except Exception as e:
+        st.warning(f"국가 목록 로드 실패: {str(e)}")
+        return []
+
+def get_hotdata_categories_by_country(country):
+    """선택된 국가의 카테고리 목록 조회"""
+    try:
+        df = load_hotdata()
+        if df is None or '카테고리' not in df.columns or '국가' not in df.columns:
+            return []
+        
+        if country == "전체":
+            categories = sorted([c for c in df['카테고리'].dropna().unique() if c and str(c).strip()])
+        else:
+            df_country = df[df['국가'].astype(str).str.strip() == country.strip()]
+            categories = sorted([c for c in df_country['카테고리'].dropna().unique() if c and str(c).strip()])
+        
+        return categories
+    except Exception as e:
+        st.warning(f"카테고리 목록 로드 실패: {str(e)}")
+        return []
+
 def render_hotdata_sidebar_filters():
     """
-    실시간 탭 전용 사이드바 필터 (국가, 카테고리)
+    실시간 탭 전용 사이드바 필터 (국가, 카테고리 버튼 형식)
     """
     df = load_hotdata()
     
     with st.sidebar:
         st.markdown("## 🔴 실시간 필터")
         
-        # 국가 필터
+        # ======================== 국가 필터 (버튼) ========================
         st.markdown("### 🌍 국가")
-        if '국가' in df.columns:
-            country_options = ["전체"] + sorted([c for c in df['국가'].unique() if c and str(c).strip()])
-            selected_country = st.selectbox(
-                "국가 선택",
-                country_options,
-                key="hotdata_sidebar_country",
-                label_visibility="collapsed"
-            )
-        else:
-            selected_country = "전체"
-            st.warning("시트에 '국가' 컬럼이 없습니다.")
+        
+        countries = ["전체"] + get_hotdata_countries()
+        selected_country = st.session_state.get('hotdata_country', '전체')
+        
+        # 국가 버튼 배치 (3열)
+        country_cols = 3
+        for row_start in range(0, len(countries), country_cols):
+            row_end = min(row_start + country_cols, len(countries))
+            row_countries = countries[row_start:row_end]
+            
+            country_button_cols = st.columns(len(row_countries))
+            
+            for idx, country in enumerate(row_countries):
+                is_selected = country == selected_country
+                button_label = f"✅ {country}" if is_selected else f"☐ {country}"
+                
+                with country_button_cols[idx]:
+                    if st.button(
+                        button_label,
+                        key=f"hotdata_country_btn_{country}",
+                        use_container_width=True,
+                        type="primary" if is_selected else "secondary"
+                    ):
+                        st.session_state['hotdata_country'] = country
+                        st.session_state['hotdata_category'] = '전체'  # 국가 변경 시 카테고리 초기화
+                        st.rerun()
         
         st.markdown("---")
         
-        # 카테고리 필터
+        # ======================== 카테고리 필터 (버튼) ========================
         st.markdown("### 📂 카테고리")
         
-        # 국가별로 필터링된 카테고리 표시
-        if selected_country != "전체":
-            df_for_cat = df[df['국가'] == selected_country]
-        else:
-            df_for_cat = df
+        categories = ["전체"] + get_hotdata_categories_by_country(selected_country)
+        selected_category = st.session_state.get('hotdata_category', '전체')
         
-        if '카테고리' in df_for_cat.columns:
-            category_options = ["전체"] + sorted([c for c in df_for_cat['카테고리'].unique() if c and str(c).strip()])
-            selected_category = st.selectbox(
-                "카테고리 선택",
-                category_options,
-                key="hotdata_sidebar_category",
-                label_visibility="collapsed"
-            )
-        else:
-            selected_category = "전체"
-            st.warning("시트에 '카테고리' 컬럼이 없습니다.")
+        # 카테고리 버튼 배치 (2열)
+        category_cols = 2
+        for row_start in range(0, len(categories), category_cols):
+            row_end = min(row_start + category_cols, len(categories))
+            row_categories = categories[row_start:row_end]
+            
+            category_button_cols = st.columns(len(row_categories))
+            
+            for idx, category in enumerate(row_categories):
+                is_selected = category == selected_category
+                button_label = f"✅ {category}" if is_selected else f"☐ {category}"
+                
+                with category_button_cols[idx]:
+                    if st.button(
+                        button_label,
+                        key=f"hotdata_category_btn_{selected_country}_{category}",
+                        use_container_width=True,
+                        type="primary" if is_selected else "secondary"
+                    ):
+                        st.session_state['hotdata_category'] = category
+                        st.rerun()
         
         st.markdown("---")
     
     return selected_country, selected_category
 
-# ======================== 실시간 탭 사이드바 필터 ========================
-def render_hotdata_sidebar_filters():
-    """
-    실시간 탭 전용 사이드바 필터 (국가, 카테고리)
-    """
-    df = load_hotdata()
-    
-    with st.sidebar:
-        st.markdown("## 🔴 실시간 필터")
-        
-        # 국가 필터
-        st.markdown("### 🌍 국가")
-        if '국가' in df.columns:
-            country_options = ["전체"] + sorted([c for c in df['국가'].unique() if c and str(c).strip()])
-            selected_country = st.selectbox(
-                "국가 선택",
-                country_options,
-                key="hotdata_sidebar_country",
-                label_visibility="collapsed"
-            )
-        else:
-            selected_country = "전체"
-            st.warning("시트에 '국가' 컬럼이 없습니다.")
-        
-        st.markdown("---")
-        
-        # 카테고리 필터
-        st.markdown("### 📂 카테고리")
-        
-        # 국가별로 필터링된 카테고리 표시
-        if selected_country != "전체":
-            df_for_cat = df[df['국가'] == selected_country]
-        else:
-            df_for_cat = df
-        
-        if '카테고리' in df_for_cat.columns:
-            category_options = ["전체"] + sorted([c for c in df_for_cat['카테고리'].unique() if c and str(c).strip()])
-            selected_category = st.selectbox(
-                "카테고리 선택",
-                category_options,
-                key="hotdata_sidebar_category",
-                label_visibility="collapsed"
-            )
-        else:
-            selected_category = "전체"
-            st.warning("시트에 '카테고리' 컬럼이 없습니다.")
-        
-        st.markdown("---")
-    
-    return selected_country, selected_category
-
-
-# ======================== 🔴 실시간 탭 페이지 (수정: 썸네일 추가) ========================
+# ======================== 🔴 실시간 탭 페이지 ========================
 def show_hotdata():
     """🔴 실시간 - 글로벌 핫데이터 (FULL-WIDTH 카드형 + 썸네일)"""
     st.markdown("## 🔴 실시간 인기 영상")
@@ -1722,7 +1723,7 @@ def show_hotdata():
     
     with col2:
         countries = ["전체"] + sorted([c for c in df_filtered_sidebar['국가'].unique() if c and str(c).strip()])
-        country_filter = st.selectbox("국가", countries, key="hotdata_country", label_visibility="collapsed")
+        country_filter = st.selectbox("국가", countries, key="hotdata_country_main", label_visibility="collapsed")
     
     with col3:
         sort_option = st.selectbox("정렬", ["순위 ↑", "조회수 ↓", "구독자 ↓"], key="hotdata_sort", label_visibility="collapsed")
@@ -1786,7 +1787,6 @@ def show_hotdata():
     # 페이지네이션 컨트롤
     st.markdown("---")
     render_pagination_controls(current_page, total_pages, "hotdata")
-
 
 def render_hotdata_cards(df):
     """실시간 카드 렌더링 (FULL-WIDTH + 썸네일)"""
@@ -1888,7 +1888,6 @@ def render_hotdata_card_row(row, idx):
     '''
     
     st.markdown(card_html, unsafe_allow_html=True)
-
 
 # --- 순서 설정 페이지 ---
 def show_settings():
