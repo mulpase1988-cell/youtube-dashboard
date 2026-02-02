@@ -725,11 +725,7 @@ def show_navigation():
 # --- 재사용 가능한 사이드바 필터 함수 ---
 def render_sidebar_filters(df, cat_df, page_key=""):
     """
-    재사용 가능한 사이드바 필터 UI (개선됨)
-    
-    - 국가 필터와 카테고리만 표시
-    - 카테고리 선택 시 장르 필터는 메인 영역 상단에 표시
-    
+    다시 사용 가능한 사이드바 필터 UI
     page_key: 'dashboard' 또는 'gallery' (세션 상태 구분용)
     Returns: (selected_country, selected_cat1, selected_cat2)
     """
@@ -742,7 +738,7 @@ def render_sidebar_filters(df, cat_df, page_key=""):
                 "조회할 국가를 선택하세요", 
                 country_options, 
                 key=country_key,
-                label_visibility="collapsed"
+                label_visibility="visible"
             )
         else:
             selected_country = "전체"
@@ -810,9 +806,40 @@ def render_sidebar_filters(df, cat_df, page_key=""):
                 st.session_state[cat1_key] = cat
                 st.session_state[cat2_key] = "전체"
                 st.rerun()
+        
+        st.markdown("---")
+        
+        # 장르 필터 (카테고리 선택 후에만 표시)
+        if st.session_state[cat1_key] != "전체":
+            st.markdown(f"### 📁 {st.session_state[cat1_key]} - 장르")
+            
+            분류2_list = page_order['분류2_순서'].get(st.session_state[cat1_key], ['전체'])
+            
+            for cat2 in 분류2_list:
+                if selected_country != "전체":
+                    count = len(df_for_count[
+                        (df_for_count['분류1'] == st.session_state[cat1_key]) & 
+                        (df_for_count['분류2'] == cat2)
+                    ])
+                else:
+                    count = len(df[
+                        (df['분류1'] == st.session_state[cat1_key]) & 
+                        (df['분류2'] == cat2)
+                    ])
+                
+                display_text = f"{cat2} ({count})"
+                is_active = (st.session_state[cat2_key] == cat2)
+                
+                if st.button(
+                    display_text,
+                    key=f"side_cat2_{st.session_state[cat1_key]}_{cat2}_{page_key}",
+                    use_container_width=True,
+                    type="primary" if is_active else "secondary"
+                ):
+                    st.session_state[cat2_key] = cat2
+                    st.rerun()
     
     return selected_country, st.session_state[cat1_key], st.session_state[cat2_key]
-
 
 # --- 카테고리설정 페이지 ---
 def show_category_management():
@@ -883,42 +910,7 @@ def show_gallery():
         if selected_cat2 != "전체":
             df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
     
-     # ===== 장르 필터 (메인 영역 상단에 표시) =====
-    if selected_cat1 != "전체":
-        page_order = st.session_state.get(f'page_order_gallery', {})
-        분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
-        
-        st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
-        genre_cols = st.columns(len(분류2_list))
-        
-        for idx, cat2 in enumerate(분류2_list):
-            if selected_country != "전체":
-                count = len(df_filtered[
-                    (df_filtered['분류1'] == selected_cat1) & 
-                    (df_filtered['분류2'] == cat2)
-                ])
-            else:
-                count = len(df[
-                    (df['분류1'] == selected_cat1) & 
-                    (df['분류2'] == cat2)
-                ])
-            
-            display_text = f"{cat2} ({count})"
-            is_active = (selected_cat2 == cat2)
-            
-            with genre_cols[idx]:
-                if st.button(
-                    display_text,
-                    key=f"gallery_cat2_{selected_cat1}_{cat2}",
-                    use_container_width=True,
-                    type="primary" if is_active else "secondary"
-                ):
-                    st.session_state[f"selected_cat2_gallery"] = cat2
-                    st.rerun()
-        
-        st.markdown("---")
-    
-    # ===== 필터 UI (메인 영역) =====
+    # 필터 UI (메인 영역)
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
@@ -1206,44 +1198,9 @@ def show_dashboard():
         if selected_cat2 != "전체":
             df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
     
-       st.markdown("---")
-    
-    # ===== 장르 필터 (메인 영역 상단에 표시) =====
-    if selected_cat1 != "전체":
-        page_order = st.session_state.get(f'page_order_dashboard', {})
-        분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
-        
-        st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
-        genre_cols = st.columns(len(분류2_list))
-        
-        for idx, cat2 in enumerate(분류2_list):
-            if selected_country != "전체":
-                count = len(df_filtered[
-                    (df_filtered['분류1'] == selected_cat1) & 
-                    (df_filtered['분류2'] == cat2)
-                ])
-            else:
-                count = len(df[
-                    (df['분류1'] == selected_cat1) & 
-                    (df['분류2'] == cat2)
-                ])
-            
-            display_text = f"{cat2} ({count})"
-            is_active = (selected_cat2 == cat2)
-            
-            with genre_cols[idx]:
-                if st.button(
-                    display_text,
-                    key=f"dashboard_cat2_{selected_cat1}_{cat2}",
-                    use_container_width=True,
-                    type="primary" if is_active else "secondary"
-                ):
-                    st.session_state[f"selected_cat2_dashboard"] = cat2
-                    st.rerun()
-        
-        st.markdown("---")
-    
+    st.markdown("---")
     show_category_detail(df_filtered, cat_df, selected_cat1, selected_cat2)
+
 def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
     """카테고리별 상세 데이터 표시"""
     if 분류1 == "전체":
