@@ -56,7 +56,7 @@ st.markdown("""
     /* 테이블 헤더 */
     .gallery-table-header {
         display: grid !important;
-        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;
+        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;  # ← 변경됨
         gap: 12px !important;
         background: linear-gradient(135deg, #0f172a 0%, #1a2647 100%) !important;
         border-bottom: 2px solid rgba(255,255,255,0.12) !important;
@@ -81,7 +81,7 @@ st.markdown("""
     /* 테이블 행 (높이 증가) */
     .gallery-table-row {
         display: grid !important;
-        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;
+        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;  # ← 변경됨
         gap: 12px !important;
         border-bottom: 1px solid rgba(255,255,255,0.05) !important;
         padding: 20px !important;
@@ -722,15 +722,11 @@ def show_navigation():
             st.cache_data.clear()
             st.rerun()
 
-# ======================== 수정된 사이드바 필터 함수 ========================
+# --- 재사용 가능한 사이드바 필터 함수 ---
 def render_sidebar_filters(df, cat_df, page_key=""):
     """
-    개선된 사이드바 필터 UI
-    
-    - 국가 필터와 카테고리만 사이드바에 표시
-    - 장르 필터는 메인 영역 상단에 표시 (제거)
-    - page_key: 'dashboard' 또는 'gallery' (세션 상태 구분용)
-    
+    다시 사용 가능한 사이드바 필터 UI
+    page_key: 'dashboard' 또는 'gallery' (세션 상태 구분용)
     Returns: (selected_country, selected_cat1, selected_cat2)
     """
     with st.sidebar:
@@ -742,7 +738,7 @@ def render_sidebar_filters(df, cat_df, page_key=""):
                 "조회할 국가를 선택하세요", 
                 country_options, 
                 key=country_key,
-                label_visibility="collapsed"
+                label_visibility="visible"
             )
         else:
             selected_country = "전체"
@@ -810,6 +806,38 @@ def render_sidebar_filters(df, cat_df, page_key=""):
                 st.session_state[cat1_key] = cat
                 st.session_state[cat2_key] = "전체"
                 st.rerun()
+        
+        st.markdown("---")
+        
+        # 장르 필터 (카테고리 선택 후에만 표시)
+        if st.session_state[cat1_key] != "전체":
+            st.markdown(f"### 📁 {st.session_state[cat1_key]} - 장르")
+            
+            분류2_list = page_order['분류2_순서'].get(st.session_state[cat1_key], ['전체'])
+            
+            for cat2 in 분류2_list:
+                if selected_country != "전체":
+                    count = len(df_for_count[
+                        (df_for_count['분류1'] == st.session_state[cat1_key]) & 
+                        (df_for_count['분류2'] == cat2)
+                    ])
+                else:
+                    count = len(df[
+                        (df['분류1'] == st.session_state[cat1_key]) & 
+                        (df['분류2'] == cat2)
+                    ])
+                
+                display_text = f"{cat2} ({count})"
+                is_active = (st.session_state[cat2_key] == cat2)
+                
+                if st.button(
+                    display_text,
+                    key=f"side_cat2_{st.session_state[cat1_key]}_{cat2}_{page_key}",
+                    use_container_width=True,
+                    type="primary" if is_active else "secondary"
+                ):
+                    st.session_state[cat2_key] = cat2
+                    st.rerun()
     
     return selected_country, st.session_state[cat1_key], st.session_state[cat2_key]
 
@@ -851,9 +879,9 @@ def show_category_management():
     )
     st.session_state.temp_cat_df = edited_cat
 
-# ======================== 수정된 갤러리 페이지 ========================
+# --- 갤러리 페이지 (사이드바 필터 포함) ---
 def show_gallery():
-    """다크 모드 테이블 형식의 갤러리 뷰 (사이드바 필터 + 메인 상단 장르 필터)"""
+    """다크 모드 테이블 형식의 갤러리 뷰 (사이드바 필터 포함)"""
     st.markdown("## 🎨 채널 갤러리")
     
     df, cat_df = load_data()
@@ -882,51 +910,7 @@ def show_gallery():
         if selected_cat2 != "전체":
             df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
     
-# ===== 장르 필터 (메인 영역 상단에 표시) =====
-if selected_cat1 != "전체":
-    page_order = st.session_state.get(f'page_order_dashboard', {})
-    분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
-    
-    st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
-    
-    # 최대 5개씩 행으로 나누기
-    max_cols = 5
-    for row_start in range(0, len(분류2_list), max_cols):
-        row_end = min(row_start + max_cols, len(분류2_list))
-        row_genres = 분류2_list[row_start:row_end]
-        
-        genre_cols = st.columns(len(row_genres))
-        
-        for idx, cat2 in enumerate(row_genres):
-            if selected_country != "전체":
-                count = len(df_filtered[
-                    (df_filtered['분류1'] == selected_cat1) & 
-                    (df_filtered['분류2'] == cat2)
-                ])
-            else:
-                count = len(df[
-                    (df['분류1'] == selected_cat1) & 
-                    (df['분류2'] == cat2)
-                ])
-            
-            display_text = f"{cat2} ({count})"
-            is_active = (selected_cat2 == cat2)
-            
-            with genre_cols[idx]:
-                if st.button(
-                    display_text,
-                    key=f"dashboard_cat2_{selected_cat1}_{cat2}",
-                    use_container_width=True,
-                    type="primary" if is_active else "secondary"
-                ):
-                    st.session_state[f"selected_cat2_dashboard"] = cat2
-                    st.rerun()
-    
-    st.markdown("---")
-
-
-    
-    # ===== 필터 UI (메인 영역) =====
+    # 필터 UI (메인 영역)
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
@@ -939,7 +923,7 @@ if selected_cat1 != "전체":
         items_per_page = st.selectbox("한 페이지", [10, 20, 30, 50], key="gallery_items", label_visibility="collapsed", index=1)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 데이터 필터링 및 정렬
+    # 데이터 필터링 및 정렬 (최적화)
     if search_query:
         df_filtered = df_filtered[df_filtered['채널명'].str.contains(search_query, case=False, na=False)]
     
@@ -963,7 +947,7 @@ if selected_cat1 != "전체":
         current_page = total_pages
         st.session_state.gallery_current_page = current_page
     
-    # 현재 페이지의 데이터만 추출
+    # 현재 페이지의 데이터만 추출 (성능 최적화)
     start_idx = (current_page - 1) * items_per_page
     end_idx = start_idx + items_per_page
     df_page = df_filtered.iloc[start_idx:end_idx]
@@ -972,7 +956,7 @@ if selected_cat1 != "전체":
     stat_html = f"""<div class="pagination-stats">📊 총 {total_items:,}개 | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items)}</div>"""
     st.markdown(stat_html, unsafe_allow_html=True)
     
-    # 테이블 렌더링
+    # 데이터가 있으면 테이블 렌더링 (20개 또는 설정값만 렌더링)
     if len(df_page) > 0:
         render_gallery_table(df_page)
     else:
@@ -1001,6 +985,7 @@ def render_pagination_controls(current_page, total_pages):
                 st.rerun()
     
     with col3:
+        # 페이지 번호 입력
         selected_page = st.number_input(
             "페이지 선택",
             min_value=1,
@@ -1025,19 +1010,27 @@ def render_pagination_controls(current_page, total_pages):
             st.rerun()
 
 def render_gallery_table(df):
-    """갤러리 테이블 렌더링"""
+    """갤러리 테이블 렌더링 (최적화: 필요한 데이터만 처리)"""
+    # 테이블 헤더
     header_html = """<div class="gallery-table-wrapper"><div class="gallery-table-header"><div>채널 정보</div><div>구독자 수</div><div>최근 콘텐츠</div><div>영상 수</div><div>일일 증감</div><div>액션</div></div>"""
     st.markdown(header_html, unsafe_allow_html=True)
     
+    # 테이블 행 렌더링 (현재 페이지 데이터만)
     for idx, (_, row) in enumerate(df.iterrows()):
         render_gallery_row(row, idx)
     
     st.markdown("</div>", unsafe_allow_html=True)
 
+# ===== 수정: render_gallery_row 함수 (AC~AG 컬럼 영상 썸네일 사용) =====
 def render_gallery_row(row, idx):
-    """갤러리 테이블 행 렌더링"""
+    """
+    갤러리 테이블 행 렌더링 (개선된 레이아웃)
     
-    # 데이터 추출
+    - 일일 증감: 5일, 10일, 15일, 최근 30개 토탈 표시
+    - 액션: "보러가기" 링크 버튼 추가 (새창에서 열기)
+    """
+    
+    # ===== 데이터 추출 =====
     channel_name = row.get('채널명', 'N/A')
     category = row.get('분류1', '')
     genre = row.get('분류2', '')
@@ -1046,15 +1039,16 @@ def render_gallery_row(row, idx):
     subscribers = int(row.get('구독자', 0))
     videos = int(row.get('동영상', 0))
     
+    # 변화량 데이터 (5일, 10일, 15일)
     change_5day = int(row.get('5일조회수합계', 0))
     change_10day = int(row.get('10일조회수합계', 0))
     change_15day = int(row.get('15일조회수합계', 0))
-    total_30day = int(row.get('최근 30개 토탈', 0))
     
-    # 프로필 이미지 처리
+    # ===== 프로필 이미지 처리 =====
     thumbnail_url = row.get('썸네일', '').strip() if pd.notna(row.get('썸네일', '')) else ''
     
     if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 5:
+        # 실제 이미지 URL 사용 (72x72로 확대)
         profile_html = f'''<img 
             src="{thumbnail_url}" 
             class="channel-profile-img" 
@@ -1063,10 +1057,11 @@ def render_gallery_row(row, idx):
             onerror="this.style.display='none'"
         />'''
     else:
+        # 썸네일 없으면 카테고리 아이콘 (크기 증가)
         profile_icon = get_placeholder_icon(category)
         profile_html = f'<div class="channel-profile-img" style="font-size: 32px;">{profile_icon}</div>'
     
-    # 최근 콘텐츠 썸네일
+    # ===== 최근 콘텐츠 썸네일 (AC~AG: 영상1~영상5) =====
     video_columns = ['영상1', '영상2', '영상3', '영상4', '영상5']
     thumbnails_html = '<div class="thumbnails-cell">'
     
@@ -1074,6 +1069,7 @@ def render_gallery_row(row, idx):
         video_url = row.get(video_col, '').strip() if pd.notna(row.get(video_col, '')) else ''
         
         if video_url and isinstance(video_url, str) and len(video_url) > 5:
+            # 실제 영상 썸네일
             thumbnails_html += f'''<img 
                 src="{video_url}" 
                 class="thumbnail-item" 
@@ -1083,11 +1079,12 @@ def render_gallery_row(row, idx):
                 onerror="this.style.display='none'"
             />'''
         else:
+            # 썸네일 없으면 플레이스홀더
             thumbnails_html += '''<div class="thumbnail-item" style="width: 120px; height: 90px; font-size: 28px;">📹</div>'''
     
     thumbnails_html += '</div>'
     
-    # 카테고리/장르/템플릿 태그
+    # ===== 카테고리/장르/템플릿 태그 =====
     tags_html = ""
     if category:
         tags_html += f'<span class="channel-tag-button">{category}</span>'
@@ -1096,8 +1093,9 @@ def render_gallery_row(row, idx):
     if template:
         tags_html += f'<span class="channel-tag-button">{template}</span>'
     
-    # 일일 증감 정보
+    # ===== 일일 증감 정보 (5일, 10일, 15일, 최근 30개 토탈) =====
     def get_change_color_and_symbol(val):
+        """변화값에 따른 색상과 기호 반환"""
         color = "change-positive" if val >= 0 else "change-negative"
         symbol = "+" if val >= 0 else ""
         return color, symbol
@@ -1106,15 +1104,20 @@ def render_gallery_row(row, idx):
     color_10, symbol_10 = get_change_color_and_symbol(change_10day)
     color_15, symbol_15 = get_change_color_and_symbol(change_15day)
     
+    # 최근 30개 토탈 데이터 (Q행에서 가져옴)
+    total_30day = int(row.get('최근 30개 토탈', 0))
+    
     change_html = f'''<div class="daily-change-cell">
         <div class="change-group">
             <div class="change-value {color_5}">{symbol_5}{format_korean_number(change_5day)}</div>
             <div class="change-label">5일</div>
         </div>
+        <div class="change-separator"></div>
         <div class="change-group">
             <div class="change-value {color_10}">{symbol_10}{format_korean_number(change_10day)}</div>
             <div class="change-label">10일</div>
         </div>
+        <div class="change-separator"></div>
         <div class="change-group">
             <div class="change-value {color_15}">{symbol_15}{format_korean_number(change_15day)}</div>
             <div class="change-label">15일</div>
@@ -1125,7 +1128,8 @@ def render_gallery_row(row, idx):
         </div>
     </div>'''
     
-    # 액션 버튼
+    # ===== 액션 버튼 (보러가기 링크) =====
+    # URL이 있으면 새창에서 열기, 없으면 비활성화
     if url and str(url).startswith(('http://', 'https://')):
         action_html = f'''<div class="action-cell">
             <a href="{url}" target="_blank" rel="noopener noreferrer" class="action-link-btn">
@@ -1139,7 +1143,7 @@ def render_gallery_row(row, idx):
             </div>
         </div>'''
     
-    # 행 HTML
+    # ===== 행 HTML 생성 (모든 셀 통합) =====
     row_html = f'''<div class="gallery-table-row">
         <div class="gallery-table-cell">
             <div class="channel-info-cell-v2">
@@ -1168,13 +1172,18 @@ def render_gallery_row(row, idx):
     
     st.markdown(row_html, unsafe_allow_html=True)
 
-# ======================== 수정된 대시보드 페이지 ========================
+
+
+
+
+
+
+# --- 대시보드 페이지 (사이드바 필터 적용) ---
 def show_dashboard():
-    """대시보드 (사이드바 필터 + 메인 상단 장르 필터)"""
     df, cat_df = load_data()
     if df.empty: return
     
-    # 사이드바 필터 사용
+    # 사이드바 필터 사용 (page_key="dashboard")
     selected_country, selected_cat1, selected_cat2 = render_sidebar_filters(df, cat_df, page_key="dashboard")
     
     # 필터 적용
@@ -1190,43 +1199,6 @@ def show_dashboard():
             df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
     
     st.markdown("---")
-    
-    # ===== 장르 필터 (메인 영역 상단에 표시) =====
-    if selected_cat1 != "전체":
-        page_order = st.session_state.get(f'page_order_dashboard', {})
-        분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
-        
-        st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
-        
-        genre_cols = st.columns(len(분류2_list))
-        
-        for idx, cat2 in enumerate(분류2_list):
-            if selected_country != "전체":
-                count = len(df_filtered[
-                    (df_filtered['분류1'] == selected_cat1) & 
-                    (df_filtered['분류2'] == cat2)
-                ])
-            else:
-                count = len(df[
-                    (df['분류1'] == selected_cat1) & 
-                    (df['분류2'] == cat2)
-                ])
-            
-            display_text = f"{cat2} ({count})"
-            is_active = (selected_cat2 == cat2)
-            
-            with genre_cols[idx]:
-                if st.button(
-                    display_text,
-                    key=f"dashboard_cat2_{selected_cat1}_{cat2}",
-                    use_container_width=True,
-                    type="primary" if is_active else "secondary"
-                ):
-                    st.session_state[f"selected_cat2_dashboard"] = cat2
-                    st.rerun()
-        
-        st.markdown("---")
-    
     show_category_detail(df_filtered, cat_df, selected_cat1, selected_cat2)
 
 def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
