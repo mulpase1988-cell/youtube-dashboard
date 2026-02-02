@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 # 커스텀 CSS (다크 모드 + 테이블 스타일 + 페이지네이션)
-# ===== 수정: 채널 정보 셀 CSS 업데이트 (프로필 이미지 + 태그) =====
+# ===== 수정: 채널 정보 셀 CSS 추가 (프로필 이미지 + 태그 v2) =====
 st.markdown("""
 <style>
     /* 기본 색상 변수 */
@@ -161,9 +161,8 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* ======================== 채널 정보 셀 개선 (v2: 프로필 이미지 + 태그) ======================== */
+    /* ======================== 채널 정보 셀 v2 (프로필 이미지 + 태그) ======================== */
     
-    /* 채널 정보 컨테이너 */
     .channel-info-cell-v2 {
         display: flex !important;
         align-items: flex-start !important;
@@ -171,12 +170,10 @@ st.markdown("""
         width: 100% !important;
     }
     
-    /* 프로필 이미지: 둥근 사각형 (border-radius 8px) */
     .channel-profile-img {
         width: 56px !important;
         height: 56px !important;
         border-radius: 8px !important;
-        object-fit: cover !important;
         flex-shrink: 0 !important;
         border: 1px solid rgba(255,255,255,0.15) !important;
         box-shadow: 0 2px 8px rgba(102,126,234,0.2) !important;
@@ -188,7 +185,6 @@ st.markdown("""
         color: white !important;
     }
     
-    /* 채널 텍스트 & 태그 래퍼 */
     .channel-content-wrapper {
         display: flex !important;
         flex-direction: column !important;
@@ -197,14 +193,12 @@ st.markdown("""
         min-width: 0 !important;
     }
     
-    /* 채널명 & 핸들 텍스트 영역 */
     .channel-text-info {
         display: flex !important;
         flex-direction: column !important;
         gap: 2px !important;
     }
     
-    /* 채널명: 굵은 글씨 */
     .channel-name-bold {
         font-size: 14px !important;
         font-weight: 700 !important;
@@ -215,7 +209,6 @@ st.markdown("""
         text-overflow: ellipsis !important;
     }
     
-    /* 핸들명: 연한 글씨 */
     .channel-handle-light {
         font-size: 12px !important;
         color: #a0aec0 !important;
@@ -225,7 +218,6 @@ st.markdown("""
         text-overflow: ellipsis !important;
     }
     
-    /* 카테고리 태그 영역: 파란색 계열 버튼 */
     .channel-tags-container {
         display: flex !important;
         gap: 6px !important;
@@ -233,7 +225,6 @@ st.markdown("""
         margin-top: 4px !important;
     }
     
-    /* 개별 태그: 파란색 계열 버튼 스타일 */
     .channel-tag-button {
         background: linear-gradient(135deg, rgba(102,126,234,0.25) 0%, rgba(102,126,234,0.15) 100%) !important;
         border: 1px solid rgba(102,126,234,0.5) !important;
@@ -954,11 +945,7 @@ def show_gallery():
     df_page = df_filtered.iloc[start_idx:end_idx]
     
     # 통계 정보 표시
-    stat_html = f"""
-    <div class="pagination-stats">
-        📊 총 {total_items:,}개 | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items)}
-    </div>
-    """
+    stat_html = f"""<div class="pagination-stats">📊 총 {total_items:,}개 | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items)}</div>"""
     st.markdown(stat_html, unsafe_allow_html=True)
     
     # 데이터가 있으면 테이블 렌더링 (20개 또는 설정값만 렌더링)
@@ -1017,17 +1004,7 @@ def render_pagination_controls(current_page, total_pages):
 def render_gallery_table(df):
     """갤러리 테이블 렌더링 (최적화: 필요한 데이터만 처리)"""
     # 테이블 헤더
-    header_html = """
-    <div class="gallery-table-wrapper">
-        <div class="gallery-table-header">
-            <div>채널 정보</div>
-            <div>구독자 수</div>
-            <div>최근 콘텐츠</div>
-            <div>영상 수</div>
-            <div>일일 증감</div>
-            <div>액션</div>
-        </div>
-    """
+    header_html = """<div class="gallery-table-wrapper"><div class="gallery-table-header"><div>채널 정보</div><div>구독자 수</div><div>최근 콘텐츠</div><div>영상 수</div><div>일일 증감</div><div>액션</div></div>"""
     st.markdown(header_html, unsafe_allow_html=True)
     
     # 테이블 행 렌더링 (현재 페이지 데이터만)
@@ -1036,7 +1013,7 @@ def render_gallery_table(df):
     
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ===== 수정: 채널 정보 컬럼 개선 (프로필 이미지 + 태그) =====
+# ===== 수정: render_gallery_row 함수 (프로필 이미지 + 채널명/핸들 + 태그) =====
 def render_gallery_row(row, idx):
     """
     갤러리 테이블 행 렌더링 (개선된 채널 정보: 프로필 이미지 + 채널명/핸들 + 카테고리/장르/템플릿 태그)
@@ -1064,75 +1041,19 @@ def render_gallery_row(row, idx):
     change_symbol = "+" if change_val >= 0 else ""
     
     # 썸네일 HTML 생성
-    thumbnails_html = """
-    <div class="thumbnails-cell">
-        <div class="thumbnail-item">📹</div>
-        <div class="thumbnail-item">📹</div>
-        <div class="thumbnail-item">📹</div>
-        <div class="thumbnail-item">📹</div>
-        <div class="thumbnail-item">📹</div>
-    </div>
-    """
+    thumbnails_html = """<div class="thumbnails-cell"><div class="thumbnail-item">📹</div><div class="thumbnail-item">📹</div><div class="thumbnail-item">📹</div><div class="thumbnail-item">📹</div><div class="thumbnail-item">📹</div></div>"""
     
-    # ===== 채널 정보 셀: 프로필 이미지 + 텍스트 + 태그 =====
-    channel_info_html = f"""
-    <div class="channel-info-cell-v2">
-        <!-- 프로필 이미지: 둥근 사각형 -->
-        <div class="channel-profile-img">{profile_icon}</div>
-        
-        <!-- 채널 텍스트 & 태그 래퍼 -->
-        <div class="channel-content-wrapper">
-            <!-- 채널명 & 핸들 -->
-            <div class="channel-text-info">
-                <div class="channel-name-bold">{channel_name}</div>
-                <div class="channel-handle-light">@{channel_name.lower()}</div>
-            </div>
-            
-            <!-- 카테고리/장르/템플릿 태그 -->
-            <div class="channel-tags-container">
-    """
-    
-    # 카테고리 태그 추가
+    # ===== 카테고리/장르/템플릿 태그 생성 =====
+    tags_html = ""
     if category:
-        channel_info_html += f'<span class="channel-tag-button">{category}</span>'
-    
-    # 장르 태그 추가
+        tags_html += f'<span class="channel-tag-button">{category}</span>'
     if genre:
-        channel_info_html += f'<span class="channel-tag-button">{genre}</span>'
-    
-    # 템플릿 태그 추가 (있는 경우)
+        tags_html += f'<span class="channel-tag-button">{genre}</span>'
     if template:
-        channel_info_html += f'<span class="channel-tag-button">{template}</span>'
+        tags_html += f'<span class="channel-tag-button">{template}</span>'
     
-    channel_info_html += """
-            </div>
-        </div>
-    </div>
-    """
-    
-    # 행 HTML (최소한의 HTML로 최적화)
-    row_html = f"""
-    <div class="gallery-table-row">
-        <div class="gallery-table-cell">{channel_info_html}</div>
-        <div class="gallery-table-cell subscriber-cell">
-            <div class="subscriber-number">{format_korean_number(subscribers)}</div>
-            <div class="subscriber-label">구독자</div>
-        </div>
-        <div class="gallery-table-cell">{thumbnails_html}</div>
-        <div class="gallery-table-cell video-count-cell">
-            <div class="video-count-number">{videos}</div>
-            <div class="video-count-label">개</div>
-        </div>
-        <div class="gallery-table-cell daily-change-cell">
-            <div class="change-value {change_color}">{change_symbol}{format_korean_number(change_val)}</div>
-            <div class="change-label">최근 15일</div>
-        </div>
-        <div class="gallery-table-cell action-cell">
-            <div class="action-btn" title="상세보기">📊</div>
-            <div class="action-btn" title="즐겨찾기">❤️</div>
-        </div>
-    </div>
-    """
+    # ===== 행 HTML 생성 (모든 요소를 단일 문자열로 통합) =====
+    row_html = f"""<div class="gallery-table-row"><div class="gallery-table-cell"><div class="channel-info-cell-v2"><div class="channel-profile-img">{profile_icon}</div><div class="channel-content-wrapper"><div class="channel-text-info"><div class="channel-name-bold">{channel_name}</div><div class="channel-handle-light">@{channel_name.lower()}</div></div><div class="channel-tags-container">{tags_html}</div></div></div></div><div class="gallery-table-cell subscriber-cell"><div class="subscriber-number">{format_korean_number(subscribers)}</div><div class="subscriber-label">구독자</div></div><div class="gallery-table-cell">{thumbnails_html}</div><div class="gallery-table-cell video-count-cell"><div class="video-count-number">{videos}</div><div class="video-count-label">개</div></div><div class="gallery-table-cell daily-change-cell"><div class="change-value {change_color}">{change_symbol}{format_korean_number(change_val)}</div><div class="change-label">최근 15일</div></div><div class="gallery-table-cell action-cell"><div class="action-btn" title="상세보기">📊</div><div class="action-btn" title="즐겨찾기">❤️</div></div></div>"""
     
     st.markdown(row_html, unsafe_allow_html=True)
 
