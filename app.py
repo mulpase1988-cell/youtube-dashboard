@@ -56,7 +56,7 @@ st.markdown("""
     /* 테이블 헤더 */
     .gallery-table-header {
         display: grid !important;
-        grid-template-columns: 2.5fr 1fr 2.5fr 0.8fr 1fr 0.6fr !important;
+        grid-template-columns: 0.7fr 0.5fr 4.8fr 0.6fr 0.8fr 0.5fr !important;  # ← 변경됨
         gap: 12px !important;
         background: linear-gradient(135deg, #0f172a 0%, #1a2647 100%) !important;
         border-bottom: 2px solid rgba(255,255,255,0.12) !important;
