@@ -1656,45 +1656,36 @@ def render_hotdata_sidebar_filters():
                         type="primary" if is_selected else "secondary"
                     ):
                         st.session_state['hotdata_country'] = country
-                        # 국가 변경 시에만 카테고리 초기화
-                        st.session_state['hotdata_category'] = '전체'
+                        st.session_state['hotdata_category'] = '전체'  # 국가 변경 시 카테고리 초기화
                         st.rerun()
         
         st.markdown("---")
         
-        # ======================== 카테고리 필터 (버튼) ========================
+        # ======================== 카테고리 필터 (버튼 - 1열) ========================
         st.markdown("### 📂 카테고리")
         
         # 선택된 국가에 따른 카테고리만 표시
         categories = ["전체"] + get_hotdata_categories_by_country(selected_country)
         selected_category = st.session_state.get('hotdata_category', '전체')
         
-        # 카테고리 버튼 배치 (2열)
-        category_cols = 2
-        for row_start in range(0, len(categories), category_cols):
-            row_end = min(row_start + category_cols, len(categories))
-            row_categories = categories[row_start:row_end]
+        # 카테고리 버튼을 일렬(1열)로 배치
+        for category in categories:
+            is_selected = category == selected_category
+            button_label = f"✅ {category}" if is_selected else f"☐ {category}"
             
-            category_button_cols = st.columns(len(row_categories))
-            
-            for idx, category in enumerate(row_categories):
-                is_selected = category == selected_category
-                button_label = f"✅ {category}" if is_selected else f"☐ {category}"
-                
-                # key에서 selected_country를 제거하여 국가 변경 시에도 상태 유지
-                with category_button_cols[idx]:
-                    if st.button(
-                        button_label,
-                        key=f"hotdata_category_btn_{category}",
-                        use_container_width=True,
-                        type="primary" if is_selected else "secondary"
-                    ):
-                        st.session_state['hotdata_category'] = category
-                        st.rerun()
+            if st.button(
+                button_label,
+                key=f"hotdata_category_btn_{category}",
+                use_container_width=True,
+                type="primary" if is_selected else "secondary"
+            ):
+                st.session_state['hotdata_category'] = category
+                st.rerun()
         
         st.markdown("---")
     
     return selected_country, selected_category
+
 
 
 # ======================== 🔴 실시간 탭 페이지 ========================
