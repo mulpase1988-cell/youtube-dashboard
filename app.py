@@ -474,12 +474,12 @@ st.markdown("""
         padding: 20px !important;
         margin-bottom: 16px !important;
         display: grid !important;
-        grid-template-columns: 0.8fr 1.2fr 2fr 0.8fr 1fr 0.8fr !important;
-        gap: 24px !important;
-        align-items: center !important;
+        grid-template-columns: 0.6fr 1.2fr 2.5fr 0.8fr 0.8fr 0.8fr !important;
+        gap: 20px !important;
+        align-items: start !important;
         transition: all 0.3s ease !important;
         box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
-        min-height: 160px !important;
+        min-height: auto !important;
     }
     
     .hotdata-table-row:hover {
@@ -495,13 +495,14 @@ st.markdown("""
         justify-content: center !important;
         font-size: 32px !important;
         font-weight: 900 !important;
-        width: 80px !important;
-        height: 80px !important;
+        width: 70px !important;
+        height: 70px !important;
         border-radius: 12px !important;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         color: white !important;
         box-shadow: 0 6px 16px rgba(102,126,234,0.3) !important;
         border: 2px solid rgba(255,255,255,0.1) !important;
+        flex-shrink: 0 !important;
     }
     
     .hotdata-channel-info-cell {
@@ -549,7 +550,7 @@ st.markdown("""
     .hotdata-title-cell {
         display: flex !important;
         flex-direction: column !important;
-        gap: 8px !important;
+        gap: 12px !important;
         min-width: 0 !important;
     }
     
@@ -564,11 +565,51 @@ st.markdown("""
         overflow: hidden !important;
     }
     
+    .hotdata-thumbnail-container {
+        display: flex !important;
+        gap: 10px !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        padding: 8px 0 !important;
+    }
+    
+    .hotdata-thumbnail-img {
+        width: 160px !important;
+        height: 90px !important;
+        border-radius: 6px !important;
+        object-fit: cover !important;
+        border: 2px solid rgba(102,126,234,0.3) !important;
+        box-shadow: 0 2px 8px rgba(102,126,234,0.2) !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .hotdata-thumbnail-img:hover {
+        transform: scale(1.08) !important;
+        border-color: rgba(102,126,234,0.6) !important;
+        box-shadow: 0 4px 12px rgba(102,126,234,0.4) !important;
+    }
+    
+    .hotdata-thumbnail-placeholder {
+        width: 160px !important;
+        height: 90px !important;
+        border-radius: 6px !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border: 2px solid rgba(102,126,234,0.3) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 24px !important;
+        flex-shrink: 0 !important;
+    }
+    
     .hotdata-meta-info {
         display: flex !important;
         gap: 16px !important;
         font-size: 12px !important;
         color: #a0aec0 !important;
+        flex-wrap: wrap !important;
     }
     
     .hotdata-meta-item {
@@ -779,7 +820,7 @@ def load_data():
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
 
-# ======================== 🔴 실시간 데이터 로드 ========================
+# ======================== 🔴 실시간 데이터 로드 (수정: 열 이름 정확히 매핑) ========================
 @st.cache_data(ttl=300)
 def load_hotdata():
     """글로벌_핫데이터 시트에서 실시간 데이터 로드"""
@@ -1547,9 +1588,9 @@ def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
                     st.cache_data.clear()
                     st.rerun()
 
-# ======================== 🔴 실시간 탭 페이지 ========================
+# ======================== 🔴 실시간 탭 페이지 (수정: 썸네일 추가) ========================
 def show_hotdata():
-    """🔴 실시간 - 글로벌 핫데이터 (FULL-WIDTH 카드형)"""
+    """🔴 실시간 - 글로벌 핫데이터 (FULL-WIDTH 카드형 + 썸네일)"""
     st.markdown("## 🔴 실시간 인기 영상")
     
     df = load_hotdata()
@@ -1631,7 +1672,7 @@ def show_hotdata():
     render_pagination_controls(current_page, total_pages, "hotdata")
 
 def render_hotdata_cards(df):
-    """실시간 카드 렌더링 (FULL-WIDTH)"""
+    """실시간 카드 렌더링 (FULL-WIDTH + 썸네일)"""
     st.markdown('<div class="hotdata-table-wrapper">', unsafe_allow_html=True)
     
     for idx, (_, row) in enumerate(df.iterrows()):
@@ -1640,7 +1681,7 @@ def render_hotdata_cards(df):
     st.markdown('</div>', unsafe_allow_html=True)
 
 def render_hotdata_card_row(row, idx):
-    """개별 카드 행 렌더링"""
+    """개별 카드 행 렌더링 (수정: 제목과 조회수 사이에 썸네일 추가)"""
     rank = int(row.get('순위', 0))
     title = str(row.get('영상제목', 'N/A'))[:100]
     channel_name = str(row.get('채널명', 'N/A'))[:30]
@@ -1649,6 +1690,9 @@ def render_hotdata_card_row(row, idx):
     category = str(row.get('카테고리', '')).strip()
     handle = str(row.get('핸들명(@)', '')).strip() if pd.notna(row.get('핸들명(@)', '')) else ''
     link = str(row.get('링크', '')).strip()
+    
+    # 🔴 썸네일 URL 가져오기
+    thumbnail_url = str(row.get('썸네일URL', '')).strip() if pd.notna(row.get('썸네일URL', '')) else ''
     
     # 핸들 표시
     handle_display = f"@{handle}" if handle else f"@{channel_name.lower()}"
@@ -1672,6 +1716,18 @@ def render_hotdata_card_row(row, idx):
     else:
         rank_color = "#667eea"
     
+    # 🔴 썸네일 HTML 생성
+    if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 5:
+        thumbnail_html = f'''<img 
+            src="{thumbnail_url}" 
+            class="hotdata-thumbnail-img" 
+            alt="영상 썸네일"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+        />
+        <div class="hotdata-thumbnail-placeholder" style="display: none;">🎬</div>'''
+    else:
+        thumbnail_html = '<div class="hotdata-thumbnail-placeholder">🎬</div>'
+    
     card_html = f'''
     <div class="hotdata-table-row">
         <div class="hotdata-rank-cell" style="background: linear-gradient(135deg, {rank_color} 0%, {rank_color}dd 100%);">
@@ -1686,6 +1742,9 @@ def render_hotdata_card_row(row, idx):
         </div>
         <div class="hotdata-title-cell">
             <div class="hotdata-video-title">{title}</div>
+            <div class="hotdata-thumbnail-container">
+                {thumbnail_html}
+            </div>
             <div class="hotdata-meta-info">
                 <div class="hotdata-meta-item">
                     <span style="font-size: 10px; color: #a0aec0;">업로드일</span>
