@@ -174,7 +174,7 @@ st.markdown("""
         border: 1px solid rgba(102,126,234,0.6) !important;
         border-radius: 6px !important;
         padding: 5px 11px !important;
-        font-size: 13px !important;
+        font-size: 15px !important;
         color: #b0c0ff !important;
         font-weight: 600 !important;
         white-space: nowrap !important;
