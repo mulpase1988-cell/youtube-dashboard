@@ -1681,7 +1681,7 @@ def render_hotdata_cards(df):
     st.markdown('</div>', unsafe_allow_html=True)
 
 def render_hotdata_card_row(row, idx):
-    """개별 카드 행 렌더링 (수정: 제목과 조회수 사이에 썸네일 추가)"""
+    """개별 카드 행 렌더링 (수정: 제목과 조회수 사이에 썸네일 추가, 이모티콘 제거)"""
     rank = int(row.get('순위', 0))
     title = str(row.get('영상제목', 'N/A'))[:100]
     channel_name = str(row.get('채널명', 'N/A'))[:30]
@@ -1716,17 +1716,23 @@ def render_hotdata_card_row(row, idx):
     else:
         rank_color = "#667eea"
     
-    # 🔴 썸네일 HTML 생성
+    # 🔴 썸네일 HTML 생성 (이모티콘 제거)
     if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 5:
         thumbnail_html = f'''<img 
             src="{thumbnail_url}" 
             class="hotdata-thumbnail-img" 
             alt="영상 썸네일"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-        />
-        <div class="hotdata-thumbnail-placeholder" style="display: none;">🎬</div>'''
+            onerror="this.style.display='none';"
+        />'''
     else:
-        thumbnail_html = '<div class="hotdata-thumbnail-placeholder">🎬</div>'
+        # 썸네일이 없으면 아무것도 표시하지 않음
+        thumbnail_html = ''
+    
+    # 썸네일이 있을 때만 컨테이너 표시
+    if thumbnail_html:
+        thumbnail_container = f'<div class="hotdata-thumbnail-container">{thumbnail_html}</div>'
+    else:
+        thumbnail_container = ''
     
     card_html = f'''
     <div class="hotdata-table-row">
@@ -1742,9 +1748,7 @@ def render_hotdata_card_row(row, idx):
         </div>
         <div class="hotdata-title-cell">
             <div class="hotdata-video-title">{title}</div>
-            <div class="hotdata-thumbnail-container">
-                {thumbnail_html}
-            </div>
+            {thumbnail_container}
             <div class="hotdata-meta-info">
                 <div class="hotdata-meta-item">
                     <span style="font-size: 10px; color: #a0aec0;">업로드일</span>
@@ -1767,6 +1771,7 @@ def render_hotdata_card_row(row, idx):
     '''
     
     st.markdown(card_html, unsafe_allow_html=True)
+
 
 # --- 순서 설정 페이지 ---
 def show_settings():
