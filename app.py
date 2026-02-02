@@ -548,15 +548,15 @@ def show_category_detail(df, cat_df, 분류1):
     if '조회수' in df_to_edit.columns:
         df_to_edit['조회수'] = df_to_edit['조회수'].apply(format_korean_number)
 
-    # [추가] 새로 추가된 3개 컬럼에도 한글 숫자 포맷팅 적용
-    new_cols = ['5일조회수합계', '10일조회수합계', '15일조회수합계']
-    for col in new_cols:
-        if col in df_to_edit.columns:
-             df_to_edit[col] = df_to_edit[col].apply(format_korean_number)
-
     # 3. '최근 X개 토탈' 컬럼 포맷팅
     icon_cols = ['최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈']
     for col in icon_cols:
+        if col in df_to_edit.columns:
+            df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
+
+    # [수정] 새로 추가된 3개 컬럼에도 이모지와 함께 포맷팅 적용 (format_korean_number_with_icon 사용)
+    new_cols = ['5일조회수합계', '10일조회수합계', '15일조회수합계']
+    for col in new_cols:
         if col in df_to_edit.columns:
             df_to_edit[col] = df_to_edit[col].apply(format_korean_number_with_icon)
 
