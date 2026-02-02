@@ -299,7 +299,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-       /* ======================== 일일 증감 셀 (개선됨: 5일, 10일, 15일) ======================== */
+    /* ======================== 일일 증감 셀 (개선됨: 5일, 10일, 15일) ======================== */
     
     .daily-change-cell {
         display: flex !important;
@@ -337,7 +337,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-     .change-total-30 {
+    .change-total-30 {
         background: linear-gradient(135deg, rgba(251,191,36,0.2) 0%, rgba(251,191,36,0.1) 100%) !important;
         border: 1px solid rgba(251,191,36,0.4) !important;
         border-radius: 6px !important;
@@ -359,7 +359,7 @@ st.markdown("""
         margin-top: 2px !important;
     }
     
-       /* ======================== 액션 버튼 셀 (개선됨: 링크 버튼 추가) ======================== */
+    /* ======================== 액션 버튼 셀 (개선됨: 링크 버튼 추가) ======================== */
     
     .action-cell {
         display: flex !important;
@@ -456,6 +456,216 @@ st.markdown("""
         padding: 10px 14px !important;
         color: #a8b8ff !important;
         font-size: 12px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* ======================== 🔴 실시간 탭 카드 스타일 ======================== */
+    
+    .hotdata-grid-container {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+        gap: 20px !important;
+        padding: 16px 0 !important;
+    }
+    
+    .hotdata-card {
+        background: linear-gradient(135deg, #1a2647 0%, #0f172a 100%) !important;
+        border: 2px solid rgba(102,126,234,0.2) !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        cursor: pointer !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+    }
+    
+    .hotdata-card:hover {
+        border-color: rgba(102,126,234,0.6) !important;
+        box-shadow: 0 8px 24px rgba(102,126,234,0.3) !important;
+        transform: translateY(-4px) !important;
+    }
+    
+    .hotdata-card-image {
+        width: 100% !important;
+        height: 180px !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    .hotdata-card-image img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+    
+    .hotdata-rank-badge {
+        position: absolute !important;
+        top: 10px !important;
+        left: 10px !important;
+        background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%) !important;
+        border-radius: 50% !important;
+        width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 18px !important;
+        font-weight: 800 !important;
+        color: white !important;
+        box-shadow: 0 4px 8px rgba(255, 75, 87, 0.4) !important;
+    }
+    
+    .hotdata-card-content {
+        padding: 16px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        flex: 1 !important;
+    }
+    
+    .hotdata-video-title {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        line-height: 1.4 !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+    }
+    
+    .hotdata-channel-info {
+        display: flex !important;
+        gap: 10px !important;
+        align-items: center !important;
+    }
+    
+    .hotdata-channel-thumb {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
+        font-size: 18px !important;
+    }
+    
+    .hotdata-channel-name {
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #ffffff !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    .hotdata-stats {
+        display: flex !important;
+        gap: 12px !important;
+        font-size: 12px !important;
+        color: #a0aec0 !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .hotdata-stat-item {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+    }
+    
+    .hotdata-stat-value {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+    }
+    
+    .hotdata-tags {
+        display: flex !important;
+        gap: 6px !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .hotdata-tag {
+        background: rgba(102,126,234,0.2) !important;
+        border: 1px solid rgba(102,126,234,0.4) !important;
+        border-radius: 4px !important;
+        padding: 4px 8px !important;
+        font-size: 11px !important;
+        color: #a8b8ff !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+    }
+    
+    .hotdata-footer {
+        display: flex !important;
+        gap: 8px !important;
+        padding-top: 12px !important;
+        border-top: 1px solid rgba(255,255,255,0.05) !important;
+        margin-top: auto !important;
+    }
+    
+    .hotdata-link-btn {
+        flex: 1 !important;
+        padding: 8px 10px !important;
+        background: rgba(102,126,234,0.2) !important;
+        border: 1px solid rgba(102,126,234,0.4) !important;
+        border-radius: 6px !important;
+        color: #a8b8ff !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        text-align: center !important;
+        text-decoration: none !important;
+        display: inline-block !important;
+    }
+    
+    .hotdata-link-btn:hover {
+        background: rgba(102,126,234,0.4) !important;
+        border-color: rgba(102,126,234,0.7) !important;
+    }
+    
+    .hotdata-header {
+        background: rgba(26,38,71,0.5) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 8px !important;
+        padding: 16px !important;
+        margin-bottom: 20px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 16px !important;
+    }
+    
+    .hotdata-header-stats {
+        display: flex !important;
+        gap: 20px !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .hotdata-header-stat {
+        text-align: center !important;
+    }
+    
+    .hotdata-header-stat-value {
+        font-size: 24px !important;
+        font-weight: 800 !important;
+        color: #667eea !important;
+    }
+    
+    .hotdata-header-stat-label {
+        font-size: 12px !important;
+        color: #a0aec0 !important;
+        margin-top: 4px !important;
         font-weight: 600 !important;
     }
 </style>
@@ -580,6 +790,28 @@ def load_data():
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
 
+# ======================== 🔴 실시간 탭 데이터 로드 (신규) ========================
+@st.cache_data(ttl=300)
+def load_hotdata():
+    """글로벌_핫데이터 시트에서 실시간 데이터 로드"""
+    try:
+        client = get_gspread_client()
+        doc = client.open("유튜브보물창고_테스트")
+        sheet = doc.worksheet("글로벌_핫데이터")
+        data = sheet.get_all_records()
+        df = pd.DataFrame(data)
+        
+        # 숫자 칼럼 변환
+        numeric_cols = ['순위', '조회수', '구독자수']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce').fillna(0).astype(int)
+        
+        return df
+    except Exception as e:
+        st.warning(f"실시간 데이터 로드 실패: {str(e)}")
+        return pd.DataFrame()
+
 # --- 백업 기능 ---
 def run_backup():
     try:
@@ -680,9 +912,9 @@ def sync_order_with_data(saved_order, df, cat_df):
         saved_order['분류2_순서'][cat1] = new_cat2_order
     return saved_order
 
-# --- 네비게이션 ---
+# --- 네비게이션 (수정: 🔴 실시간 탭 추가) ---
 def show_navigation():
-    col1, col2, col3, col4, col5, col6, col7 = st.columns([2.5, 1, 1, 1, 1, 1, 1])
+    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2.5, 1, 1, 1, 1, 1, 1, 1])
     with col1:
         if st.button("🎬 YouTube 보물창고", key="logo_home", use_container_width=False):
             st.session_state.page = "dashboard"
@@ -696,24 +928,220 @@ def show_navigation():
             st.session_state.page = "gallery"
             st.rerun()
     with col4:
+        if st.button("🔴 실시간", use_container_width=True):
+            st.session_state.page = "hotdata"
+            st.rerun()
+    with col5:
         if st.button("📁 카테고리설정", use_container_width=True):
             st.session_state.page = "category_mgmt"
             st.rerun()
-    with col5:
+    with col6:
         if st.button("⚙️ 순서 설정", use_container_width=True):
             st.session_state.page = "settings"
             st.rerun()
-    with col6:
+    with col7:
         if st.button("💾 백업하기", use_container_width=True):
             success, target = run_backup()
             if success:
                 st.toast(f"✅ '{target}' 시트에 백업 완료!", icon="💾")
             else:
                 st.error(f"백업 실패: {target}")
-    with col7:
+    with col8:
         if st.button("🔄 새로고침", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
+
+# ======================== 🔴 실시간 탭 페이지 (신규) ========================
+def show_hotdata():
+    """🔴 실시간 - 글로벌 핫데이터"""
+    st.markdown("## 🔴 실시간 인기 영상")
+    
+    df = load_hotdata()
+    if df.empty:
+        st.warning("데이터를 불러올 수 없습니다.")
+        return
+    
+    # 필터 UI
+    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns([2, 1, 1, 1])
+    
+    with filter_col1:
+        search_query = st.text_input("🔍 영상제목 검색", key="hotdata_search", placeholder="영상제목을 입력하세요")
+    
+    with filter_col2:
+        country_filter = st.selectbox(
+            "국가",
+            ["전체"] + sorted(df['국가'].unique().tolist()),
+            key="hotdata_country",
+            label_visibility="collapsed"
+        )
+    
+    with filter_col3:
+        sort_option = st.selectbox(
+            "정렬",
+            ["순위 ↑", "조회수 ↓", "구독자 ↓"],
+            key="hotdata_sort",
+            label_visibility="collapsed"
+        )
+    
+    with filter_col4:
+        display_count = st.selectbox(
+            "표시 개수",
+            [20, 30, 50],
+            key="hotdata_count",
+            label_visibility="collapsed"
+        )
+    
+    # 필터링
+    df_filtered = df.copy()
+    
+    if search_query:
+        df_filtered = df_filtered[df_filtered['영상제목'].str.contains(search_query, case=False, na=False)]
+    
+    if country_filter != "전체":
+        df_filtered = df_filtered[df_filtered['국가'] == country_filter]
+    
+    # 정렬
+    if "순위" in sort_option:
+        df_filtered = df_filtered.sort_values('순위', ascending=True)
+    elif "조회수" in sort_option:
+        df_filtered = df_filtered.sort_values('조회수', ascending=False)
+    elif "구독자" in sort_option:
+        df_filtered = df_filtered.sort_values('구독자수', ascending=False)
+    
+    # 상위 N개 선택
+    df_filtered = df_filtered.head(display_count)
+    
+    # 헤더 통계
+    show_hotdata_header(df_filtered)
+    
+    # 그리드 렌더링
+    render_hotdata_grid(df_filtered)
+
+def show_hotdata_header(df):
+    """실시간 탭 헤더 통계"""
+    total_views = df['조회수'].sum()
+    total_subs = df['구독자수'].sum()
+    avg_views = df['조회수'].mean()
+    
+    header_html = f"""
+    <div class="hotdata-header">
+        <div class="hotdata-header-stats">
+            <div class="hotdata-header-stat">
+                <div class="hotdata-header-stat-value">📊 {len(df):,}</div>
+                <div class="hotdata-header-stat-label">영상 수</div>
+            </div>
+            <div class="hotdata-header-stat">
+                <div class="hotdata-header-stat-value">👁️ {format_korean_number(total_views)}</div>
+                <div class="hotdata-header-stat-label">총 조회수</div>
+            </div>
+            <div class="hotdata-header-stat">
+                <div class="hotdata-header-stat-value">👥 {format_korean_number(total_subs)}</div>
+                <div class="hotdata-header-stat-label">총 구독자</div>
+            </div>
+            <div class="hotdata-header-stat">
+                <div class="hotdata-header-stat-value">🔥 {format_korean_number(int(avg_views))}</div>
+                <div class="hotdata-header-stat-label">평균 조회수</div>
+            </div>
+        </div>
+    </div>
+    """
+    st.markdown(header_html, unsafe_allow_html=True)
+    st.markdown("---")
+
+def render_hotdata_grid(df):
+    """실시간 그리드 렌더링"""
+    grid_html = '<div class="hotdata-grid-container">'
+    
+    for idx, (_, row) in enumerate(df.iterrows()):
+        grid_html += render_hotdata_card(row, idx)
+    
+    grid_html += '</div>'
+    st.markdown(grid_html, unsafe_allow_html=True)
+
+def render_hotdata_card(row, idx):
+    """개별 카드 렌더링"""
+    rank = int(row.get('순위', 0))
+    title = row.get('영상제목', 'N/A')
+    channel_name = row.get('채널명', 'N/A')
+    views = int(row.get('조회수', 0))
+    subs = int(row.get('구독자수', 0))
+    category = row.get('카테고리', '')
+    tags = row.get('태그', '')
+    link = row.get('링크', '')
+    thumbnail_url = row.get('썸네일URL', '').strip() if pd.notna(row.get('썸네일URL', '')) else ''
+    
+    # 랭크 배지 배경색 (순위에 따라 다름)
+    if rank == 1:
+        rank_color = "#ffd700"  # 금색
+    elif rank == 2:
+        rank_color = "#c0c0c0"  # 은색
+    elif rank == 3:
+        rank_color = "#cd7f32"  # 동색
+    else:
+        rank_color = "#667eea"  # 기본 파란색
+    
+    # 이미지 처리
+    if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 5:
+        image_html = f'<img src="{thumbnail_url}" alt="{title}" onerror="this.style.display=\'none\'">'
+        rank_badge = f'<div class="hotdata-rank-badge" style="background: linear-gradient(135deg, {rank_color} 0%, {rank_color}dd 100%);">{rank}</div>'
+    else:
+        image_html = f'<div style="font-size: 64px;">🎬</div>'
+        rank_badge = f'<div class="hotdata-rank-badge" style="background: linear-gradient(135deg, {rank_color} 0%, {rank_color}dd 100%);">{rank}</div>'
+    
+    # 태그 처리
+    tags_html = ""
+    if tags and str(tags).strip():
+        tag_list = str(tags).split(',')[:3]  # 최대 3개 태그
+        for tag in tag_list:
+            tags_html += f'<span class="hotdata-tag">{tag.strip()}</span>'
+    
+    # 카테고리 태그
+    if category and str(category).strip():
+        tags_html = f'<span class="hotdata-tag">{category}</span>' + tags_html
+    
+    # 링크 버튼
+    if link and str(link).startswith(('http://', 'https://')):
+        link_btn = f'<a href="{link}" target="_blank" rel="noopener noreferrer" class="hotdata-link-btn">🔗 보기</a>'
+    else:
+        link_btn = '<div class="hotdata-link-btn" style="opacity: 0.5; cursor: not-allowed;">🔗 없음</div>'
+    
+    card_html = f"""
+    <div class="hotdata-card">
+        <div class="hotdata-card-image">
+            {image_html}
+            {rank_badge}
+        </div>
+        <div class="hotdata-card-content">
+            <div class="hotdata-video-title" title="{title}">
+                {title}
+            </div>
+            <div class="hotdata-channel-info">
+                <div class="hotdata-channel-thumb">🎬</div>
+                <div class="hotdata-channel-name" title="{channel_name}">
+                    {channel_name}
+                </div>
+            </div>
+            <div class="hotdata-stats">
+                <div class="hotdata-stat-item">
+                    <div class="hotdata-stat-value">👁️ {format_korean_number(views)}</div>
+                    <div>조회수</div>
+                </div>
+                <div class="hotdata-stat-item">
+                    <div class="hotdata-stat-value">👥 {format_korean_number(subs)}</div>
+                    <div>구독자</div>
+                </div>
+            </div>
+            <div class="hotdata-tags">
+                {tags_html}
+            </div>
+            <div class="hotdata-footer">
+                {link_btn}
+            </div>
+        </div>
+    </div>
+    """
+    
+    return card_html
 
 # ======================== 수정된 사이드바 필터 함수 ========================
 def render_sidebar_filters(df, cat_df, page_key=""):
@@ -925,7 +1353,7 @@ def show_gallery():
     with col2:
         sort_option = st.selectbox("정렬", ["15일합계 ↓", "구독자 ↓", "조회수 ↓", "동영상 ↓"], key="gallery_sort", label_visibility="collapsed")
     with col3:
-        st.write("")  # 레이아웃 간격
+        st.write("")
     with col4:
         items_per_page = st.selectbox("한 페이지", [10, 20, 30, 50], key="gallery_items", label_visibility="collapsed", index=1)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1159,7 +1587,7 @@ def render_gallery_row(row, idx):
     
     st.markdown(row_html, unsafe_allow_html=True)
 
-# ======================== 수정된 대시보드 페이지 (최대 5개씩 행으로 나누기) ========================
+# ======================== 수정된 대시보드 페이지 ========================
 def show_dashboard():
     """대시보드 (사이드바 필터 + 메인 상단 장르 필터)"""
     df, cat_df = load_data()
@@ -1396,6 +1824,8 @@ def main():
         show_dashboard()
     elif st.session_state.page == "gallery":
         show_gallery()
+    elif st.session_state.page == "hotdata":
+        show_hotdata()
     elif st.session_state.page == "category_mgmt":
         show_category_management()
     elif st.session_state.page == "settings":
