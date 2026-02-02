@@ -15,11 +15,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 기존 코드의 st.markdown("""<style>...) 섹션 중
-# "======================== 갤러리 테이블 스타일 ========================" 부터
-# "======================== 액션 버튼 셀 ========================" 까지를
-# 다음 코드로 교체하세요:
-
 st.markdown("""
 <style>
     /* 기본 색상 변수 */
@@ -466,8 +461,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
-
 # --- 유틸리티 함수 ---
 
 def format_korean_number(num):
@@ -851,7 +844,7 @@ def show_category_management():
     )
     st.session_state.temp_cat_df = edited_cat
 
-# ======================== 수정된 갤러리 페이지 ========================
+# ======================== 수정된 갤러리 페이지 (최대 5개씩 행으로 나누기) ========================
 def show_gallery():
     """다크 모드 테이블 형식의 갤러리 뷰 (사이드바 필터 + 메인 상단 장르 필터)"""
     st.markdown("## 🎨 채널 갤러리")
@@ -882,39 +875,45 @@ def show_gallery():
         if selected_cat2 != "전체":
             df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
     
-    # ===== 장르 필터 (메인 영역 상단에 표시) =====
+    # ===== 장르 필터 (메인 영역 상단에 표시) - 최대 5개씩 행으로 나누기 =====
     if selected_cat1 != "전체":
         page_order = st.session_state.get(f'page_order_gallery', {})
         분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
         
         st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
         
-        genre_cols = st.columns(len(분류2_list))
-        
-        for idx, cat2 in enumerate(분류2_list):
-            if selected_country != "전체":
-                count = len(df_filtered[
-                    (df_filtered['분류1'] == selected_cat1) & 
-                    (df_filtered['분류2'] == cat2)
-                ])
-            else:
-                count = len(df[
-                    (df['분류1'] == selected_cat1) & 
-                    (df['분류2'] == cat2)
-                ])
+        # 최대 5개씩 행으로 나누기
+        max_cols = 5
+        for row_start in range(0, len(분류2_list), max_cols):
+            row_end = min(row_start + max_cols, len(분류2_list))
+            row_genres = 분류2_list[row_start:row_end]
             
-            display_text = f"{cat2} ({count})"
-            is_active = (selected_cat2 == cat2)
+            genre_cols = st.columns(len(row_genres))
             
-            with genre_cols[idx]:
-                if st.button(
-                    display_text,
-                    key=f"gallery_cat2_{selected_cat1}_{cat2}",
-                    use_container_width=True,
-                    type="primary" if is_active else "secondary"
-                ):
-                    st.session_state[f"selected_cat2_gallery"] = cat2
-                    st.rerun()
+            for idx, cat2 in enumerate(row_genres):
+                if selected_country != "전체":
+                    count = len(df_filtered[
+                        (df_filtered['분류1'] == selected_cat1) & 
+                        (df_filtered['분류2'] == cat2)
+                    ])
+                else:
+                    count = len(df[
+                        (df['분류1'] == selected_cat1) & 
+                        (df['분류2'] == cat2)
+                    ])
+                
+                display_text = f"{cat2} ({count})"
+                is_active = (selected_cat2 == cat2)
+                
+                with genre_cols[idx]:
+                    if st.button(
+                        display_text,
+                        key=f"gallery_cat2_{selected_cat1}_{cat2}_{row_start}",
+                        use_container_width=True,
+                        type="primary" if is_active else "secondary"
+                    ):
+                        st.session_state[f"selected_cat2_gallery"] = cat2
+                        st.rerun()
         
         st.markdown("---")
     
@@ -1160,7 +1159,7 @@ def render_gallery_row(row, idx):
     
     st.markdown(row_html, unsafe_allow_html=True)
 
-# ======================== 수정된 대시보드 페이지 ========================
+# ======================== 수정된 대시보드 페이지 (최대 5개씩 행으로 나누기) ========================
 def show_dashboard():
     """대시보드 (사이드바 필터 + 메인 상단 장르 필터)"""
     df, cat_df = load_data()
@@ -1183,39 +1182,45 @@ def show_dashboard():
     
     st.markdown("---")
     
-    # ===== 장르 필터 (메인 영역 상단에 표시) =====
+    # ===== 장르 필터 (메인 영역 상단에 표시) - 최대 5개씩 행으로 나누기 =====
     if selected_cat1 != "전체":
         page_order = st.session_state.get(f'page_order_dashboard', {})
         분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
         
         st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
         
-        genre_cols = st.columns(len(분류2_list))
-        
-        for idx, cat2 in enumerate(분류2_list):
-            if selected_country != "전체":
-                count = len(df_filtered[
-                    (df_filtered['분류1'] == selected_cat1) & 
-                    (df_filtered['분류2'] == cat2)
-                ])
-            else:
-                count = len(df[
-                    (df['분류1'] == selected_cat1) & 
-                    (df['분류2'] == cat2)
-                ])
+        # 최대 5개씩 행으로 나누기
+        max_cols = 5
+        for row_start in range(0, len(분류2_list), max_cols):
+            row_end = min(row_start + max_cols, len(분류2_list))
+            row_genres = 분류2_list[row_start:row_end]
             
-            display_text = f"{cat2} ({count})"
-            is_active = (selected_cat2 == cat2)
+            genre_cols = st.columns(len(row_genres))
             
-            with genre_cols[idx]:
-                if st.button(
-                    display_text,
-                    key=f"dashboard_cat2_{selected_cat1}_{cat2}",
-                    use_container_width=True,
-                    type="primary" if is_active else "secondary"
-                ):
-                    st.session_state[f"selected_cat2_dashboard"] = cat2
-                    st.rerun()
+            for idx, cat2 in enumerate(row_genres):
+                if selected_country != "전체":
+                    count = len(df_filtered[
+                        (df_filtered['분류1'] == selected_cat1) & 
+                        (df_filtered['분류2'] == cat2)
+                    ])
+                else:
+                    count = len(df[
+                        (df['분류1'] == selected_cat1) & 
+                        (df['분류2'] == cat2)
+                    ])
+                
+                display_text = f"{cat2} ({count})"
+                is_active = (selected_cat2 == cat2)
+                
+                with genre_cols[idx]:
+                    if st.button(
+                        display_text,
+                        key=f"dashboard_cat2_{selected_cat1}_{cat2}_{row_start}",
+                        use_container_width=True,
+                        type="primary" if is_active else "secondary"
+                    ):
+                        st.session_state[f"selected_cat2_dashboard"] = cat2
+                        st.rerun()
         
         st.markdown("---")
     
