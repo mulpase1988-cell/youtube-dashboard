@@ -579,6 +579,18 @@ def show_category_detail(df, cat_df, 분류1):
         "최근 30개 토탈": st.column_config.TextColumn("최근 30개", disabled=True, width="small"),
     }
     
+    # [수정] 데이터 타입 강제 변환 (Type Compatibility Error 방지)
+    # 1. 텍스트/링크 컬럼: 문자열로 변환하고 NaN은 빈 문자열로 처리하여 LinkColumn/TextColumn 오류 방지
+    text_cols_safe = ['채널명', '분류1', '분류2', '키워드', '템플릿', '메모', '운영기간', '최근업로드', 
+                 '조회수', '최근 5개 토탈', '최근 10개 토탈', '최근 20개 토탈', '최근 30개 토탈', 'URL', '국가']
+    for col in text_cols_safe:
+        if col in df_to_edit.columns:
+            df_to_edit[col] = df_to_edit[col].fillna("").astype(str)
+
+    # 2. 숫자 컬럼: 숫자로 변환 (NaN은 0으로)
+    if '동영상' in df_to_edit.columns:
+        df_to_edit['동영상'] = pd.to_numeric(df_to_edit['동영상'], errors='coerce').fillna(0)
+    
     edited_df = st.data_editor(
         df_to_edit,
         use_container_width=True,
