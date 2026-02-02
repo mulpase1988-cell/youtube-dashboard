@@ -243,8 +243,8 @@ st.markdown("""
     }
     
     .thumbnail-item {
-        width: 160px !important;
-        height: 280px !important;
+        width: 200px !important;
+        height: 320px !important;
         border-radius: 8px !important;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         flex-shrink: 0 !important;
