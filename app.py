@@ -1623,6 +1623,7 @@ def get_hotdata_categories_by_country(country):
 def render_hotdata_sidebar_filters():
     """
     실시간 탭 전용 사이드바 필터 (국가, 카테고리 버튼 형식)
+    국가와 카테고리가 독립적으로 동작
     """
     df = load_hotdata()
     
@@ -1655,7 +1656,8 @@ def render_hotdata_sidebar_filters():
                         type="primary" if is_selected else "secondary"
                     ):
                         st.session_state['hotdata_country'] = country
-                        st.session_state['hotdata_category'] = '전체'  # 국가 변경 시 카테고리 초기화
+                        # 국가 변경 시에만 카테고리 초기화
+                        st.session_state['hotdata_category'] = '전체'
                         st.rerun()
         
         st.markdown("---")
@@ -1663,6 +1665,7 @@ def render_hotdata_sidebar_filters():
         # ======================== 카테고리 필터 (버튼) ========================
         st.markdown("### 📂 카테고리")
         
+        # 선택된 국가에 따른 카테고리만 표시
         categories = ["전체"] + get_hotdata_categories_by_country(selected_country)
         selected_category = st.session_state.get('hotdata_category', '전체')
         
@@ -1678,10 +1681,11 @@ def render_hotdata_sidebar_filters():
                 is_selected = category == selected_category
                 button_label = f"✅ {category}" if is_selected else f"☐ {category}"
                 
+                # key에서 selected_country를 제거하여 국가 변경 시에도 상태 유지
                 with category_button_cols[idx]:
                     if st.button(
                         button_label,
-                        key=f"hotdata_category_btn_{selected_country}_{category}",
+                        key=f"hotdata_category_btn_{category}",
                         use_container_width=True,
                         type="primary" if is_selected else "secondary"
                     ):
@@ -1691,6 +1695,7 @@ def render_hotdata_sidebar_filters():
         st.markdown("---")
     
     return selected_country, selected_category
+
 
 # ======================== 🔴 실시간 탭 페이지 ========================
 def show_hotdata():
