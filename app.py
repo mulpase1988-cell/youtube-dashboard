@@ -169,7 +169,7 @@ st.markdown("""
         border: 1px solid rgba(102,126,234,0.6) !important;
         border-radius: 6px !important;
         padding: 5px 11px !important;
-        font-size: 15px !important;
+        font-size: 13px !important;
         color: #b0c0ff !important;
         font-weight: 600 !important;
         white-space: nowrap !important;
@@ -459,73 +459,98 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* ======================== 🔴 실시간 탭 카드 스타일 ======================== */
+    /* ======================== 🔴 실시간 탭 스타일 (FULL-WIDTH 카드형) ======================== */
     
-    .hotdata-grid-container {
-        display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
-        gap: 20px !important;
-        padding: 16px 0 !important;
+    .hotdata-table-wrapper {
+        background-color: transparent !important;
+        margin-top: 16px !important;
+        margin-bottom: 16px !important;
     }
     
-    .hotdata-card {
+    .hotdata-table-row {
         background: linear-gradient(135deg, #1a2647 0%, #0f172a 100%) !important;
-        border: 2px solid rgba(102,126,234,0.2) !important;
+        border: 2px solid rgba(102,126,234,0.15) !important;
         border-radius: 12px !important;
-        overflow: hidden !important;
+        padding: 20px !important;
+        margin-bottom: 16px !important;
+        display: grid !important;
+        grid-template-columns: 0.8fr 1.2fr 2fr 0.8fr 1fr 0.8fr !important;
+        gap: 24px !important;
+        align-items: center !important;
         transition: all 0.3s ease !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
-        cursor: pointer !important;
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100% !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+        min-height: 160px !important;
     }
     
-    .hotdata-card:hover {
-        border-color: rgba(102,126,234,0.6) !important;
+    .hotdata-table-row:hover {
+        background: linear-gradient(135deg, #2a3a5a 0%, #1a2647 100%) !important;
+        border-color: rgba(102,126,234,0.4) !important;
         box-shadow: 0 8px 24px rgba(102,126,234,0.3) !important;
-        transform: translateY(-4px) !important;
+        transform: translateY(-2px) !important;
     }
     
-    .hotdata-card-image {
-        width: 100% !important;
-        height: 180px !important;
+    .hotdata-rank-cell {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 32px !important;
+        font-weight: 900 !important;
+        width: 80px !important;
+        height: 80px !important;
+        border-radius: 12px !important;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        position: relative !important;
-        overflow: hidden !important;
-    }
-    
-    .hotdata-card-image img {
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: cover !important;
-    }
-    
-    .hotdata-rank-badge {
-        position: absolute !important;
-        top: 10px !important;
-        left: 10px !important;
-        border-radius: 50% !important;
-        width: 40px !important;
-        height: 40px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 18px !important;
-        font-weight: 800 !important;
         color: white !important;
-        box-shadow: 0 4px 8px rgba(255, 75, 87, 0.4) !important;
+        box-shadow: 0 6px 16px rgba(102,126,234,0.3) !important;
+        border: 2px solid rgba(255,255,255,0.1) !important;
     }
     
-    .hotdata-card-content {
-        padding: 16px !important;
+    .hotdata-channel-info-cell {
         display: flex !important;
         flex-direction: column !important;
-        gap: 12px !important;
-        flex: 1 !important;
+        gap: 8px !important;
+        min-width: 0 !important;
+    }
+    
+    .hotdata-channel-name {
+        font-size: 16px !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    .hotdata-channel-handle {
+        font-size: 12px !important;
+        color: #a0aec0 !important;
+        font-weight: 500 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    .hotdata-channel-tags {
+        display: flex !important;
+        gap: 6px !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .hotdata-channel-tag {
+        background: rgba(102,126,234,0.2) !important;
+        border: 1px solid rgba(102,126,234,0.4) !important;
+        border-radius: 6px !important;
+        padding: 4px 10px !important;
+        font-size: 11px !important;
+        color: #a8b8ff !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+    }
+    
+    .hotdata-title-cell {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        min-width: 0 !important;
     }
     
     .hotdata-video-title {
@@ -539,97 +564,98 @@ st.markdown("""
         overflow: hidden !important;
     }
     
-    .hotdata-channel-info {
+    .hotdata-meta-info {
         display: flex !important;
-        gap: 10px !important;
-        align-items: flex-start !important;
-    }
-    
-    .hotdata-channel-thumb {
-        width: 40px !important;
-        height: 40px !important;
-        border-radius: 50% !important;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        flex-shrink: 0 !important;
-        font-size: 18px !important;
-    }
-    
-    .hotdata-channel-name {
-        font-size: 12px !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
-    
-    .hotdata-stats {
-        display: flex !important;
-        gap: 12px !important;
+        gap: 16px !important;
         font-size: 12px !important;
         color: #a0aec0 !important;
-        flex-wrap: wrap !important;
     }
     
-    .hotdata-stat-item {
+    .hotdata-meta-item {
         display: flex !important;
         flex-direction: column !important;
         gap: 2px !important;
     }
     
-    .hotdata-stat-value {
+    .hotdata-meta-value {
         font-size: 13px !important;
         font-weight: 700 !important;
         color: #ffffff !important;
     }
     
-    .hotdata-tags {
+    .hotdata-views-cell {
         display: flex !important;
+        flex-direction: column !important;
         gap: 6px !important;
+        text-align: center !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+    
+    .hotdata-views-number {
+        font-size: 18px !important;
+        font-weight: 900 !important;
+        color: #667eea !important;
+    }
+    
+    .hotdata-views-label {
+        font-size: 11px !important;
+        color: #a0aec0 !important;
+        font-weight: 600 !important;
+    }
+    
+    .hotdata-subs-cell {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        text-align: center !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+    
+    .hotdata-subs-number {
+        font-size: 18px !important;
+        font-weight: 900 !important;
+        color: #10b981 !important;
+    }
+    
+    .hotdata-subs-label {
+        font-size: 11px !important;
+        color: #a0aec0 !important;
+        font-weight: 600 !important;
+    }
+    
+    .hotdata-action-cell {
+        display: flex !important;
+        gap: 8px !important;
+        justify-content: center !important;
+        align-items: center !important;
         flex-wrap: wrap !important;
     }
     
-    .hotdata-tag {
-        background: rgba(102,126,234,0.2) !important;
-        border: 1px solid rgba(102,126,234,0.4) !important;
-        border-radius: 4px !important;
-        padding: 4px 8px !important;
-        font-size: 11px !important;
+    .hotdata-action-btn {
+        padding: 8px 14px !important;
+        background: linear-gradient(135deg, rgba(102,126,234,0.3) 0%, rgba(102,126,234,0.2) 100%) !important;
+        border: 1px solid rgba(102,126,234,0.5) !important;
+        border-radius: 8px !important;
         color: #a8b8ff !important;
+        font-size: 12px !important;
         font-weight: 600 !important;
+        cursor: pointer !important;
+        text-decoration: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        transition: all 0.3s ease !important;
         white-space: nowrap !important;
     }
     
-    .hotdata-footer {
-        display: flex !important;
-        gap: 8px !important;
-        padding-top: 12px !important;
-        border-top: 1px solid rgba(255,255,255,0.05) !important;
-        margin-top: auto !important;
-    }
-    
-    .hotdata-link-btn {
-        flex: 1 !important;
-        padding: 8px 10px !important;
-        background: rgba(102,126,234,0.2) !important;
-        border: 1px solid rgba(102,126,234,0.4) !important;
-        border-radius: 6px !important;
-        color: #a8b8ff !important;
-        font-size: 11px !important;
-        font-weight: 600 !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-        text-align: center !important;
-        text-decoration: none !important;
-        display: inline-block !important;
-    }
-    
-    .hotdata-link-btn:hover {
-        background: rgba(102,126,234,0.4) !important;
-        border-color: rgba(102,126,234,0.7) !important;
+    .hotdata-action-btn:hover {
+        background: linear-gradient(135deg, rgba(102,126,234,0.5) 0%, rgba(102,126,234,0.4) 100%) !important;
+        border-color: rgba(102,126,234,0.8) !important;
+        box-shadow: 0 6px 16px rgba(102,126,234,0.3) !important;
+        transform: translateY(-2px) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -753,7 +779,7 @@ def load_data():
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
 
-# ======================== 🔴 실시간 탭 데이터 로드 ========================
+# ======================== 🔴 실시간 데이터 로드 ========================
 @st.cache_data(ttl=300)
 def load_hotdata():
     """글로벌_핫데이터 시트에서 실시간 데이터 로드"""
@@ -875,7 +901,7 @@ def sync_order_with_data(saved_order, df, cat_df):
         saved_order['분류2_순서'][cat1] = new_cat2_order
     return saved_order
 
-# --- 네비게이션 (수정: 🔴 실시간 탭 추가) ---
+# --- 네비게이션 (수정: 실시간 탭 추가) ---
 def show_navigation():
     col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2.5, 1, 1, 1, 1, 1, 1, 1])
     with col1:
@@ -918,12 +944,6 @@ def show_navigation():
 def render_sidebar_filters(df, cat_df, page_key=""):
     """
     개선된 사이드바 필터 UI
-    
-    - 국가 필터와 카테고리만 사이드바에 표시
-    - 장르 필터는 메인 영역 상단에 표시 (제거)
-    - page_key: 'dashboard' 또는 'gallery' (세션 상태 구분용)
-    
-    Returns: (selected_country, selected_cat1, selected_cat2)
     """
     with st.sidebar:
         st.markdown("## 🌍 국가 필터")
@@ -1043,9 +1063,9 @@ def show_category_management():
     )
     st.session_state.temp_cat_df = edited_cat
 
-# ======================== 수정된 갤러리 페이지 (최대 5개씩 행으로 나누기) ========================
+# ======================== 갤러리 페이지 ========================
 def show_gallery():
-    """다크 모드 테이블 형식의 갤러리 뷰 (사이드바 필터 + 메인 상단 장르 필터)"""
+    """다크 모드 테이블 형식의 갤러리 뷰"""
     st.markdown("## 🎨 채널 갤러리")
     
     df, cat_df = load_data()
@@ -1053,7 +1073,7 @@ def show_gallery():
         st.warning("데이터를 불러올 수 없습니다.")
         return
     
-    # 사이드바 필터 사용 (page_key="gallery")
+    # 사이드바 필터 사용
     selected_country, selected_cat1, selected_cat2 = render_sidebar_filters(df, cat_df, page_key="gallery")
     
     # 페이지네이션 상태 초기화
@@ -1074,14 +1094,13 @@ def show_gallery():
         if selected_cat2 != "전체":
             df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
     
-    # ===== 장르 필터 (메인 영역 상단에 표시) - 최대 5개씩 행으로 나누기 =====
+    # 장르 필터 (메인 영역 상단에 표시)
     if selected_cat1 != "전체":
         page_order = st.session_state.get(f'page_order_gallery', {})
         분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
         
         st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
         
-        # 최대 5개씩 행으로 나누기
         max_cols = 5
         for row_start in range(0, len(분류2_list), max_cols):
             row_end = min(row_start + max_cols, len(분류2_list))
@@ -1116,7 +1135,7 @@ def show_gallery():
         
         st.markdown("---")
     
-    # ===== 필터 UI (메인 영역) =====
+    # 필터 UI
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
@@ -1124,7 +1143,7 @@ def show_gallery():
     with col2:
         sort_option = st.selectbox("정렬", ["15일합계 ↓", "구독자 ↓", "조회수 ↓", "동영상 ↓"], key="gallery_sort", label_visibility="collapsed")
     with col3:
-        st.write("")  # 레이아웃 간격
+        st.write("")
     with col4:
         items_per_page = st.selectbox("한 페이지", [10, 20, 30, 50], key="gallery_items", label_visibility="collapsed", index=1)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1170,24 +1189,26 @@ def show_gallery():
     
     # 페이지네이션 컨트롤
     st.markdown("---")
-    render_pagination_controls(current_page, total_pages)
+    render_pagination_controls(current_page, total_pages, "gallery")
 
-def render_pagination_controls(current_page, total_pages):
+def render_pagination_controls(current_page, total_pages, page_type="gallery"):
     """페이지네이션 컨트롤 렌더링"""
     if total_pages <= 1:
         return
     
     col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
     
+    session_key = f"{page_type}_current_page"
+    
     with col1:
-        if st.button("⬅️ 처음", use_container_width=True, key="page_first"):
-            st.session_state.gallery_current_page = 1
+        if st.button("⬅️ 처음", use_container_width=True, key=f"page_first_{page_type}"):
+            st.session_state[session_key] = 1
             st.rerun()
     
     with col2:
-        if st.button("◀ 이전", use_container_width=True, key="page_prev"):
-            if st.session_state.gallery_current_page > 1:
-                st.session_state.gallery_current_page -= 1
+        if st.button("◀ 이전", use_container_width=True, key=f"page_prev_{page_type}"):
+            if st.session_state[session_key] > 1:
+                st.session_state[session_key] -= 1
                 st.rerun()
     
     with col3:
@@ -1195,23 +1216,23 @@ def render_pagination_controls(current_page, total_pages):
             "페이지 선택",
             min_value=1,
             max_value=total_pages,
-            value=st.session_state.gallery_current_page,
-            key="page_input",
+            value=st.session_state[session_key],
+            key=f"page_input_{page_type}",
             label_visibility="collapsed"
         )
-        if selected_page != st.session_state.gallery_current_page:
-            st.session_state.gallery_current_page = selected_page
+        if selected_page != st.session_state[session_key]:
+            st.session_state[session_key] = selected_page
             st.rerun()
     
     with col4:
-        if st.button("다음 ▶", use_container_width=True, key="page_next"):
-            if st.session_state.gallery_current_page < total_pages:
-                st.session_state.gallery_current_page += 1
+        if st.button("다음 ▶", use_container_width=True, key=f"page_next_{page_type}"):
+            if st.session_state[session_key] < total_pages:
+                st.session_state[session_key] += 1
                 st.rerun()
     
     with col5:
-        if st.button("마지막 ➡️", use_container_width=True, key="page_last"):
-            st.session_state.gallery_current_page = total_pages
+        if st.button("마지막 ➡️", use_container_width=True, key=f"page_last_{page_type}"):
+            st.session_state[session_key] = total_pages
             st.rerun()
 
 def render_gallery_table(df):
@@ -1358,9 +1379,9 @@ def render_gallery_row(row, idx):
     
     st.markdown(row_html, unsafe_allow_html=True)
 
-# ======================== 수정된 대시보드 페이지 ========================
+# ======================== 대시보드 페이지 ========================
 def show_dashboard():
-    """대시보드 (사이드바 필터 + 메인 상단 장르 필터)"""
+    """대시보드"""
     df, cat_df = load_data()
     if df.empty: return
     
@@ -1381,14 +1402,13 @@ def show_dashboard():
     
     st.markdown("---")
     
-    # ===== 장르 필터 (메인 영역 상단에 표시) - 최대 5개씩 행으로 나누기 =====
+    # 장르 필터
     if selected_cat1 != "전체":
         page_order = st.session_state.get(f'page_order_dashboard', {})
         분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
         
         st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
         
-        # 최대 5개씩 행으로 나누기
         max_cols = 5
         for row_start in range(0, len(분류2_list), max_cols):
             row_end = min(row_start + max_cols, len(분류2_list))
@@ -1529,29 +1549,32 @@ def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
 
 # ======================== 🔴 실시간 탭 페이지 ========================
 def show_hotdata():
-    """🔴 실시간 - 글로벌 핫데이터"""
+    """🔴 실시간 - 글로벌 핫데이터 (FULL-WIDTH 카드형)"""
     st.markdown("## 🔴 실시간 인기 영상")
     
     df = load_hotdata()
     if df.empty:
-        st.warning("데이터를 불러올 수 없습니다.")
+        st.warning("⚠️ 실시간 데이터를 불러올 수 없습니다.")
         return
     
     # 필터 UI
-    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns([2, 1, 1, 1])
+    st.markdown('<div class="filter-container">', unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     
-    with filter_col1:
+    with col1:
         search_query = st.text_input("🔍 영상제목 검색", key="hotdata_search", placeholder="영상제목을 입력하세요")
     
-    with filter_col2:
+    with col2:
         countries = ["전체"] + sorted([c for c in df['국가'].unique() if c and str(c).strip()])
         country_filter = st.selectbox("국가", countries, key="hotdata_country", label_visibility="collapsed")
     
-    with filter_col3:
+    with col3:
         sort_option = st.selectbox("정렬", ["순위 ↑", "조회수 ↓", "구독자 ↓"], key="hotdata_sort", label_visibility="collapsed")
     
-    with filter_col4:
+    with col4:
         display_count = st.selectbox("표시", [20, 30, 50], key="hotdata_count", label_visibility="collapsed", index=0)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # 필터링
     df_filtered = df.copy()
@@ -1573,65 +1596,71 @@ def show_hotdata():
     # 상위 N개 선택
     df_filtered = df_filtered.head(display_count)
     
-    # 헤더 통계
-    if len(df_filtered) > 0:
-        show_hotdata_header(df_filtered)
-        
-        # 그리드 렌더링
-        render_hotdata_grid(df_filtered)
+    # 페이지네이션 상태 초기화
+    if 'hotdata_current_page' not in st.session_state:
+        st.session_state.hotdata_current_page = 1
+    
+    # 페이지네이션 계산
+    items_per_page = 20
+    total_items = len(df_filtered)
+    total_pages = max(1, math.ceil(total_items / items_per_page))
+    
+    # 현재 페이지 검증
+    current_page = st.session_state.hotdata_current_page
+    if current_page > total_pages:
+        current_page = total_pages
+        st.session_state.hotdata_current_page = current_page
+    
+    # 현재 페이지의 데이터만 추출
+    start_idx = (current_page - 1) * items_per_page
+    end_idx = start_idx + items_per_page
+    df_page = df_filtered.iloc[start_idx:end_idx]
+    
+    # 통계 정보 표시
+    stat_html = f"""<div class="pagination-stats">📊 총 {total_items:,}개 | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items)}</div>"""
+    st.markdown(stat_html, unsafe_allow_html=True)
+    
+    # 카드 렌더링
+    if len(df_page) > 0:
+        render_hotdata_cards(df_page)
     else:
         st.info("검색 결과가 없습니다.")
-
-def show_hotdata_header(df):
-    """실시간 탭 헤더 통계"""
-    total_views = int(df['조회수'].sum())
-    total_subs = int(df['구독자수'].sum())
-    avg_views = int(df['조회수'].mean())
     
-    # Streamlit 메트릭 사용 (HTML 렌더링 안 함)
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("📊 영상 수", f"{len(df):,}")
-    
-    with col2:
-        st.metric("👁️ 총 조회수", format_korean_number(total_views))
-    
-    with col3:
-        st.metric("👥 총 구독자", format_korean_number(total_subs))
-    
-    with col4:
-        st.metric("🔥 평균 조회수", format_korean_number(avg_views))
-    
+    # 페이지네이션 컨트롤
     st.markdown("---")
+    render_pagination_controls(current_page, total_pages, "hotdata")
 
-def render_hotdata_grid(df):
-    """실시간 그리드 렌더링 - 수정된 버전"""
-    # 컨테이너 시작
-    html_content = '<div class="hotdata-grid-container">'
+def render_hotdata_cards(df):
+    """실시간 카드 렌더링 (FULL-WIDTH)"""
+    st.markdown('<div class="hotdata-table-wrapper">', unsafe_allow_html=True)
     
-    # 각 행에 대한 카드 HTML 생성
     for idx, (_, row) in enumerate(df.iterrows()):
-        html_content += render_hotdata_card(row, idx)
+        render_hotdata_card_row(row, idx)
     
-    # 컨테이너 종료
-    html_content += '</div>'
-    
-    # 한 번에 렌더링
-    st.markdown(html_content, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-def render_hotdata_card(row, idx):
-    """개별 카드 HTML 생성"""
+def render_hotdata_card_row(row, idx):
+    """개별 카드 행 렌더링"""
     rank = int(row.get('순위', 0))
-    title = str(row.get('영상제목', 'N/A'))[:80]  # 길이 제한
+    title = str(row.get('영상제목', 'N/A'))[:100]
     channel_name = str(row.get('채널명', 'N/A'))[:30]
     views = int(row.get('조회수', 0))
     subs = int(row.get('구독자수', 0))
     category = str(row.get('카테고리', '')).strip()
-    tags = str(row.get('태그', '')).strip()
-    link = str(row.get('링크', '')).strip()
-    thumbnail_url = str(row.get('썸네일URL', '')).strip() if pd.notna(row.get('썸네일URL', '')) else ''
     handle = str(row.get('핸들명(@)', '')).strip() if pd.notna(row.get('핸들명(@)', '')) else ''
+    link = str(row.get('링크', '')).strip()
+    
+    # 핸들 표시
+    handle_display = f"@{handle}" if handle else f"@{channel_name.lower()}"
+    
+    # 링크 버튼
+    if link and link.startswith(('http://', 'https://')):
+        link_btn = f'<a href="{link}" target="_blank" rel="noopener noreferrer" class="hotdata-action-btn">🔗 보기</a>'
+    else:
+        link_btn = '<div class="hotdata-action-btn" style="opacity: 0.5; cursor: not-allowed;">🔗 없음</div>'
+    
+    # 카테고리 태그
+    category_tag = f'<span class="hotdata-channel-tag">{category}</span>' if category else ''
     
     # 랭크 배지 색상
     if rank == 1:
@@ -1643,74 +1672,42 @@ def render_hotdata_card(row, idx):
     else:
         rank_color = "#667eea"
     
-    # 이미지 처리
-    if thumbnail_url and len(thumbnail_url) > 10 and thumbnail_url.startswith(('http://', 'https://')):
-        image_content = f'<img src="{thumbnail_url}" alt="{title}" style="width:100%; height:100%; object-fit:cover;">'
-    else:
-        image_content = '<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:64px;">🎬</div>'
-    
-    # 태그 처리
-    tags_html = ''
-    if category:
-        tags_html += f'<span class="hotdata-tag">{category}</span>'
-    
-    if tags:
-        tag_list = tags.split(',')[:2]
-        for tag in tag_list:
-            tags_html += f'<span class="hotdata-tag">{tag.strip()}</span>'
-    
-    if not tags_html:
-        tags_html = '<span class="hotdata-tag">핫트렌드</span>'
-    
-    # 링크 버튼
-    if link and link.startswith(('http://', 'https://')):
-        link_btn = f'<a href="{link}" target="_blank" rel="noopener noreferrer" class="hotdata-link-btn">🔗 보기</a>'
-    else:
-        link_btn = '<div class="hotdata-link-btn" style="opacity: 0.5; cursor: not-allowed;">🔗 없음</div>'
-    
-    # 핸들 표시
-    handle_display = f"@{handle}" if handle else f"@{channel_name.lower()}"
-    
     card_html = f'''
-    <div class="hotdata-card">
-        <div class="hotdata-card-image">
-            {image_content}
-            <div class="hotdata-rank-badge" style="background: linear-gradient(135deg, {rank_color} 0%, {rank_color}dd 100%);">#{rank}</div>
+    <div class="hotdata-table-row">
+        <div class="hotdata-rank-cell" style="background: linear-gradient(135deg, {rank_color} 0%, {rank_color}dd 100%);">
+            #{rank}
         </div>
-        <div class="hotdata-card-content">
-            <div class="hotdata-video-title" title="{title}">
-                {title}
+        <div class="hotdata-channel-info-cell">
+            <div class="hotdata-channel-name">{channel_name}</div>
+            <div class="hotdata-channel-handle">{handle_display}</div>
+            <div class="hotdata-channel-tags">
+                {category_tag}
             </div>
-            <div class="hotdata-channel-info">
-                <div class="hotdata-channel-thumb">🎬</div>
-                <div>
-                    <div class="hotdata-channel-name" title="{channel_name}">
-                        {channel_name}
-                    </div>
-                    <div style="font-size: 10px; color: #8a94a6; margin-top: 2px;">{handle_display}</div>
+        </div>
+        <div class="hotdata-title-cell">
+            <div class="hotdata-video-title">{title}</div>
+            <div class="hotdata-meta-info">
+                <div class="hotdata-meta-item">
+                    <span style="font-size: 10px; color: #a0aec0;">업로드일</span>
+                    <span class="hotdata-meta-value">{row.get('수집일시', 'N/A')[:10]}</span>
                 </div>
             </div>
-            <div class="hotdata-stats">
-                <div class="hotdata-stat-item">
-                    <div class="hotdata-stat-value">👁️ {format_korean_number(views)}</div>
-                    <div>조회수</div>
-                </div>
-                <div class="hotdata-stat-item">
-                    <div class="hotdata-stat-value">👥 {format_korean_number(subs)}</div>
-                    <div>구독자</div>
-                </div>
-            </div>
-            <div class="hotdata-tags">
-                {tags_html}
-            </div>
-            <div class="hotdata-footer">
-                {link_btn}
-            </div>
+        </div>
+        <div class="hotdata-views-cell">
+            <div class="hotdata-views-number">{format_korean_number(views)}</div>
+            <div class="hotdata-views-label">조회수</div>
+        </div>
+        <div class="hotdata-subs-cell">
+            <div class="hotdata-subs-number">{format_korean_number(subs)}</div>
+            <div class="hotdata-subs-label">구독자</div>
+        </div>
+        <div class="hotdata-action-cell">
+            {link_btn}
         </div>
     </div>
     '''
     
-    return card_html
+    st.markdown(card_html, unsafe_allow_html=True)
 
 # --- 순서 설정 페이지 ---
 def show_settings():
