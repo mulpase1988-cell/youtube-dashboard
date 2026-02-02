@@ -951,7 +951,7 @@ def show_navigation():
             st.cache_data.clear()
             st.rerun()
 
-# ======================== 🔴 실시간 탭 페이지 (신규) ========================
+# ======================== 🔴 실시간 탭 페이지 (수정됨) ========================
 def show_hotdata():
     """🔴 실시간 - 글로벌 핫데이터"""
     st.markdown("## 🔴 실시간 인기 영상")
@@ -1018,48 +1018,46 @@ def show_hotdata():
     render_hotdata_grid(df_filtered)
 
 def show_hotdata_header(df):
-    """실시간 탭 헤더 통계"""
+    """실시간 탭 헤더 통계 (수정됨)"""
     total_views = df['조회수'].sum()
     total_subs = df['구독자수'].sum()
     avg_views = df['조회수'].mean()
     
-    header_html = f"""
-    <div class="hotdata-header">
-        <div class="hotdata-header-stats">
-            <div class="hotdata-header-stat">
-                <div class="hotdata-header-stat-value">📊 {len(df):,}</div>
-                <div class="hotdata-header-stat-label">영상 수</div>
-            </div>
-            <div class="hotdata-header-stat">
-                <div class="hotdata-header-stat-value">👁️ {format_korean_number(total_views)}</div>
-                <div class="hotdata-header-stat-label">총 조회수</div>
-            </div>
-            <div class="hotdata-header-stat">
-                <div class="hotdata-header-stat-value">👥 {format_korean_number(total_subs)}</div>
-                <div class="hotdata-header-stat-label">총 구독자</div>
-            </div>
-            <div class="hotdata-header-stat">
-                <div class="hotdata-header-stat-value">🔥 {format_korean_number(int(avg_views))}</div>
-                <div class="hotdata-header-stat-label">평균 조회수</div>
-            </div>
-        </div>
-    </div>
-    """
-    st.markdown(header_html, unsafe_allow_html=True)
+    # 통계 박스 (Streamlit 컨테이너 사용)
+    st_col1, st_col2, st_col3, st_col4 = st.columns(4)
+    
+    with st_col1:
+        st.metric("📊 영상 수", f"{len(df):,}")
+    
+    with st_col2:
+        st.metric("👁️ 총 조회수", format_korean_number(total_views))
+    
+    with st_col3:
+        st.metric("👥 총 구독자", format_korean_number(total_subs))
+    
+    with st_col4:
+        st.metric("🔥 평균 조회수", format_korean_number(int(avg_views)))
+    
     st.markdown("---")
 
 def render_hotdata_grid(df):
-    """실시간 그리드 렌더링"""
-    grid_html = '<div class="hotdata-grid-container">'
+    """실시간 그리드 렌더링 (수정됨)"""
+    # CSS 클래스와 함께 HTML 컨테이너 시작
+    grid_html_start = '<div class="hotdata-grid-container">'
     
+    # 모든 카드 HTML 수집
+    cards_html = ""
     for idx, (_, row) in enumerate(df.iterrows()):
-        grid_html += render_hotdata_card(row, idx)
+        cards_html += render_hotdata_card(row, idx)
     
-    grid_html += '</div>'
-    st.markdown(grid_html, unsafe_allow_html=True)
+    # HTML 컨테이너 닫기
+    grid_html_end = '</div>'
+    
+    # 완전한 HTML을 한 번에 렌더링
+    st.markdown(grid_html_start + cards_html + grid_html_end, unsafe_allow_html=True)
 
 def render_hotdata_card(row, idx):
-    """개별 카드 렌더링"""
+    """개별 카드 렌더링 (수정됨)"""
     rank = int(row.get('순위', 0))
     title = row.get('영상제목', 'N/A')
     channel_name = row.get('채널명', 'N/A')
@@ -1080,24 +1078,21 @@ def render_hotdata_card(row, idx):
     else:
         rank_color = "#667eea"  # 기본 파란색
     
-    # 이미지 처리
-    if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 5:
-        image_html = f'<img src="{thumbnail_url}" alt="{title}" onerror="this.style.display=\'none\'">'
-        rank_badge = f'<div class="hotdata-rank-badge" style="background: linear-gradient(135deg, {rank_color} 0%, {rank_color}dd 100%);">{rank}</div>'
+    # 이미지 처리 (오류 시 폴백)
+    if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 10 and thumbnail_url.startswith(('http://', 'https://')):
+        image_html = f'<img src="{thumbnail_url}" alt="{title}" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.innerHTML=\'<div style=\\\"font-size:64px;display:flex;align-items:center;justify-content:center;\\\">🎬</div>\'">'
     else:
-        image_html = f'<div style="font-size: 64px;">🎬</div>'
-        rank_badge = f'<div class="hotdata-rank-badge" style="background: linear-gradient(135deg, {rank_color} 0%, {rank_color}dd 100%);">{rank}</div>'
+        image_html = '<div style="font-size: 64px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">🎬</div>'
     
     # 태그 처리
     tags_html = ""
+    if category and str(category).strip():
+        tags_html += f'<span class="hotdata-tag">{category}</span>'
+    
     if tags and str(tags).strip():
-        tag_list = str(tags).split(',')[:3]  # 최대 3개 태그
+        tag_list = str(tags).split(',')[:2]  # 최대 2개 추가 태그
         for tag in tag_list:
             tags_html += f'<span class="hotdata-tag">{tag.strip()}</span>'
-    
-    # 카테고리 태그
-    if category and str(category).strip():
-        tags_html = f'<span class="hotdata-tag">{category}</span>' + tags_html
     
     # 링크 버튼
     if link and str(link).startswith(('http://', 'https://')):
@@ -1105,11 +1100,15 @@ def render_hotdata_card(row, idx):
     else:
         link_btn = '<div class="hotdata-link-btn" style="opacity: 0.5; cursor: not-allowed;">🔗 없음</div>'
     
+    # 핸들 정보 (있으면 표시)
+    handle = row.get('핸들명(@)', '').strip() if pd.notna(row.get('핸들명(@)', '')) else ''
+    handle_display = f"@{handle}" if handle else f"@{channel_name.lower()}"
+    
     card_html = f"""
     <div class="hotdata-card">
         <div class="hotdata-card-image">
             {image_html}
-            {rank_badge}
+            <div class="hotdata-rank-badge" style="background: linear-gradient(135deg, {rank_color} 0%, {rank_color}dd 100%);">#{rank}</div>
         </div>
         <div class="hotdata-card-content">
             <div class="hotdata-video-title" title="{title}">
@@ -1117,8 +1116,11 @@ def render_hotdata_card(row, idx):
             </div>
             <div class="hotdata-channel-info">
                 <div class="hotdata-channel-thumb">🎬</div>
-                <div class="hotdata-channel-name" title="{channel_name}">
-                    {channel_name}
+                <div>
+                    <div class="hotdata-channel-name" title="{channel_name}">
+                        {channel_name}
+                    </div>
+                    <div style="font-size: 10px; color: #8a94a6; margin-top: 2px;">{handle_display}</div>
                 </div>
             </div>
             <div class="hotdata-stats">
@@ -1132,7 +1134,7 @@ def render_hotdata_card(row, idx):
                 </div>
             </div>
             <div class="hotdata-tags">
-                {tags_html}
+                {tags_html if tags_html else '<span class="hotdata-tag">핫트렌드</span>'}
             </div>
             <div class="hotdata-footer">
                 {link_btn}
@@ -1142,6 +1144,7 @@ def render_hotdata_card(row, idx):
     """
     
     return card_html
+
 
 # ======================== 수정된 사이드바 필터 함수 ========================
 def render_sidebar_filters(df, cat_df, page_key=""):
