@@ -1780,13 +1780,18 @@ def render_hotdata_cards(df):
     st.markdown('<div class="hotdata-table-wrapper">', unsafe_allow_html=True)
     
     for idx, (_, row) in enumerate(df.iterrows()):
-        render_hotdata_card_row(row, idx)
+        # 페이지네이션 기반 순위 계산
+        current_page = st.session_state.hotdata_current_page
+        items_per_page = 20
+        display_rank = (current_page - 1) * items_per_page + idx + 1
+        
+        render_hotdata_card_row(row, display_rank)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-def render_hotdata_card_row(row, idx):
-    """개별 카드 행 렌더링 (수정: 제목과 조회수 사이에 썸네일 추가, 이모티콘 제거)"""
-    rank = int(row.get('순위', 0))
+def render_hotdata_card_row(row, display_rank):
+    """개별 카드 행 렌더링 (순위를 display_rank로 사용)"""
+    rank = display_rank  # ← 이제 페이지네이션 기반 순위 사용
     title = str(row.get('영상제목', 'N/A'))[:100]
     channel_name = str(row.get('채널명', 'N/A'))[:30]
     views = int(row.get('조회수', 0))
@@ -1795,7 +1800,7 @@ def render_hotdata_card_row(row, idx):
     handle = str(row.get('핸들명(@)', '')).strip() if pd.notna(row.get('핸들명(@)', '')) else ''
     link = str(row.get('링크', '')).strip()
     
-    # 🔴 썸네일 URL 가져오기
+    # 썸네일 URL 가져오기
     thumbnail_url = str(row.get('썸네일URL', '')).strip() if pd.notna(row.get('썸네일URL', '')) else ''
     
     # 핸들 표시
@@ -1810,17 +1815,17 @@ def render_hotdata_card_row(row, idx):
     # 카테고리 태그
     category_tag = f'<span class="hotdata-channel-tag">{category}</span>' if category else ''
     
-    # 랭크 배지 색상
-    if rank == 1:
+    # 랭크 배지 색상 (페이지네이션 기반)
+    if rank % 20 == 1:  # 각 페이지의 첫 번째
         rank_color = "#ffd700"
-    elif rank == 2:
+    elif rank % 20 == 2:  # 각 페이지의 두 번째
         rank_color = "#c0c0c0"
-    elif rank == 3:
+    elif rank % 20 == 3:  # 각 페이지의 세 번째
         rank_color = "#cd7f32"
     else:
         rank_color = "#667eea"
     
-    # 🔴 썸네일 HTML 생성 (이모티콘 제거)
+    # 썸네일 HTML 생성
     if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 5:
         thumbnail_html = f'''<img 
             src="{thumbnail_url}" 
@@ -1829,7 +1834,6 @@ def render_hotdata_card_row(row, idx):
             onerror="this.style.display='none';"
         />'''
     else:
-        # 썸네일이 없으면 아무것도 표시하지 않음
         thumbnail_html = ''
     
     # 썸네일이 있을 때만 컨테이너 표시
@@ -1875,6 +1879,7 @@ def render_hotdata_card_row(row, idx):
     '''
     
     st.markdown(card_html, unsafe_allow_html=True)
+
 
 # --- 순서 설정 페이지 ---
 def show_settings():
