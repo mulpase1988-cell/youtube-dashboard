@@ -15,11 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 기존 코드의 st.markdown("""<style>...) 섹션 중
-# "======================== 갤러리 테이블 스타일 ========================" 부터
-# "======================== 액션 버튼 셀 ========================" 까지를
-# 다음 코드로 교체하세요:
-
+# ======================== CSS 스타일 ========================
 st.markdown("""
 <style>
     /* 기본 색상 변수 */
@@ -56,7 +52,7 @@ st.markdown("""
     /* 테이블 헤더 */
     .gallery-table-header {
         display: grid !important;
-        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;  # ← 변경됨
+        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;
         gap: 12px !important;
         background: linear-gradient(135deg, #0f172a 0%, #1a2647 100%) !important;
         border-bottom: 2px solid rgba(255,255,255,0.12) !important;
@@ -78,10 +74,10 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* 테이블 행 (높이 증가) */
+    /* 테이블 행 */
     .gallery-table-row {
         display: grid !important;
-        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;  # ← 변경됨
+        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;
         gap: 12px !important;
         border-bottom: 1px solid rgba(255,255,255,0.05) !important;
         padding: 20px !important;
@@ -105,7 +101,7 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* ======================== 채널 정보 셀 v2 (프로필 이미지 + 태그) ======================== */
+    /* ======================== 채널 정보 셀 v2 ======================== */
     
     .channel-info-cell-v2 {
         display: flex !important;
@@ -127,6 +123,7 @@ st.markdown("""
         justify-content: center !important;
         font-size: 32px !important;
         color: white !important;
+        object-fit: cover !important;
     }
     
     .channel-content-wrapper {
@@ -174,7 +171,7 @@ st.markdown("""
         border: 1px solid rgba(102,126,234,0.6) !important;
         border-radius: 6px !important;
         padding: 5px 11px !important;
-        font-size: 15px !important;
+        font-size: 12px !important;
         color: #b0c0ff !important;
         font-weight: 600 !important;
         white-space: nowrap !important;
@@ -190,7 +187,7 @@ st.markdown("""
         transform: translateY(-1px) !important;
     }
     
-    /* ======================== 구독자 셀 (강조) ======================== */
+    /* ======================== 구독자 셀 ======================== */
     
     .subscriber-cell {
         display: flex !important;
@@ -213,7 +210,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* ======================== 최근 업로드 썸네일 (개선됨: 더 크고 눈에 띄게) ======================== */
+    /* ======================== 최근 업로드 썸네일 ======================== */
     
     .thumbnails-cell {
         display: flex !important;
@@ -243,8 +240,8 @@ st.markdown("""
     }
     
     .thumbnail-item {
-        width: 200px !important;
-        height: 320px !important;
+        width: 120px !important;
+        height: 90px !important;
         border-radius: 8px !important;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         flex-shrink: 0 !important;
@@ -258,27 +255,13 @@ st.markdown("""
         position: relative !important;
         overflow: hidden !important;
         box-shadow: 0 4px 12px rgba(102,126,234,0.2) !important;
-    }
-    
-    .thumbnail-item::before {
-        content: '' !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        background: rgba(0,0,0,0) !important;
-        transition: background 0.3s ease !important;
+        object-fit: cover !important;
     }
     
     .thumbnail-item:hover {
         transform: scale(1.12) translateY(-4px) !important;
         border-color: rgba(102,126,234,0.8) !important;
         box-shadow: 0 8px 20px rgba(102,126,234,0.4) !important;
-    }
-    
-    .thumbnail-item:hover::before {
-        background: rgba(0,0,0,0.15) !important;
     }
     
     /* ======================== 영상 수 셀 ======================== */
@@ -304,7 +287,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-       /* ======================== 일일 증감 셀 (개선됨: 5일, 10일, 15일) ======================== */
+    /* ======================== 일일 증감 셀 ======================== */
     
     .daily-change-cell {
         display: flex !important;
@@ -342,7 +325,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-     .change-total-30 {
+    .change-total-30 {
         background: linear-gradient(135deg, rgba(251,191,36,0.2) 0%, rgba(251,191,36,0.1) 100%) !important;
         border: 1px solid rgba(251,191,36,0.4) !important;
         border-radius: 6px !important;
@@ -364,7 +347,7 @@ st.markdown("""
         margin-top: 2px !important;
     }
     
-       /* ======================== 액션 버튼 셀 (개선됨: 링크 버튼 추가) ======================== */
+    /* ======================== 액션 버튼 셀 ======================== */
     
     .action-cell {
         display: flex !important;
@@ -463,12 +446,47 @@ st.markdown("""
         font-size: 12px !important;
         font-weight: 600 !important;
     }
+    
+    /* ======================== 장르 필터 버튼 ======================== */
+    
+    .genre-filter-container {
+        background-color: rgba(26,38,71,0.3) !important;
+        border: 1px solid rgba(102,126,234,0.2) !important;
+        border-radius: 8px !important;
+        padding: 12px !important;
+        margin-bottom: 14px !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    
+    .genre-filter-btn {
+        padding: 6px 14px !important;
+        border-radius: 6px !important;
+        border: 1px solid rgba(102,126,234,0.4) !important;
+        background: linear-gradient(135deg, rgba(102,126,234,0.2) 0%, rgba(102,126,234,0.1) 100%) !important;
+        color: #a8b8ff !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        white-space: nowrap !important;
+    }
+    
+    .genre-filter-btn:hover {
+        background: linear-gradient(135deg, rgba(102,126,234,0.4) 0%, rgba(102,126,234,0.3) 100%) !important;
+        border-color: rgba(102,126,234,0.7) !important;
+    }
+    
+    .genre-filter-btn.active {
+        background: linear-gradient(135deg, rgba(102,126,234,0.6) 0%, rgba(102,126,234,0.5) 100%) !important;
+        border-color: rgba(102,126,234,1) !important;
+        color: #ffffff !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-
-
-# --- 유틸리티 함수 ---
+# ======================== 유틸리티 함수 ========================
 
 def format_korean_number(num):
     """숫자를 '1.5억', '5300만' 등의 한글 포맷 문자열로 변환"""
@@ -500,28 +518,6 @@ def format_korean_number_with_icon(num):
             return text
     except: return str(num)
 
-def add_status_dot(date_str, ten_day_count):
-    """10일 기준 값에 따라 상태 점(Dot)을 추가"""
-    if not date_str or pd.isna(date_str) or str(date_str).strip() == "": 
-        return ""
-    
-    try:
-        clean_date = str(date_str).split(' ')[0].replace('.', '-').replace('/', '-')
-        
-        try:
-            count = int(float(str(ten_day_count).replace(',', ''))) if not pd.isna(ten_day_count) else 0
-        except:
-            count = 0
-        
-        if count >= 5:
-            return f"{clean_date} 🟢"
-        elif count >= 2:
-            return f"{clean_date} 🔵"
-        else:
-            return f"{clean_date} ❌"
-    except:
-        return str(date_str)
-
 def get_placeholder_icon(category):
     """카테고리별 플레이스홀더 아이콘"""
     icons = {
@@ -538,7 +534,8 @@ def get_placeholder_icon(category):
     }
     return icons.get(category, '📺')
 
-# --- 구글 시트 연결 ---
+# ======================== 구글 시트 연결 ========================
+
 def get_gspread_client():
     credentials_dict = dict(st.secrets["gcp_service_account"])
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -587,7 +584,8 @@ def load_data():
         st.error(f"데이터 로드 실패: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
 
-# --- 백업 기능 ---
+# ======================== 백업 기능 ========================
+
 def run_backup():
     try:
         client = get_gspread_client()
@@ -687,7 +685,8 @@ def sync_order_with_data(saved_order, df, cat_df):
         saved_order['분류2_순서'][cat1] = new_cat2_order
     return saved_order
 
-# --- 네비게이션 ---
+# ======================== 네비게이션 ========================
+
 def show_navigation():
     col1, col2, col3, col4, col5, col6, col7 = st.columns([2.5, 1, 1, 1, 1, 1, 1])
     with col1:
@@ -722,10 +721,15 @@ def show_navigation():
             st.cache_data.clear()
             st.rerun()
 
-# --- 재사용 가능한 사이드바 필터 함수 ---
+# ======================== 사이드바 필터 함수 (수정됨) ========================
+
 def render_sidebar_filters(df, cat_df, page_key=""):
     """
-    다시 사용 가능한 사이드바 필터 UI
+    재사용 가능한 사이드바 필터 UI (개선됨)
+    
+    - 국가 필터와 카테고리만 표시
+    - 카테고리 선택 시 장르 필터는 메인 영역 상단에 표시
+    
     page_key: 'dashboard' 또는 'gallery' (세션 상태 구분용)
     Returns: (selected_country, selected_cat1, selected_cat2)
     """
@@ -738,7 +742,7 @@ def render_sidebar_filters(df, cat_df, page_key=""):
                 "조회할 국가를 선택하세요", 
                 country_options, 
                 key=country_key,
-                label_visibility="visible"
+                label_visibility="collapsed"
             )
         else:
             selected_country = "전체"
@@ -806,42 +810,11 @@ def render_sidebar_filters(df, cat_df, page_key=""):
                 st.session_state[cat1_key] = cat
                 st.session_state[cat2_key] = "전체"
                 st.rerun()
-        
-        st.markdown("---")
-        
-        # 장르 필터 (카테고리 선택 후에만 표시)
-        if st.session_state[cat1_key] != "전체":
-            st.markdown(f"### 📁 {st.session_state[cat1_key]} - 장르")
-            
-            분류2_list = page_order['분류2_순서'].get(st.session_state[cat1_key], ['전체'])
-            
-            for cat2 in 분류2_list:
-                if selected_country != "전체":
-                    count = len(df_for_count[
-                        (df_for_count['분류1'] == st.session_state[cat1_key]) & 
-                        (df_for_count['분류2'] == cat2)
-                    ])
-                else:
-                    count = len(df[
-                        (df['분류1'] == st.session_state[cat1_key]) & 
-                        (df['분류2'] == cat2)
-                    ])
-                
-                display_text = f"{cat2} ({count})"
-                is_active = (st.session_state[cat2_key] == cat2)
-                
-                if st.button(
-                    display_text,
-                    key=f"side_cat2_{st.session_state[cat1_key]}_{cat2}_{page_key}",
-                    use_container_width=True,
-                    type="primary" if is_active else "secondary"
-                ):
-                    st.session_state[cat2_key] = cat2
-                    st.rerun()
     
     return selected_country, st.session_state[cat1_key], st.session_state[cat2_key]
 
-# --- 카테고리설정 페이지 ---
+# ======================== 카테고리설정 페이지 ========================
+
 def show_category_management():
     st.markdown("## 📁 카테고리설정")
     df, cat_df = load_data()
@@ -879,9 +852,10 @@ def show_category_management():
     )
     st.session_state.temp_cat_df = edited_cat
 
-# --- 갤러리 페이지 (사이드바 필터 포함) ---
+# ======================== 갤러리 페이지 (수정됨) ========================
+
 def show_gallery():
-    """다크 모드 테이블 형식의 갤러리 뷰 (사이드바 필터 포함)"""
+    """다크 모드 테이블 형식의 갤러리 뷰 (사이드바 필터 포함, 장르 필터는 메인 상단)"""
     st.markdown("## 🎨 채널 갤러리")
     
     df, cat_df = load_data()
@@ -910,7 +884,64 @@ def show_gallery():
         if selected_cat2 != "전체":
             df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
     
-    # 필터 UI (메인 영역)
+    # ===== 장르 필터 (메인 영역 상단에 표시) =====
+    if selected_cat1 != "전체":
+        page_order = st.session_state.get(f'page_order_gallery', {})
+        분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
+        
+        st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
+        
+        genre_filter_html = '<div class="genre-filter-container">'
+        for cat2 in 분류2_list:
+            if selected_country != "전체":
+                count = len(df_filtered[
+                    (df_filtered['분류1'] == selected_cat1) & 
+                    (df_filtered['분류2'] == cat2)
+                ])
+            else:
+                count = len(df[
+                    (df['분류1'] == selected_cat1) & 
+                    (df['분류2'] == cat2)
+                ])
+            
+            is_active = (selected_cat2 == cat2)
+            display_text = f"{cat2} ({count})"
+            
+            genre_filter_html += f'<button class="genre-filter-btn {"active" if is_active else ""}" onclick="alert(\'클릭됨: {cat2}\')">{display_text}</button>'
+        
+        genre_filter_html += '</div>'
+        st.markdown(genre_filter_html, unsafe_allow_html=True)
+        
+        # 실제 Streamlit 버튼으로 구현
+        genre_cols = st.columns(len(분류2_list))
+        for idx, cat2 in enumerate(분류2_list):
+            if selected_country != "전체":
+                count = len(df_filtered[
+                    (df_filtered['분류1'] == selected_cat1) & 
+                    (df_filtered['분류2'] == cat2)
+                ])
+            else:
+                count = len(df[
+                    (df['분류1'] == selected_cat1) & 
+                    (df['분류2'] == cat2)
+                ])
+            
+            display_text = f"{cat2} ({count})"
+            is_active = (selected_cat2 == cat2)
+            
+            with genre_cols[idx]:
+                if st.button(
+                    display_text,
+                    key=f"gallery_cat2_{selected_cat1}_{cat2}",
+                    use_container_width=True,
+                    type="primary" if is_active else "secondary"
+                ):
+                    st.session_state[f"selected_cat2_gallery"] = cat2
+                    st.rerun()
+        
+        st.markdown("---")
+    
+    # ===== 필터 UI (메인 영역) =====
     st.markdown('<div class="filter-container">', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
@@ -918,16 +949,15 @@ def show_gallery():
     with col2:
         sort_option = st.selectbox("정렬", ["15일합계 ↓", "구독자 ↓", "조회수 ↓", "동영상 ↓"], key="gallery_sort", label_visibility="collapsed")
     with col3:
-        st.write("")  # 레이아웃 간격
+        st.write("")
     with col4:
         items_per_page = st.selectbox("한 페이지", [10, 20, 30, 50], key="gallery_items", label_visibility="collapsed", index=1)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 데이터 필터링 및 정렬 (최적화)
+    # 데이터 필터링 및 정렬
     if search_query:
         df_filtered = df_filtered[df_filtered['채널명'].str.contains(search_query, case=False, na=False)]
     
-    # 정렬
     if "15일합계" in sort_option:
         df_filtered = df_filtered.sort_values('15일조회수합계', ascending=False)
     elif "구독자" in sort_option:
@@ -941,13 +971,11 @@ def show_gallery():
     total_items = len(df_filtered)
     total_pages = max(1, math.ceil(total_items / items_per_page))
     
-    # 현재 페이지 검증
     current_page = st.session_state.gallery_current_page
     if current_page > total_pages:
         current_page = total_pages
         st.session_state.gallery_current_page = current_page
     
-    # 현재 페이지의 데이터만 추출 (성능 최적화)
     start_idx = (current_page - 1) * items_per_page
     end_idx = start_idx + items_per_page
     df_page = df_filtered.iloc[start_idx:end_idx]
@@ -956,7 +984,7 @@ def show_gallery():
     stat_html = f"""<div class="pagination-stats">📊 총 {total_items:,}개 | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items)}</div>"""
     st.markdown(stat_html, unsafe_allow_html=True)
     
-    # 데이터가 있으면 테이블 렌더링 (20개 또는 설정값만 렌더링)
+    # 테이블 렌더링
     if len(df_page) > 0:
         render_gallery_table(df_page)
     else:
@@ -985,7 +1013,6 @@ def render_pagination_controls(current_page, total_pages):
                 st.rerun()
     
     with col3:
-        # 페이지 번호 입력
         selected_page = st.number_input(
             "페이지 선택",
             min_value=1,
@@ -1010,27 +1037,23 @@ def render_pagination_controls(current_page, total_pages):
             st.rerun()
 
 def render_gallery_table(df):
-    """갤러리 테이블 렌더링 (최적화: 필요한 데이터만 처리)"""
-    # 테이블 헤더
+    """갤러리 테이블 렌더링"""
     header_html = """<div class="gallery-table-wrapper"><div class="gallery-table-header"><div>채널 정보</div><div>구독자 수</div><div>최근 콘텐츠</div><div>영상 수</div><div>일일 증감</div><div>액션</div></div>"""
     st.markdown(header_html, unsafe_allow_html=True)
     
-    # 테이블 행 렌더링 (현재 페이지 데이터만)
     for idx, (_, row) in enumerate(df.iterrows()):
         render_gallery_row(row, idx)
     
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ===== 수정: render_gallery_row 함수 (AC~AG 컬럼 영상 썸네일 사용) =====
 def render_gallery_row(row, idx):
     """
     갤러리 테이블 행 렌더링 (개선된 레이아웃)
-    
     - 일일 증감: 5일, 10일, 15일, 최근 30개 토탈 표시
     - 액션: "보러가기" 링크 버튼 추가 (새창에서 열기)
     """
     
-    # ===== 데이터 추출 =====
+    # 데이터 추출
     channel_name = row.get('채널명', 'N/A')
     category = row.get('분류1', '')
     genre = row.get('분류2', '')
@@ -1039,16 +1062,15 @@ def render_gallery_row(row, idx):
     subscribers = int(row.get('구독자', 0))
     videos = int(row.get('동영상', 0))
     
-    # 변화량 데이터 (5일, 10일, 15일)
     change_5day = int(row.get('5일조회수합계', 0))
     change_10day = int(row.get('10일조회수합계', 0))
     change_15day = int(row.get('15일조회수합계', 0))
+    total_30day = int(row.get('최근 30개 토탈', 0))
     
-    # ===== 프로필 이미지 처리 =====
+    # 프로필 이미지 처리
     thumbnail_url = row.get('썸네일', '').strip() if pd.notna(row.get('썸네일', '')) else ''
     
     if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 5:
-        # 실제 이미지 URL 사용 (72x72로 확대)
         profile_html = f'''<img 
             src="{thumbnail_url}" 
             class="channel-profile-img" 
@@ -1057,11 +1079,10 @@ def render_gallery_row(row, idx):
             onerror="this.style.display='none'"
         />'''
     else:
-        # 썸네일 없으면 카테고리 아이콘 (크기 증가)
         profile_icon = get_placeholder_icon(category)
         profile_html = f'<div class="channel-profile-img" style="font-size: 32px;">{profile_icon}</div>'
     
-    # ===== 최근 콘텐츠 썸네일 (AC~AG: 영상1~영상5) =====
+    # 최근 콘텐츠 썸네일
     video_columns = ['영상1', '영상2', '영상3', '영상4', '영상5']
     thumbnails_html = '<div class="thumbnails-cell">'
     
@@ -1069,7 +1090,6 @@ def render_gallery_row(row, idx):
         video_url = row.get(video_col, '').strip() if pd.notna(row.get(video_col, '')) else ''
         
         if video_url and isinstance(video_url, str) and len(video_url) > 5:
-            # 실제 영상 썸네일
             thumbnails_html += f'''<img 
                 src="{video_url}" 
                 class="thumbnail-item" 
@@ -1079,12 +1099,11 @@ def render_gallery_row(row, idx):
                 onerror="this.style.display='none'"
             />'''
         else:
-            # 썸네일 없으면 플레이스홀더
             thumbnails_html += '''<div class="thumbnail-item" style="width: 120px; height: 90px; font-size: 28px;">📹</div>'''
     
     thumbnails_html += '</div>'
     
-    # ===== 카테고리/장르/템플릿 태그 =====
+    # 카테고리/장르/템플릿 태그
     tags_html = ""
     if category:
         tags_html += f'<span class="channel-tag-button">{category}</span>'
@@ -1093,9 +1112,8 @@ def render_gallery_row(row, idx):
     if template:
         tags_html += f'<span class="channel-tag-button">{template}</span>'
     
-    # ===== 일일 증감 정보 (5일, 10일, 15일, 최근 30개 토탈) =====
+    # 일일 증감 정보
     def get_change_color_and_symbol(val):
-        """변화값에 따른 색상과 기호 반환"""
         color = "change-positive" if val >= 0 else "change-negative"
         symbol = "+" if val >= 0 else ""
         return color, symbol
@@ -1104,20 +1122,15 @@ def render_gallery_row(row, idx):
     color_10, symbol_10 = get_change_color_and_symbol(change_10day)
     color_15, symbol_15 = get_change_color_and_symbol(change_15day)
     
-    # 최근 30개 토탈 데이터 (Q행에서 가져옴)
-    total_30day = int(row.get('최근 30개 토탈', 0))
-    
     change_html = f'''<div class="daily-change-cell">
         <div class="change-group">
             <div class="change-value {color_5}">{symbol_5}{format_korean_number(change_5day)}</div>
             <div class="change-label">5일</div>
         </div>
-        <div class="change-separator"></div>
         <div class="change-group">
             <div class="change-value {color_10}">{symbol_10}{format_korean_number(change_10day)}</div>
             <div class="change-label">10일</div>
         </div>
-        <div class="change-separator"></div>
         <div class="change-group">
             <div class="change-value {color_15}">{symbol_15}{format_korean_number(change_15day)}</div>
             <div class="change-label">15일</div>
@@ -1128,8 +1141,7 @@ def render_gallery_row(row, idx):
         </div>
     </div>'''
     
-    # ===== 액션 버튼 (보러가기 링크) =====
-    # URL이 있으면 새창에서 열기, 없으면 비활성화
+    # 액션 버튼
     if url and str(url).startswith(('http://', 'https://')):
         action_html = f'''<div class="action-cell">
             <a href="{url}" target="_blank" rel="noopener noreferrer" class="action-link-btn">
@@ -1143,7 +1155,7 @@ def render_gallery_row(row, idx):
             </div>
         </div>'''
     
-    # ===== 행 HTML 생성 (모든 셀 통합) =====
+    # 행 HTML
     row_html = f'''<div class="gallery-table-row">
         <div class="gallery-table-cell">
             <div class="channel-info-cell-v2">
@@ -1172,18 +1184,13 @@ def render_gallery_row(row, idx):
     
     st.markdown(row_html, unsafe_allow_html=True)
 
+# ======================== 대시보드 페이지 (수정됨) ========================
 
-
-
-
-
-
-# --- 대시보드 페이지 (사이드바 필터 적용) ---
 def show_dashboard():
     df, cat_df = load_data()
     if df.empty: return
     
-    # 사이드바 필터 사용 (page_key="dashboard")
+    # 사이드바 필터 사용
     selected_country, selected_cat1, selected_cat2 = render_sidebar_filters(df, cat_df, page_key="dashboard")
     
     # 필터 적용
@@ -1199,6 +1206,43 @@ def show_dashboard():
             df_filtered = df_filtered[df_filtered['분류2'] == selected_cat2]
     
     st.markdown("---")
+    
+    # ===== 장르 필터 (메인 영역 상단에 표시) =====
+    if selected_cat1 != "전체":
+        page_order = st.session_state.get(f'page_order_dashboard', {})
+        분류2_list = page_order.get('분류2_순서', {}).get(selected_cat1, ['전체'])
+        
+        st.markdown(f"### 📁 {selected_cat1} - 장르 필터")
+        
+        genre_cols = st.columns(len(분류2_list))
+        
+        for idx, cat2 in enumerate(분류2_list):
+            if selected_country != "전체":
+                count = len(df_filtered[
+                    (df_filtered['분류1'] == selected_cat1) & 
+                    (df_filtered['분류2'] == cat2)
+                ])
+            else:
+                count = len(df[
+                    (df['분류1'] == selected_cat1) & 
+                    (df['분류2'] == cat2)
+                ])
+            
+            display_text = f"{cat2} ({count})"
+            is_active = (selected_cat2 == cat2)
+            
+            with genre_cols[idx]:
+                if st.button(
+                    display_text,
+                    key=f"dashboard_cat2_{selected_cat1}_{cat2}",
+                    use_container_width=True,
+                    type="primary" if is_active else "secondary"
+                ):
+                    st.session_state[f"selected_cat2_dashboard"] = cat2
+                    st.rerun()
+        
+        st.markdown("---")
+    
     show_category_detail(df_filtered, cat_df, selected_cat1, selected_cat2)
 
 def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
@@ -1303,7 +1347,8 @@ def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
                     st.cache_data.clear()
                     st.rerun()
 
-# --- 순서 설정 페이지 ---
+# ======================== 순서 설정 페이지 ========================
+
 def show_settings():
     st.markdown("## ⚙️ 순서 설정")
     df, cat_df = load_data()
@@ -1359,6 +1404,8 @@ def chunk_list(data, num_chunks):
         chunks.append(data[int(last):int(next_val)])
         last = next_val
     return chunks
+
+# ======================== 메인 함수 ========================
 
 def main():
     if 'page' not in st.session_state: 
