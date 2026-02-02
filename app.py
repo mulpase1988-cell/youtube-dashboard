@@ -323,7 +323,7 @@ st.markdown("""
     }
     
     .change-value {
-        font-size: 13px !important;
+        font-size: 15px !important;
         font-weight: 800 !important;
         letter-spacing: -0.5px !important;
     }
