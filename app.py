@@ -299,7 +299,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-       /* ======================== 일일 증감 셀 (개선됨: 5일, 10일, 15일) ======================== */
+    /* ======================== 일일 증감 셀 (개선됨: 5일, 10일, 15일) ======================== */
     
     .daily-change-cell {
         display: flex !important;
@@ -337,7 +337,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-     .change-total-30 {
+    .change-total-30 {
         background: linear-gradient(135deg, rgba(251,191,36,0.2) 0%, rgba(251,191,36,0.1) 100%) !important;
         border: 1px solid rgba(251,191,36,0.4) !important;
         border-radius: 6px !important;
@@ -359,7 +359,7 @@ st.markdown("""
         margin-top: 2px !important;
     }
     
-       /* ======================== 액션 버튼 셀 (개선됨: 링크 버튼 추가) ======================== */
+    /* ======================== 액션 버튼 셀 (개선됨: 링크 버튼 추가) ======================== */
     
     .action-cell {
         display: flex !important;
@@ -456,6 +456,168 @@ st.markdown("""
         padding: 10px 14px !important;
         color: #a8b8ff !important;
         font-size: 12px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* ======================== 실시간 그리드 UI ======================== */
+    
+    .realtime-grid-container {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+        gap: 20px !important;
+        padding: 16px 0 !important;
+    }
+    
+    .realtime-card {
+        background: linear-gradient(135deg, #1a2647 0%, #0f172a 100%) !important;
+        border: 2px solid rgba(102,126,234,0.2) !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        cursor: pointer !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    .realtime-card:hover {
+        border-color: rgba(102,126,234,0.6) !important;
+        box-shadow: 0 8px 24px rgba(102,126,234,0.3) !important;
+        transform: translateY(-4px) !important;
+    }
+    
+    .realtime-card-image {
+        width: 100% !important;
+        height: 180px !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 64px !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    .realtime-card-image img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+    
+    .realtime-card-content {
+        padding: 16px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        flex: 1 !important;
+    }
+    
+    .realtime-card-title {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        line-height: 1.3 !important;
+    }
+    
+    .realtime-card-meta {
+        display: flex !important;
+        gap: 12px !important;
+        font-size: 12px !important;
+        color: #a0aec0 !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .realtime-card-meta-item {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+    }
+    
+    .realtime-card-meta-value {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+    }
+    
+    .realtime-card-tags {
+        display: flex !important;
+        gap: 6px !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .realtime-card-tag {
+        background: rgba(102,126,234,0.2) !important;
+        border: 1px solid rgba(102,126,234,0.4) !important;
+        border-radius: 4px !important;
+        padding: 4px 8px !important;
+        font-size: 11px !important;
+        color: #a8b8ff !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+    }
+    
+    .realtime-card-footer {
+        display: flex !important;
+        gap: 8px !important;
+        padding-top: 12px !important;
+        border-top: 1px solid rgba(255,255,255,0.05) !important;
+        margin-top: auto !important;
+    }
+    
+    .realtime-card-btn {
+        flex: 1 !important;
+        padding: 6px 10px !important;
+        background: rgba(102,126,234,0.2) !important;
+        border: 1px solid rgba(102,126,234,0.4) !important;
+        border-radius: 6px !important;
+        color: #a8b8ff !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        text-align: center !important;
+        text-decoration: none !important;
+        display: inline-block !important;
+    }
+    
+    .realtime-card-btn:hover {
+        background: rgba(102,126,234,0.4) !important;
+        border-color: rgba(102,126,234,0.7) !important;
+    }
+    
+    .realtime-stats-container {
+        background: rgba(26,38,71,0.5) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 8px !important;
+        padding: 16px !important;
+        margin-bottom: 20px !important;
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+        gap: 16px !important;
+    }
+    
+    .realtime-stat-box {
+        text-align: center !important;
+        padding: 12px !important;
+        background: rgba(102,126,234,0.1) !important;
+        border-radius: 8px !important;
+        border: 1px solid rgba(102,126,234,0.2) !important;
+    }
+    
+    .realtime-stat-value {
+        font-size: 24px !important;
+        font-weight: 800 !important;
+        color: #667eea !important;
+        line-height: 1.2 !important;
+    }
+    
+    .realtime-stat-label {
+        font-size: 12px !important;
+        color: #a0aec0 !important;
+        margin-top: 4px !important;
         font-weight: 600 !important;
     }
 </style>
@@ -806,6 +968,173 @@ def render_sidebar_filters(df, cat_df, page_key=""):
     
     return selected_country, st.session_state[cat1_key], st.session_state[cat2_key]
 
+# ======================== 실시간 탭 함수 ========================
+
+def show_realtime():
+    """실시간 탭 - 이미지 그리드 스타일"""
+    st.markdown("## 🔴 실시간 채널 모니터링")
+    
+    df, cat_df = load_data()
+    if df.empty: 
+        st.warning("데이터를 불러올 수 없습니다.")
+        return
+    
+    # 필터 적용
+    filter_col1, filter_col2, filter_col3 = st.columns([2, 1, 1])
+    
+    with filter_col1:
+        search_query = st.text_input("🔍 채널명 검색", key="realtime_search", placeholder="채널명을 입력하세요")
+    
+    with filter_col2:
+        sort_option = st.selectbox(
+            "정렬", 
+            ["15일조회수합계 ↓", "최근 30개 토탈 ↓", "구독자 ↓", "조회수 ↓"],
+            key="realtime_sort",
+            label_visibility="collapsed"
+        )
+    
+    with filter_col3:
+        display_count = st.selectbox(
+            "표시 개수",
+            [12, 20, 30, 50, 100],
+            key="realtime_count",
+            label_visibility="collapsed"
+        )
+    
+    # 필터링
+    df_realtime = df.copy()
+    
+    if search_query:
+        df_realtime = df_realtime[df_realtime['채널명'].str.contains(search_query, case=False, na=False)]
+    
+    # 정렬
+    if "15일조회수합계" in sort_option:
+        df_realtime = df_realtime.sort_values('15일조회수합계', ascending=False)
+    elif "최근 30개 토탈" in sort_option:
+        df_realtime = df_realtime.sort_values('최근 30개 토탈', ascending=False)
+    elif "구독자" in sort_option:
+        df_realtime = df_realtime.sort_values('구독자', ascending=False)
+    elif "조회수" in sort_option:
+        df_realtime = df_realtime.sort_values('조회수', ascending=False)
+    
+    # 상위 N개 선택
+    df_realtime = df_realtime.head(display_count)
+    
+    # 통계 표시
+    show_realtime_stats(df_realtime)
+    
+    st.markdown("---")
+    
+    # 그리드 렌더링
+    render_realtime_grid(df_realtime)
+
+def show_realtime_stats(df):
+    """실시간 통계 박스"""
+    total_subscribers = df['구독자'].sum()
+    total_videos = df['동영상'].sum()
+    total_views = df['조회수'].sum()
+    avg_15day = df['15일조회수합계'].mean()
+    
+    stats_html = f"""
+    <div class="realtime-stats-container">
+        <div class="realtime-stat-box">
+            <div class="realtime-stat-value">📊 {len(df):,}</div>
+            <div class="realtime-stat-label">채널 수</div>
+        </div>
+        <div class="realtime-stat-box">
+            <div class="realtime-stat-value">👥 {format_korean_number(total_subscribers)}</div>
+            <div class="realtime-stat-label">총 구독자</div>
+        </div>
+        <div class="realtime-stat-box">
+            <div class="realtime-stat-value">🎬 {total_videos:,}</div>
+            <div class="realtime-stat-label">총 영상 수</div>
+        </div>
+        <div class="realtime-stat-box">
+            <div class="realtime-stat-value">👁️ {format_korean_number(total_views)}</div>
+            <div class="realtime-stat-label">총 조회수</div>
+        </div>
+        <div class="realtime-stat-box">
+            <div class="realtime-stat-value">🔥 {format_korean_number(int(avg_15day))}</div>
+            <div class="realtime-stat-label">평균 15일합계</div>
+        </div>
+    </div>
+    """
+    st.markdown(stats_html, unsafe_allow_html=True)
+
+def render_realtime_grid(df):
+    """실시간 그리드 렌더링"""
+    grid_html = '<div class="realtime-grid-container">'
+    
+    for idx, (_, row) in enumerate(df.iterrows()):
+        grid_html += render_realtime_card(row, idx)
+    
+    grid_html += '</div>'
+    st.markdown(grid_html, unsafe_allow_html=True)
+
+def render_realtime_card(row, idx):
+    """개별 카드 렌더링"""
+    channel_name = row.get('채널명', 'N/A')
+    category = row.get('분류1', '')
+    genre = row.get('분류2', '')
+    url = row.get('URL', '')
+    subscribers = int(row.get('구독자', 0))
+    videos = int(row.get('동영상', 0))
+    change_15day = int(row.get('15일조회수합계', 0))
+    total_30day = int(row.get('최근 30개 토탈', 0))
+    
+    # 썸네일 처리
+    thumbnail_url = row.get('썸네일', '').strip() if pd.notna(row.get('썸네일', '')) else ''
+    
+    if thumbnail_url and isinstance(thumbnail_url, str) and len(thumbnail_url) > 5:
+        image_html = f'<img src="{thumbnail_url}" alt="{channel_name}" onerror="this.style.display=\'none\'">'
+    else:
+        profile_icon = get_placeholder_icon(category)
+        image_html = f'<div style="font-size: 64px;">{profile_icon}</div>'
+    
+    # 태그
+    tags_html = ""
+    if category:
+        tags_html += f'<span class="realtime-card-tag">{category}</span>'
+    if genre:
+        tags_html += f'<span class="realtime-card-tag">{genre}</span>'
+    
+    # 링크 버튼
+    if url and str(url).startswith(('http://', 'https://')):
+        link_btn = f'<a href="{url}" target="_blank" rel="noopener noreferrer" class="realtime-card-btn">🔗 채널보기</a>'
+    else:
+        link_btn = '<div class="realtime-card-btn" style="opacity: 0.5; cursor: not-allowed;">🔗 링크없음</div>'
+    
+    card_html = f"""
+    <div class="realtime-card">
+        <div class="realtime-card-image">{image_html}</div>
+        <div class="realtime-card-content">
+            <div class="realtime-card-title" title="{channel_name}">
+                {channel_name}
+            </div>
+            <div class="realtime-card-tags">{tags_html}</div>
+            <div class="realtime-card-meta">
+                <div class="realtime-card-meta-item">
+                    <div class="realtime-card-meta-value">👥 {format_korean_number(subscribers)}</div>
+                    <div>구독자</div>
+                </div>
+                <div class="realtime-card-meta-item">
+                    <div class="realtime-card-meta-value">🎬 {videos}</div>
+                    <div>영상</div>
+                </div>
+                <div class="realtime-card-meta-item">
+                    <div class="realtime-card-meta-value">🔥 {format_korean_number(change_15day)}</div>
+                    <div>15일</div>
+                </div>
+            </div>
+            <div class="realtime-card-footer">
+                {link_btn}
+            </div>
+        </div>
+    </div>
+    """
+    
+    return card_html
+
 # --- 카테고리설정 페이지 ---
 def show_category_management():
     st.markdown("## 📁 카테고리설정")
@@ -925,7 +1254,7 @@ def show_gallery():
     with col2:
         sort_option = st.selectbox("정렬", ["15일합계 ↓", "구독자 ↓", "조회수 ↓", "동영상 ↓"], key="gallery_sort", label_visibility="collapsed")
     with col3:
-        st.write("")  # 레이아웃 간격
+        st.write("")
     with col4:
         items_per_page = st.selectbox("한 페이지", [10, 20, 30, 50], key="gallery_items", label_visibility="collapsed", index=1)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1159,9 +1488,9 @@ def render_gallery_row(row, idx):
     
     st.markdown(row_html, unsafe_allow_html=True)
 
-# ======================== 수정된 대시보드 페이지 (최대 5개씩 행으로 나누기) ========================
+# ======================== 수정된 대시보드 페이지 (탭 추가) ========================
 def show_dashboard():
-    """대시보드 (사이드바 필터 + 메인 상단 장르 필터)"""
+    """대시보드 (사이드바 필터 + 메인 상단 장르 필터 + 탭)"""
     df, cat_df = load_data()
     if df.empty: return
     
@@ -1224,7 +1553,14 @@ def show_dashboard():
         
         st.markdown("---")
     
-    show_category_detail(df_filtered, cat_df, selected_cat1, selected_cat2)
+    # ===== 2개 탭: 대시보드 + 실시간 =====
+    tab1, tab2 = st.tabs(["📊 대시보드", "🔴 실시간"])
+    
+    with tab1:
+        show_category_detail(df_filtered, cat_df, selected_cat1, selected_cat2)
+    
+    with tab2:
+        show_realtime()
 
 def show_category_detail(df, cat_df, 분류1, 분류2="전체"):
     """카테고리별 상세 데이터 표시"""
