@@ -1683,6 +1683,7 @@ def render_hotdata_sidebar_filters():
 
 
 # ======================== 🔴 실시간 탭 페이지 ========================
+# 🔴 [수정된 함수] show_hotdata() - 전체 개수를 정확하게 계산하고 페이지네이션 처리
 def show_hotdata():
     """🔴 실시간 - 글로벌 핫데이터 (FULL-WIDTH 카드형 + 썸네일)"""
     st.markdown("## 🔴 실시간 인기 영상")
@@ -1723,7 +1724,8 @@ def show_hotdata():
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 필터링
+    # ======================== 🔴 [수정] 필터링 로직 변경 ========================
+    # 1. 먼저 모든 필터를 적용하여 전체 개수를 계산
     df_filtered = df_filtered_sidebar.copy()
     
     # 메인 영역 국가 필터 (추가 필터링)
@@ -1741,16 +1743,19 @@ def show_hotdata():
     elif "구독자" in sort_option:
         df_filtered = df_filtered.sort_values('구독자수', ascending=False)
     
-    # 상위 N개 선택
+    # ======================== 🔴 [수정] 전체 개수 계산 (display_count 적용 전) ========================
+    total_items_all = len(df_filtered)  # 필터 적용 후 전체 개수
+    
+    # display_count로 제한 (상위 N개만 표시)
     df_filtered = df_filtered.head(display_count)
     
     # 페이지네이션 상태 초기화
     if 'hotdata_current_page' not in st.session_state:
         st.session_state.hotdata_current_page = 1
     
-    # 페이지네이션 계산
-    items_per_page = 20
-    total_items = len(df_filtered)
+    # ======================== 🔴 [수정] 페이지네이션 계산 ========================
+    items_per_page = 20  # 한 페이지당 20개 고정
+    total_items = len(df_filtered)  # display_count 적용 후 데이터 개수
     total_pages = max(1, math.ceil(total_items / items_per_page))
     
     # 현재 페이지 검증
@@ -1764,8 +1769,8 @@ def show_hotdata():
     end_idx = start_idx + items_per_page
     df_page = df_filtered.iloc[start_idx:end_idx]
     
-    # 통계 정보 표시
-    stat_html = f"""<div class="pagination-stats">📊 총 {total_items:,}개 | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items)}</div>"""
+    # ======================== 🔴 [수정] 통계 정보 표시 (정확한 개수) ========================
+    stat_html = f"""<div class="pagination-stats">📊 필터된 개수: {total_items_all:,}개 (표시 상위: {display_count:,}개) | 페이지 {current_page}/{total_pages} | 표시 중: {start_idx+1}~{min(end_idx, total_items)}</div>"""
     st.markdown(stat_html, unsafe_allow_html=True)
     
     # 카드 렌더링
@@ -1774,9 +1779,12 @@ def show_hotdata():
     else:
         st.info("검색 결과가 없습니다.")
     
-    # 페이지네이션 컨트롤
+    # ======================== 🔴 [수정] 페이지네이션 컨트롤 표시 ========================
     st.markdown("---")
-    render_pagination_controls(current_page, total_pages, "hotdata")
+    if total_pages > 1:  # 페이지가 2개 이상일 때만 표시
+        render_pagination_controls(current_page, total_pages, "hotdata")
+    else:
+        st.markdown("<p style='text-align:center; color:#a0aec0;'>한 페이지 내 모든 데이터 표시</p>", unsafe_allow_html=True)
 
 def render_hotdata_cards(df):
     """실시간 카드 렌더링 (FULL-WIDTH + 썸네일)"""
