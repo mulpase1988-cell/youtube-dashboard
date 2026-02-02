@@ -49,10 +49,10 @@ st.markdown("""
         margin-bottom: 16px !important;
     }
     
-    /* 테이블 헤더 */
+   /* 테이블 헤더 */
     .gallery-table-header {
         display: grid !important;
-        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;
+        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;  # ← 변경됨
         gap: 12px !important;
         background: linear-gradient(135deg, #0f172a 0%, #1a2647 100%) !important;
         border-bottom: 2px solid rgba(255,255,255,0.12) !important;
@@ -74,10 +74,10 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* 테이블 행 */
+   /* 테이블 행 (높이 증가) */
     .gallery-table-row {
         display: grid !important;
-        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;
+        grid-template-columns: 1.2fr 0.5fr 4.3fr 0.6fr 0.8fr 0.5fr !important;  # ← 변경됨
         gap: 12px !important;
         border-bottom: 1px solid rgba(255,255,255,0.05) !important;
         padding: 20px !important;
