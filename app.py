@@ -304,18 +304,26 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* ======================== 일일 증감 셀 ======================== */
+       /* ======================== 일일 증감 셀 (개선됨: 5일, 10일, 15일) ======================== */
     
     .daily-change-cell {
         display: flex !important;
         flex-direction: column !important;
-        gap: 4px !important;
+        gap: 6px !important;
         justify-content: center !important;
+        align-items: center !important;
+        padding: 8px 4px !important;
+    }
+    
+    .change-group {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 3px !important;
         align-items: center !important;
     }
     
     .change-value {
-        font-size: 16px !important;
+        font-size: 13px !important;
         font-weight: 800 !important;
         letter-spacing: -0.5px !important;
     }
@@ -329,28 +337,36 @@ st.markdown("""
     }
     
     .change-label {
-        font-size: 10px !important;
+        font-size: 8px !important;
         color: #a0aec0 !important;
         font-weight: 600 !important;
     }
     
-    /* ======================== 액션 버튼 셀 ======================== */
+    .change-separator {
+        width: 30px !important;
+        height: 1px !important;
+        background: rgba(255,255,255,0.1) !important;
+        margin: 2px 0 !important;
+    }
+    
+       /* ======================== 액션 버튼 셀 (개선됨: 링크 버튼 추가) ======================== */
     
     .action-cell {
         display: flex !important;
-        gap: 8px !important;
+        gap: 6px !important;
         justify-content: center !important;
         align-items: center !important;
+        flex-wrap: wrap !important;
     }
     
     .action-btn {
-        width: 36px !important;
-        height: 36px !important;
-        border-radius: 8px !important;
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 6px !important;
         background-color: rgba(102,126,234,0.2) !important;
         border: 1px solid rgba(102,126,234,0.4) !important;
         color: #a8b8ff !important;
-        font-size: 16px !important;
+        font-size: 14px !important;
         cursor: pointer !important;
         display: flex !important;
         align-items: center !important;
@@ -362,8 +378,33 @@ st.markdown("""
     .action-btn:hover {
         background-color: rgba(102,126,234,0.4) !important;
         border-color: rgba(102,126,234,0.7) !important;
-        transform: scale(1.15) translateY(-2px) !important;
-        box-shadow: 0 6px 12px rgba(102,126,234,0.3) !important;
+        transform: scale(1.12) translateY(-1px) !important;
+        box-shadow: 0 4px 8px rgba(102,126,234,0.25) !important;
+    }
+    
+    .action-link-btn {
+        padding: 6px 12px !important;
+        background: linear-gradient(135deg, rgba(102,126,234,0.3) 0%, rgba(102,126,234,0.2) 100%) !important;
+        border: 1px solid rgba(102,126,234,0.5) !important;
+        border-radius: 6px !important;
+        color: #a8b8ff !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        text-decoration: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        transition: all 0.3s ease !important;
+        white-space: nowrap !important;
+    }
+    
+    .action-link-btn:hover {
+        background: linear-gradient(135deg, rgba(102,126,234,0.5) 0%, rgba(102,126,234,0.4) 100%) !important;
+        border-color: rgba(102,126,234,0.8) !important;
+        box-shadow: 0 4px 12px rgba(102,126,234,0.3) !important;
+        transform: translateY(-2px) !important;
     }
     
     /* ======================== 필터 UI ======================== */
@@ -970,10 +1011,8 @@ def render_gallery_row(row, idx):
     """
     갤러리 테이블 행 렌더링 (개선된 레이아웃)
     
-    프로필 이미지: 72x72px (둥근 사각형, 더 큼)
-    최근 콘텐츠 썸네일: 120x90px (가로 세로 비율 유지, 훨씬 크게)
-    채널명/핸들/태그: 정렬 개선
-    수치 데이터: 폰트 크기 증가, 중앙 정렬
+    - 일일 증감: 5일, 10일, 15일 변화량 모두 표시
+    - 액션: "보러가기" 링크 버튼 추가 (새창에서 열기)
     """
     
     # ===== 데이터 추출 =====
@@ -984,7 +1023,11 @@ def render_gallery_row(row, idx):
     url = row.get('URL', '')
     subscribers = int(row.get('구독자', 0))
     videos = int(row.get('동영상', 0))
-    change_val = int(row.get('15일조회수합계', 0))
+    
+    # 변화량 데이터 (5일, 10일, 15일)
+    change_5day = int(row.get('5일조회수합계', 0))
+    change_10day = int(row.get('10일조회수합계', 0))
+    change_15day = int(row.get('15일조회수합계', 0))
     
     # ===== 프로필 이미지 처리 =====
     thumbnail_url = row.get('썸네일', '').strip() if pd.notna(row.get('썸네일', '')) else ''
@@ -1003,11 +1046,7 @@ def render_gallery_row(row, idx):
         profile_icon = get_placeholder_icon(category)
         profile_html = f'<div class="channel-profile-img" style="font-size: 32px;">{profile_icon}</div>'
     
-    # ===== 변화량 색상 =====
-    change_color = "change-positive" if change_val >= 0 else "change-negative"
-    change_symbol = "+" if change_val >= 0 else ""
-    
-    # ===== 최근 콘텐츠 썸네일 (AC~AG: 영상1~영상5) - 120x90으로 크게 표시 =====
+    # ===== 최근 콘텐츠 썸네일 (AC~AG: 영상1~영상5) =====
     video_columns = ['영상1', '영상2', '영상3', '영상4', '영상5']
     thumbnails_html = '<div class="thumbnails-cell">'
     
@@ -1015,7 +1054,7 @@ def render_gallery_row(row, idx):
         video_url = row.get(video_col, '').strip() if pd.notna(row.get(video_col, '')) else ''
         
         if video_url and isinstance(video_url, str) and len(video_url) > 5:
-            # 실제 영상 썸네일 (120x90)
+            # 실제 영상 썸네일
             thumbnails_html += f'''<img 
                 src="{video_url}" 
                 class="thumbnail-item" 
@@ -1025,7 +1064,7 @@ def render_gallery_row(row, idx):
                 onerror="this.style.display='none'"
             />'''
         else:
-            # 썸네일 없으면 플레이스홀더 (120x90)
+            # 썸네일 없으면 플레이스홀더
             thumbnails_html += '''<div class="thumbnail-item" style="width: 120px; height: 90px; font-size: 28px;">📹</div>'''
     
     thumbnails_html += '</div>'
@@ -1038,6 +1077,49 @@ def render_gallery_row(row, idx):
         tags_html += f'<span class="channel-tag-button">{genre}</span>'
     if template:
         tags_html += f'<span class="channel-tag-button">{template}</span>'
+    
+    # ===== 일일 증감 정보 (5일, 10일, 15일) =====
+    def get_change_color_and_symbol(val):
+        """변화값에 따른 색상과 기호 반환"""
+        color = "change-positive" if val >= 0 else "change-negative"
+        symbol = "+" if val >= 0 else ""
+        return color, symbol
+    
+    color_5, symbol_5 = get_change_color_and_symbol(change_5day)
+    color_10, symbol_10 = get_change_color_and_symbol(change_10day)
+    color_15, symbol_15 = get_change_color_and_symbol(change_15day)
+    
+    change_html = f'''<div class="daily-change-cell">
+        <div class="change-group">
+            <div class="change-value {color_5}">{symbol_5}{format_korean_number(change_5day)}</div>
+            <div class="change-label">5일</div>
+        </div>
+        <div class="change-separator"></div>
+        <div class="change-group">
+            <div class="change-value {color_10}">{symbol_10}{format_korean_number(change_10day)}</div>
+            <div class="change-label">10일</div>
+        </div>
+        <div class="change-separator"></div>
+        <div class="change-group">
+            <div class="change-value {color_15}">{symbol_15}{format_korean_number(change_15day)}</div>
+            <div class="change-label">15일</div>
+        </div>
+    </div>'''
+    
+    # ===== 액션 버튼 (보러가기 링크) =====
+    # URL이 있으면 새창에서 열기, 없으면 비활성화
+    if url and str(url).startswith(('http://', 'https://')):
+        action_html = f'''<div class="action-cell">
+            <a href="{url}" target="_blank" rel="noopener noreferrer" class="action-link-btn">
+                🔗 보러가기
+            </a>
+        </div>'''
+    else:
+        action_html = f'''<div class="action-cell">
+            <div class="action-link-btn" style="opacity: 0.5; cursor: not-allowed;">
+                🔗 링크없음
+            </div>
+        </div>'''
     
     # ===== 행 HTML 생성 (모든 셀 통합) =====
     row_html = f'''<div class="gallery-table-row">
@@ -1062,17 +1144,12 @@ def render_gallery_row(row, idx):
             <div class="video-count-number">{videos}</div>
             <div class="video-count-label">개</div>
         </div>
-        <div class="gallery-table-cell daily-change-cell">
-            <div class="change-value {change_color}">{change_symbol}{format_korean_number(change_val)}</div>
-            <div class="change-label">최근 15일</div>
-        </div>
-        <div class="gallery-table-cell action-cell">
-            <div class="action-btn" title="상세보기">📊</div>
-            <div class="action-btn" title="즐겨찾기">❤️</div>
-        </div>
+        {change_html}
+        {action_html}
     </div>'''
     
     st.markdown(row_html, unsafe_allow_html=True)
+
 
 
 
