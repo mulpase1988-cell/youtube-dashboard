@@ -1013,13 +1013,14 @@ def render_gallery_table(df):
     
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ===== 수정: render_gallery_row 함수 (구글시트 AH 컬럼 썸네일 - img 태그 사용) =====
+# ===== 수정: render_gallery_row 함수 (AC~AG 컬럼 영상 썸네일 사용) =====
 def render_gallery_row(row, idx):
     """
     갤러리 테이블 행 렌더링 (개선된 채널 정보: 프로필 이미지 + 채널명/핸들 + 카테고리/장르/템플릿 태그)
     
     프로필 이미지 소스: 구글 시트의 '썸네일' 컬럼(AH행) 링크 사용
-    링크가 없으면 카테고리별 플레이스홀더 아이콘 표시
+    최근 콘텐츠 썸네일: AC~AG 컬럼(영상1~영상5) 링크 사용
+    링크가 없으면 플레이스홀더 표시
     
     구조:
     [프로필 이미지(둥근 사각형 - 실제 썸네일 또는 아이콘)] 
@@ -1059,8 +1060,29 @@ def render_gallery_row(row, idx):
     change_color = "change-positive" if change_val >= 0 else "change-negative"
     change_symbol = "+" if change_val >= 0 else ""
     
-    # 썸네일 HTML 생성
-    thumbnails_html = """<div class="thumbnails-cell"><div class="thumbnail-item">📹</div><div class="thumbnail-item">📹</div><div class="thumbnail-item">📹</div><div class="thumbnail-item">📹</div><div class="thumbnail-item">📹</div></div>"""
+    # ===== 최근 콘텐츠 썸네일 HTML 생성 (AC~AG 컬럼: 영상1~영상5) =====
+    # 구글 시트의 영상1, 영상2, 영상3, 영상4, 영상5 컬럼에서 URL 가져오기
+    video_columns = ['영상1', '영상2', '영상3', '영상4', '영상5']
+    thumbnails_html = '<div class="thumbnails-cell">'
+    
+    for video_col in video_columns:
+        video_url = row.get(video_col, '').strip() if pd.notna(row.get(video_col, '')) else ''
+        
+        if video_url and isinstance(video_url, str) and len(video_url) > 5:
+            # 실제 영상 썸네일 URL 사용
+            thumbnails_html += f'''<img 
+                src="{video_url}" 
+                class="thumbnail-item" 
+                style="width: 56px; height: 56px; border-radius: 6px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s ease;" 
+                alt="영상 썸네일" 
+                title="영상 보기"
+                onerror="this.style.display='none'"
+            />'''
+        else:
+            # 썸네일이 없으면 플레이스홀더 표시
+            thumbnails_html += '<div class="thumbnail-item">📹</div>'
+    
+    thumbnails_html += '</div>'
     
     # ===== 카테고리/장르/템플릿 태그 생성 =====
     tags_html = ""
@@ -1075,6 +1097,7 @@ def render_gallery_row(row, idx):
     row_html = f"""<div class="gallery-table-row"><div class="gallery-table-cell"><div class="channel-info-cell-v2">{profile_html}<div class="channel-content-wrapper"><div class="channel-text-info"><div class="channel-name-bold">{channel_name}</div><div class="channel-handle-light">@{channel_name.lower()}</div></div><div class="channel-tags-container">{tags_html}</div></div></div></div><div class="gallery-table-cell subscriber-cell"><div class="subscriber-number">{format_korean_number(subscribers)}</div><div class="subscriber-label">구독자</div></div><div class="gallery-table-cell">{thumbnails_html}</div><div class="gallery-table-cell video-count-cell"><div class="video-count-number">{videos}</div><div class="video-count-label">개</div></div><div class="gallery-table-cell daily-change-cell"><div class="change-value {change_color}">{change_symbol}{format_korean_number(change_val)}</div><div class="change-label">최근 15일</div></div><div class="gallery-table-cell action-cell"><div class="action-btn" title="상세보기">📊</div><div class="action-btn" title="즐겨찾기">❤️</div></div></div>"""
     
     st.markdown(row_html, unsafe_allow_html=True)
+
 
 
 
